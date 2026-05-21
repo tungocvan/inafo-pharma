@@ -1,0 +1,8 @@
+*
+!.gitignore
+
+!admission/
+!admission/**/**
+ 
+!img/
+!img/**
