@@ -226,6 +226,7 @@ class ModuleServiceProvider extends ServiceProvider
         $viewsPath = $this->modulePath($resourcePath, ['views']);
         if ($viewsPath !== null) {
             $this->loadViewsFrom($viewsPath, $module['name']);
+            $this->loadViewsFrom($viewsPath, $module['lower_name']);
         }
 
         $langPath = $this->modulePath($resourcePath, ['lang']);

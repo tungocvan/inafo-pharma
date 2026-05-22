@@ -1,3 +1,62 @@
 ﻿STT,Số thứ tự theo thông tư,Phân nhóm theo thông tư,Tên hoạt chất,Nồng độ - Hàm lượng,Tên thuốc,Dạng bào chế,Đường dùng,Đơn vị tính,Quy cách đóng gói,Giấy phép lưu hành sản phẩm,Hạn dùng,Cơ sở đăng ký,Cơ sở sản xuất,Nước sản xuất,Hiệu lực Visa,GMP Cơ sở sản xuất,Giá kê khai,Link Hồ sơ sản phẩm,Hoạt chất kiểm soát đặc biệt,Ghi chú
-1,48,1,Meloxicam,15mg,Trosicam 15mg,Viên hoà tan nhanh,Uống,Viên,Hộp 3 vỉ x 10 viên,VN-20104-16,36 tháng,Alpex Pharma SA.,Alpex Pharma SA.,Thụy Sĩ,2028-01-01,2027-01-07,"150,000",http://example.com/profile1,FALSE,
-2,548,1,Telmisartan + Hydrochlothiazid,80mg + 12.5mg,Anvo-Telmisartan H,Viên,Uống,Viên,Hộp 3 vỉ x 10 viên,VN-22123-23,36 tháng,Công ty cổ phần dược phẩm Đạt Vi Phú,Công ty cổ phần dược phẩm Đạt Vi Phú,Việt Nam,2028-01-01,2027-01-07,"240,000",http://example.com/profile2,FALSE,
+1,48,1,Meloxicam,15mg,Trosicam 15mg,"Viên hoà tan nhanh, uống",Uống,Viên,Hộp 3 vỉ x 10 viên, VN-20104-16 ,36 tháng,"Alpex Pharma SA, 
+Thụy Sĩ", Alpex Pharma SA ,"
+Thụy Sĩ",,," 8,500 ",,,
+2,72,1,Piroxicam,20mg,Reumoxican,"Viên hoà tan nhanh, uống",Uống,Viên,Hộp 6 vỉ x 10 viên, 560110011523 ,36 tháng,"Farmalabor – Produtos Farmacêuticos, S.A, Portugal"," Farmalabor – Produtos Farmacêuticos, S.A ",Portugal,,," 7,690 ",,,
+3,155,1,Pregabalin,25mg,Pregabakern 25mg,"Viên nang, uống",Uống,Viên,Hộp 4 vỉ x 14 viên, VN-22830-21 ,36 tháng,"Kern Pharma S.L, 
+Tây Ban Nha", Kern Pharma S.L ,"
+Tây Ban Nha",,," 8,000 ",,,
+4,43,1,Ibuprofen,20mg/ml,Goldridons," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Hộp,Hộp 1 chai 100ml, 560100424523 ,36 tháng,"Farmalabor-Produtos Farmacêuticos, S.A (Fab.), Portugal"," Farmalabor-Produtos Farmacêuticos, S.A (Fab.) ",Portugal,,," 98,000 ",,,
+5,548,1,"Telmisartan +
+Hydrochlothiazid",80mg + 12.5mg,"Anvo-Telmisartan HCTZ 80/12,5mg","	Viên, uống",Uống,Viên,Hộp 2 vỉ x 7 viên, 840110178923 ,36 tháng,"Laboratorios Liconsa, S.A, Spain"," Laboratorios Liconsa, S.A ",Spain,,," 15,500 ",,,
+6,427,2,Alfuzosin,"2,5mg","Gourcuff-2,5","	Viên, uống",Uống,Viên,Hộp 10 vỉ x 10 viên, 893110660724 ,36 tháng,"Công ty cổ phần dược phẩm Đạt Vi Phú, Việt Nam", Công ty cổ phần dược phẩm Đạt Vi Phú ,Việt Nam,,," 	4,200 ",,,
+7,377,2,Methotrexat,"2,5mg",Unitrexates,"	Viên, uống",Uống,Viên,Hộp 10 vỉ x 10 viên, 880114434123 ,36 tháng,"Korea United Pharm.Inc, Hàn Quốc", Korea United Pharm.Inc ,Hàn Quốc,,," 4,179 ",,,
+8,377,2,Methotrexat,"2,5mg","Terzence-2,5 ","	Viên, uống",Uống,Viên,Hộp 10 vỉ x 10 viên,893114116224,36 tháng,"Công ty CPDP Đạt Vi Phú , Việt Nam", Công ty CPDP Đạt Vi Phú  ,Việt Nam,,," 4,180 ",,,
+9,377,2,Methotrexat,5mg,Terzence-5  ,"	Viên, uống",Uống,Viên,Hộp 6 vỉ x 10 viên, 893114116324  ,36 tháng,"Công ty CPDP Đạt Vi Phú , Việt Nam", Công ty CPDP Đạt Vi Phú  ,Việt Nam,,," 8,360 ",,,
+10,317,2,Metronidazol,200mg; 60ml,Monizol," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Chai,Hộp 1 chai 60ml, VN-22077-19 ,36 tháng,"Gracure Pharmaceuticals Ltd , India", Gracure Pharmaceuticals Ltd  ,India,,," 62,000 ",,,
+11,43,2,Ibuprofen,20mg/ml; 100ml,Unafen," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Chai,Hộp 1 chai 100ml, VN-21873-19 ,36 tháng,"Gracure Pharmaceuticals Ltd , India", Gracure Pharmaceuticals Ltd  ,India,,," 98,000 ",,,
+12,529,2,"Irbesartan + 
+hydroclorothiazide",300mg + 25mg,IRBEZYD H 300/25,"Viên, uống",Uống,Viên,Hộp 3 vỉ x 10 viên, VN-15750-12 ,36 tháng,"Zydus Lifesciences
+Limited, India"," Zydus Lifesciences
+Limited ",India,,," 10,000 ",,,
+13,317,2,Metronidazol + Chloramphenicol + Nystatin + Dexamethasone acetate,"225mg + 100mg+75mg+0,5mg",GENTUSI,Đặt âm đạo,Đặt,Viên đặt âm đạo,Hộp 2 vỉ x 5 viên, VN-16635-13 ,24  tháng,"Farmaprim Ltd, Moldova", Farmaprim Ltd ,Moldova,,," 26,000 ",,,
+14,184,2,Cefmetazol,2g,Cefmetazol 2g,"Thuốc bột pha tiêm, Tiêm",Tiêm,Lọ,Hộp 01 Lọ x 2g; Hộp 10 Lọ x 2g, 893110229423 ,24 tháng,"Chi nhánh 3 - Công ty Cổ phần Dược phẩm Imexpharm tại Bình Dương , Việt Nam", Chi nhánh 3 - Công ty Cổ phần Dược phẩm Imexpharm tại Bình Dương  ,Việt Nam,,," 158,000 ",,,
+15,778,3,Dapagliflozin ,5 mg,Forbizin 5mg,"Viên, uống",Uống,Viên,Hộp 3 vỉ x 10 viên, 893110208323 ,36 Tháng,"Công ty cổ phần Dược- Trang thiết bị y tế Bình Định
+(BIDIPHAR) , Việt Nam"," Công ty cổ phần Dược- Trang thiết bị y tế Bình Định
+(BIDIPHAR)  ",Việt Nam,,," 12,999 ",,,
+16,501,3,Amlodipine- Atorvastatin,5mg + 20mg,Toduet,"	Viên, uống",Uống,Viên,Hộp 3 vỉ x 10 viên, 893110367524 ,36 tháng,"Công ty CPDP Trường Thọ, Việt Nam", Công ty CPDP Trường Thọ ,Việt Nam,,," 9,000 ",,,
+17,968,4,Ambroxol,30mg/5ml; 50ml,Justone 30 Mg/5 ml," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Chai,Hộp 1 chai x 50ml, 893100153400 ,30 tháng,"Công ty Cổ phần Medcen, Việt Nam", Công ty Cổ phần Medcen ,Việt Nam,,," 30,000 ",,,
+18,962,4,Salbutamol Sulfat,2mg/5ml; 150ml,Sallet," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống, Lọ,Hộp 1 lọ 150ml, VD-34495-20 ,24 tháng,"Công ty cổ phần Dược VTYT Hà Nam, Việt Nam", Công ty cổ phần Dược VTYT Hà Nam ,Việt Nam,,," 49,000 ",,,
+19,169,4,Amoxicilin + Acid Clavulanic,"(400mg + 57mg); 2,1g",Midantin 400/57,"Bột pha hỗn dịch,  uống",Uống,Gói,"Hộp 12 gói x 2,1g", VD-35204-21 ,36 tháng,"Công ty cổ phần dược phẩm Minh Dân, Việt Nam", Công ty cổ phần dược phẩm Minh Dân ,Việt Nam,,," 4,550 ",,,
+20,1007,4,Calci carbonat + Vitamin D3,(500mg + 400 UI); 2.5mg,Centocalcium vitamin D,"Bột pha hỗn dịch,  uống",Uống,Gói,"Hộp 20 gói x 2,5g", VD-22498-15 ,36 tháng,"Công ty Cổ phần Dược phẩm OPV , Việt Nam", Công ty Cổ phần Dược phẩm OPV  ,Việt Nam,,," 4,760 ",,,
+21,673,4,Bismuth subsalicylat,"525,6 mg; 30 ml",Lubicid Suspension," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Gói,"Hộp 10 gói, 20 gói x 30 ml", VD-33480-19 ,24 tháng,"Công ty cổ phần dược phẩm Me Di Sun , Việt Nam", Công ty cổ phần dược phẩm Me Di Sun  ,Việt Nam,,," 9,000 ",,,
+22,949,4,Piracetam,"2.400mg; 7,2ml",Pitamsol," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Gói,Hộp 30 gói, 893110138900 ,36 tháng,"Công ty CP Dược phẩm Agimexpharm, Việt Nam", Công ty CP Dược phẩm Agimexpharm ,Việt Nam,,," 14,500 ",,,
+23,949,4,Piracetam,2.400mg; 24ml,Pitamsol," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Gói,Hộp 30 gói, 893110138900 ,36 tháng,"Công ty CP Dược phẩm Agimexpharm, Việt Nam", Công ty CP Dược phẩm Agimexpharm ,Việt Nam,,," 28,000 ",,,
+24,675,4,Famotidin,20mg; 2ml,Famotidin 20mg/2ml,"Thuốc tiêm, Tiêm",Tiêm,ống,Hộp 10 ống x2ml Hộp 20 ống x2ml Hộp 50 ống x2ml, 893110150900 ,36 tháng,"Công ty cổ phần Dược vật tư y tế Hải Dương, Việt Nam", Công ty cổ phần Dược vật tư y tế Hải Dương ,Việt Nam,,," 40,000 ",,,
+25,134,4,Noradrenalin ,8mg/8ml,Noradrenalin 8mg/8ml,"Thuốc tiêm, Tiêm",Tiêm,ống,"Hộp 2 vỉ x 5 ống x 8ml, hộp 10 vỉ x 5 ống x 8ml ", 893110251024 ,36 tháng,"Công ty cổ phần dược phẩm Vĩnh Phúc, Việt Nam", Công ty cổ phần dược phẩm Vĩnh Phúc ,Việt Nam,,," 74,500 ",,,
+26,134,4,Noradrenalin,5mg/5ml,Noradrenalin 5mg/5ml,"Thuốc tiêm, Tiêm",Tiêm,ống,"Hộp 2 vỉ x 5 ống x 5ml, hộp 10 vỉ x 5 ống x 5ml ", 893110250924 ,36 tháng,"Công ty cổ phần dược phẩm Vĩnh Phúc, Việt Nam", Công ty cổ phần dược phẩm Vĩnh Phúc ,Việt Nam,,," 54,500 ",,,
+27,949,4,Piracetam,600mg; 5ml,Saihasin," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Ống,Hộp 4 vỉ x 5 ống 5 ml, VD-25526-16  ,36 tháng,"Công ty cổ phần dược phẩm Hà Tây , Việt Nam", Công ty cổ phần dược phẩm Hà Tây  ,Việt Nam,,," 6,900 ",,,
+28,679,4,Magnesi hydroxyd + nhôm hydroxyd + simethicon,200mg;200mg;25mg,Simegaz Chew ,"Viên nhai, uống",Uống,Viên,"Hộp 1 túi x 2 vỉ x 12
+viên ", 893100942424 ,24 tháng,"Công ty cổ phần dược phẩm OP, Việt Nam", Công ty cổ phần dược phẩm OP ,Việt Nam,,,,,,
+29,949,4,Piracetam,100mg/ml; 60ml,Ceretrop 10%," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Chai/lọ,"Hộp 1 
+chai 60ml", 893110707424 ,36 tháng,"Công ty cổ phần dược phẩm OPV, Việt Nam", Công ty cổ phần dược phẩm OPV ,Việt Nam,,," 48,000 ",,,
+30,763,4,Dydrogesteron,10mg,Mdlaydi,"Viên, uống",Uống,Viên,Hộp 2 vỉ x 10 viên, 893110173724+J18 ,36 tháng,"Công ty Cổ phần Dược Trung Ương Mediplante, Việt Nam", Công ty Cổ phần Dược Trung Ương Mediplante ,Việt Nam,,," 10,000 ",,,
+31,778,4, Dapagliflozin,10 mg,Zandyrine 10 mg,"Viên, uống",Uống,Viên,Hộp 3 vỉ x 10 viên, 893110223823 ,36 Tháng,"Công ty TNHH DRP Inter , Việt Nam", Công ty TNHH DRP Inter  ,Việt Nam,,," 12,000 ",,,
+32,,4,Ambroxol + Clenbuterol,"(7,5mg + 0,005mg) ; 5ml",Amburol 7.5," Dung dịch/Hỗn dịch/ Nhũ dịch, uống",Uống,Chai,Hộp 01 chai x 70ml (chai nhựa HDPE), 893110292324 ,36 tháng,"Công ty Liên doanh Meyer-BPC, Việt Nam", Công ty Liên doanh Meyer-BPC ,Việt Nam,,," 130,000 ",,,
+33,181,5,Cefdinir ,(125mg/5ml); 70ml,Sanidir,"Bột pha hỗn dịch, uống",Uống,Chai/lọ,Hộp 1 lọ x 70ml, 890110351525 ,24 tháng,"Maxim Pharmaceuticals Pvt. Ltd, Việt Nam", Maxim Pharmaceuticals Pvt. Ltd ,Việt Nam,,," 135,000 ",,,
+34,185,2,Cefoperazon,"0,5g","Cefoperazone 0,5g","Bột pha tiêm, Tiêm",Tiêm,lọ,"Hộp 01 lọ, 10 lọ x 0,5g,  Thuốc bột pha tiêm, tiêm"," 893110387224
+ ",24 tháng,"Chi nhánh 3 - CTCPDP Imexpharm tại Bình Dương , Việt Nam", Chi nhánh 3 - CTCPDP Imexpharm tại Bình Dương  ,Việt Nam,,," 31,700 ",,,
+35,190,4,Cefpirom ,500mg,CEFPIROM TFI 500 MG,"Bột pha tiêm, Tiêm",Tiêm,lọ,"Hộp 1 lọ, 10 lọ", 893110132123 ,36 tháng,"Công ty Cổ phần Trust Farma Quốc tế, Việt Nam", Công ty Cổ phần Trust Farma Quốc tế ,Việt Nam,,," 52,000 ",,,
+36,652,4,Gadoteric acid,"2,7932g tương đương 5mmol/10ml","Ecogaric 0,5 mmol/ml","Thuốc tiêm, Tiêm",Tiêm,lọ,Hộp 1 Lọ x 10 ml, 893110266724 ,24 tháng,"Công ty CPDP An Thiên, Việt Nam", Công ty CPDP An Thiên ,Việt Nam,,," 510,000 ",,,
+37,593,4,Nimodipin,10mg/50ml,Nereid,"Thuốc tiêm, Tiêm",Tiêm,lọ,Hộp 1 chai 50ml, VD-35660-22 ,36 tháng,"Công ty CPDP An Thiên, Việt Nam", Công ty CPDP An Thiên ,Việt Nam,,," 270,000 ",,,
+38,533,2,Lisinopril+ hydrochlorothiazid,"10mg + 12,5mg",AUROLIZA-H,"Viên, uống",Uống,viên,Hộp 2 vỉ x 14 viên," 890110984424
+ ",36 tháng,"Aurobindo, India", Aurobindo ,India,,," 2,300 ",,,
+39,872,2, Betahistin,24mg,Betagen 24,"Viên, uống",Uống,viên,Hộp 03 vỉ  x 14 viên,  VN-23075-22 ,36 tháng,"Gpax Pharmaceuticals
+Private Limited, India"," Gpax Pharmaceuticals
+Private Limited ",India,,," 2,373 ",,,
+40,,4,Nhôm hydroxyd; Magnesi hydroxyd ,"460mg;
+400mg",Maracas,"Bột pha hỗn dịch,  uống",Uống,gói,"Hộp 20 gói x 4,3ml", 893100952125 ,,"Công ty TNHH Dược phẩm Hoa Linh Hà Nam, Việt Nam", Công ty TNHH Dược phẩm Hoa Linh Hà Nam ,Việt Nam,,," 3,200 ",,,
+41,969,1,"Bromhexine
+hydrochloride ",12mg,"Maxinum
+12mg Tablets",Viên nén,Uống,viên,Hộp 10 vỉ x 10 viên, 594100331325 ,36 tháng,"Arena Group S.A, Romania", Arena Group S.A ,Romania,,," 2,000 ",,,
+42,739,4,Simethicon,"275,5mg",Ozdectin,Viên nang mềm,Uống,viên,Hộp 10 vỉ x 10 viên, 893100952824 ,36 tháng,"Công ty TNHH Dược phẩm Hoa Linh Hà Nam, Việt Nam", Công ty TNHH Dược phẩm Hoa Linh Hà Nam ,Việt Nam,,," 3,200 ",,,

@@ -16,6 +16,14 @@
         "children": []
     },
     {
+        "name": "Chat nội bộ",
+        "url": "\/admin\/chat\/internal-chat",
+        "icon": "users",
+        "can": "view_chat",
+        "is_active": true,
+        "children": []
+    },
+    {
         "name": "Quản lý các Chuyên mục",
         "url": "\/admin\/category",
         "icon": "Menu",
@@ -108,6 +116,31 @@
                 "url": "\/admin\/admin-header",
                 "icon": null,
                 "can": "view_role",
+                "is_active": true,
+                "children": []
+            }
+        ]
+    },
+    {
+        "name": "DƯỢC PHẨM",
+        "url": null,
+        "icon": null,
+        "can": "view_pharma",
+        "is_active": true,
+        "children": [
+            {
+                "name": "Hồ sơ Sản phẩm",
+                "url": "\/admin\/pharma",
+                "icon": "users",
+                "can": "create_pharma",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Thuốc trúng thầu",
+                "url": "\/admin\/drug-bid-awards",
+                "icon": "users",
+                "can": "create_pharma",
                 "is_active": true,
                 "children": []
             }

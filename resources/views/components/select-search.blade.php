@@ -44,7 +44,11 @@ function selectSearchComponent(config) {
                     }
                 }
             });
-
+            window.addEventListener('filters-reset', () => {
+                if (this.instance) {
+                    this.instance.clear(); // Xóa giá trị đang chọn trên giao diện UI
+                }
+            });
             // ✅ CHỈ watch khi có options-wire
             if (config.optionsWire) {
                 this.$watch('$wire.' + config.optionsWire, (newOptions) => {

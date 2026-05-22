@@ -7,5 +7,6 @@ return array (
   'tables' => 
   array (
     0 => 'pharma_medicines',
+    1 => 'pharma_drug_bid_awards',
   ),
 );
