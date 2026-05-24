@@ -13,7 +13,7 @@
                 </svg>
                 Xuất file CSV
             </button>
-            <a href="{{ route('admin.pharma.create') }}"
+            <a href="{{ route('admin.pharma.hssp.create') }}"
                class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 font-semibold text-sm text-white hover:bg-blue-700 transition-colors shadow-sm gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -216,7 +216,7 @@
                             </td>
                             <td class="py-4 px-6 text-right">
                                 <div class="inline-flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.pharma.edit', $medicine->id) }}"
+                                    <a href="{{ route('admin.pharma.hssp.edit', $medicine->id) }}"
                                        class="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                        title="Chỉnh sửa">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

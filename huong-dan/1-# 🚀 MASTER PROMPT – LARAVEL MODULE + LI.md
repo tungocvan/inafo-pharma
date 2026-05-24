@@ -59,7 +59,7 @@ Route → Controller → Blade (layout) → Livewire → Service → Model → D
 
 ---
 
-## 🧩 2.3 RESPONSIBILITY (ENFORCED)
+## 🧩 2.3 RESPONSIBILITY (ENFORCED) 
 
 ---
 

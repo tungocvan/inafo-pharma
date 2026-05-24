@@ -120,7 +120,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-2">
-            <a href="{{ route('admin.drug-bid-awards.index') }}" class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors">Hủy lệnh</a>
+            <a href="{{ route('admin.pharma.drug-bid-awards.index') }}" class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors">Hủy lệnh</a>
             <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 font-semibold text-sm text-white hover:bg-blue-700 transition-colors shadow-sm">Lưu hồ sơ thông tin</button>
         </div>
     </form>

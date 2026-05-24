@@ -95,7 +95,7 @@ class Form extends Component
                 $service->store($data);
                 session()->flash('success', 'Thêm hồ sơ trúng thầu mới thành công.');
             }
-            return redirect()->route('admin.drug-bid-awards.index');
+            return redirect()->route('admin.pharma.drug-bid-awards.index');
         } catch (Exception $e) {
             session()->flash('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }

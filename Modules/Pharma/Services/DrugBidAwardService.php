@@ -71,13 +71,21 @@ class DrugBidAwardService
     public function importFromCsv(string $filePath): int
     {
         $rowCount = 0;
+
         if (($handle = fopen($filePath, 'r')) !== false) {
-            fgetcsv($handle, 1000, ','); // Bỏ qua tiêu đề
+            fgetcsv($handle, 1000, ';');
 
             DB::beginTransaction();
+
             try {
-                while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-                    if (empty($data[1]) || empty($data[5])) continue; // Bỏ qua dòng trống
+                while (($data = fgetcsv($handle, 1000, ';')) !== false) {
+                    if (count($data) < 12) {
+                        continue;
+                    }
+
+                    if (empty(trim($data[1])) || empty(trim($data[5]))) {
+                        continue;
+                    }
 
                     DrugBidAward::updateOrCreate(
                         [
@@ -87,25 +95,29 @@ class DrugBidAwardService
                         ],
                         [
                             'packaging_specification'  => trim($data[2]),
-                            'quantity'                 => (int)str_replace(['.', ','], '', $data[3]),
-                            'unit_price'               => (float)str_replace(['.', ','], '', $data[4]),
+                            'quantity'                 => (int) str_replace(['.', ','], '', $data[3]),
+                            'unit_price'               => (float) str_replace(['.', ','], '', $data[4]),
                             'investor_name'            => trim($data[6]),
                             'decision_number'          => trim($data[7]),
-                            'decision_date'            => date('Y-m-d', strtotime(str_replace('/', '-', trim($data[8])))),
-                            'contract_duration_months' => (int)filter_var($data[9], FILTER_SANITIZE_NUMBER_INT),
+                            'decision_date'            => \Carbon\Carbon::createFromFormat('d/m/Y', trim($data[8]))->format('Y-m-d'),
+                            'contract_duration_months' => (int) filter_var($data[9], FILTER_SANITIZE_NUMBER_INT),
                             'decision_document_url'    => trim($data[11]) ?: null,
                         ]
                     );
+
                     $rowCount++;
                 }
+
                 DB::commit();
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 DB::rollBack();
                 fclose($handle);
                 throw $e;
             }
+
             fclose($handle);
         }
+
         return $rowCount;
     }
 

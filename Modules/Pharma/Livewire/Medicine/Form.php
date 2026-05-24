@@ -90,7 +90,7 @@ class Form extends Component
                 session()->flash('success', 'Thêm mới hồ sơ thuốc thành công.');
             }
 
-            return redirect()->route('admin.pharma.index');
+            return redirect()->route('admin.pharma.hssp.index');
         } catch (Exception $e) {
             session()->flash('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }

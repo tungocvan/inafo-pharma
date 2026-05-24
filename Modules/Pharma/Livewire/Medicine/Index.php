@@ -163,7 +163,7 @@ class Index extends Component
             $this->filterSpecialControl
         );
 
-        return view('pharma::livewire.medicine.index', [
+        return view('Pharma::livewire.medicine.index', [
             'medicines'      => $medicines,
             'circularGroups' => $circularGroups
         ]);
