@@ -21,15 +21,16 @@ return new class extends Migration
             $table->string('supplier_representative')->nullable();
             $table->string('area')->nullable();
 
-            $table->decimal('import_price', 15, 2)->nullable();
-            $table->decimal('cost_price', 15, 2)->nullable();
-            $table->decimal('selling_price', 15, 2)->nullable();
-            $table->decimal('invoice_price', 15, 2)->nullable();
+            $table->decimal('import_price', 15, 2)->default(0);
+            $table->decimal('selling_price', 15, 2)->default(0);
+            $table->decimal('invoice_price', 15, 2)->default(0);
 
-            $table->decimal('price_difference', 15, 2)->nullable();
-            $table->decimal('difference_percent', 8, 2)->nullable();
-            $table->decimal('profit_percent', 8, 2)->nullable();
-            $table->decimal('cost_invoice_percent', 8, 2)->nullable();
+            $table->decimal('invoice_difference_amount', 15, 2)->default(0);
+            $table->decimal('invoice_difference_percent', 8, 2)->default(0);
+            $table->decimal('invoice_difference_fee', 15, 2)->default(0);
+
+            $table->decimal('cost_price', 15, 2)->default(0);
+            $table->decimal('gross_profit_percent', 8, 2)->default(0);
 
             $table->decimal('committed_quantity', 15, 2)->nullable();
             $table->string('unit')->nullable();

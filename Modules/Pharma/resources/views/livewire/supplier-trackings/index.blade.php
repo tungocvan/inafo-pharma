@@ -1,137 +1,318 @@
 <div class="mx-auto max-w-7xl space-y-6">
+
+    {{-- HEADER --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Theo dõi nhà cung cấp</h1>
-            <p class="mt-1 text-sm text-gray-500">Quản lý thông tin làm việc, giá và hợp đồng với nhà cung cấp.</p>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">
+                Theo dõi nhà cung cấp
+            </h1>
+            <p class="mt-1 text-sm text-gray-500">
+                Quản lý giá nhập, giá hóa đơn, phí chênh lệch, giá vốn, lợi nhuận và hợp đồng NCC.
+            </p>
         </div>
 
         <a href="{{ route('admin.pharma.supplier-trackings.create') }}"
             class="inline-flex h-[50px] items-center justify-center rounded-xl bg-indigo-600 px-5 font-semibold text-white shadow-sm hover:bg-indigo-500">
-            Thêm mới
+            + Thêm theo dõi
         </a>
     </div>
 
+    {{-- ALERT --}}
     @if (session('success'))
         <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             {{ session('success') }}
         </div>
     @endif
 
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="grid gap-4 md:grid-cols-3">
-            <input type="text" wire:model.live="search" placeholder="Tìm thuốc, nhà cung cấp, đại diện..."
-                class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-
-            <select wire:model.live="status"
-                class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-                <option value="">Tất cả trạng thái</option>
-                <option value="active">Đang theo dõi</option>
-                <option value="completed">Hoàn tất</option>
-                <option value="paused">Tạm dừng</option>
-                <option value="cancelled">Hủy</option>
-            </select>
+    @if (session('error'))
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {{ session('error') }}
         </div>
-    </div>
+    @endif
 
-    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div
-            class="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-            <div class="flex flex-wrap gap-3">
-                <button type="button" wire:click="deleteSelected"
-                    wire:confirm="Bạn chắc chắn muốn xóa các dòng đã chọn?"
-                    class="inline-flex h-[50px] items-center justify-center rounded-xl bg-red-600 px-5 font-semibold text-white shadow-sm hover:bg-red-500">
-                    Xóa đã chọn
+    @if (session('import_errors'))
+        <div class="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            <div class="font-semibold">Một số dòng import bị bỏ qua:</div>
+            <ul class="mt-2 list-inside list-disc space-y-1">
+                @foreach (array_slice(session('import_errors'), 0, 10) as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{-- FILTER + IMPORT EXPORT --}}
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="grid gap-4 lg:grid-cols-12">
+
+            <div class="lg:col-span-4">
+                <label class="text-sm font-medium text-gray-700">Tìm kiếm</label>
+                <input
+                    type="text"
+                    wire:model.live.debounce.400ms="search"
+                    placeholder="Tên thuốc, SĐK, NCC, đại diện, khu vực..."
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+            </div>
+
+            <div class="lg:col-span-2">
+                <label class="text-sm font-medium text-gray-700">Trạng thái</label>
+                <select
+                    wire:model.live="status"
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                    <option value="">Tất cả</option>
+                    @foreach ($statuses as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="lg:col-span-2">
+                <label class="text-sm font-medium text-gray-700">Hiển thị</label>
+                <select
+                    wire:model.live="perPage"
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                    <option value="10">10 dòng</option>
+                    <option value="15">15 dòng</option>
+                    <option value="25">25 dòng</option>
+                    <option value="50">50 dòng</option>
+                    <option value="100">100 dòng</option>
+                </select>
+            </div>
+
+            <div class="flex items-end gap-3 lg:col-span-4">
+                <button
+                    type="button"
+                    wire:click="resetFilters"
+                    class="inline-flex h-[50px] items-center justify-center rounded-xl border border-gray-300 bg-white px-4 font-semibold text-gray-700 hover:bg-gray-50">
+                    Reset
                 </button>
 
-                <button type="button" wire:click="export"
-                    class="inline-flex h-[50px] items-center justify-center rounded-xl bg-emerald-600 px-5 font-semibold text-white shadow-sm hover:bg-emerald-500">
+                <button
+                    type="button"
+                    wire:click="export"
+                    class="inline-flex h-[50px] items-center justify-center rounded-xl bg-emerald-600 px-4 font-semibold text-white shadow-sm hover:bg-emerald-500">
                     Export Excel
                 </button>
             </div>
+        </div>
 
-            <form wire:submit="import" class="flex flex-col gap-3 md:flex-row md:items-center">
-                <input type="file" wire:model="importFile" accept=".xlsx,.xls,.csv"
-                    class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 md:w-72">
+        <div class="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between">
+            <form wire:submit="import" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input
+                    type="file"
+                    wire:model="importFile"
+                    accept=".xlsx,.xls,.csv"
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 sm:w-80">
 
-                <button type="submit"
+                <button
+                    type="submit"
                     class="inline-flex h-[50px] items-center justify-center rounded-xl bg-indigo-600 px-5 font-semibold text-white shadow-sm hover:bg-indigo-500">
                     Import
                 </button>
             </form>
+
+            @error('importFile')
+                <p class="text-sm text-red-600">{{ $message }}</p>
+            @enderror
+
+            <div class="flex items-center gap-3">
+                @if ($this->hasSelected)
+                    <span class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
+                        Đã chọn {{ $this->selectedCount }} dòng
+                    </span>
+                @endif
+
+                <button
+                    type="button"
+                    wire:click="deleteSelected"
+                    wire:confirm="Bạn chắc chắn muốn xóa các dòng đã chọn?"
+                    class="inline-flex h-[50px] items-center justify-center rounded-xl bg-red-600 px-5 font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    @disabled(! $this->hasSelected)>
+                    Xóa đã chọn
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- TABLE --}}
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="min-w-[1600px] divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left">
+                            <input
+                                type="checkbox"
+                                wire:model.live="selectAll"
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        </th>
+
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Sản phẩm</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Nhà cung cấp</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá nhập</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá HĐ</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Chênh lệch HĐ</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">% phí</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Phí CL</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá vốn</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá bán</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">LN thực tế</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Cam kết</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Hợp đồng</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500">Trạng thái</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Thao tác</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    @forelse ($items as $item)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-4 align-top">
+                                <input
+                                    type="checkbox"
+                                    wire:model.live="selected"
+                                    value="{{ $item->id }}"
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            </td>
+
+                            <td class="px-4 py-4 align-top">
+                                <div class="max-w-xs">
+                                    <div class="font-semibold text-gray-900">
+                                        {{ $item->medicine?->name ?? '---' }}
+                                    </div>
+                                    <div class="mt-1 text-xs text-gray-500">
+                                        SĐK: {{ $item->medicine?->registration_number ?? '---' }}
+                                    </div>
+                                    <div class="mt-1 text-xs text-gray-500">
+                                        Ngày làm việc:
+                                        {{ $item->working_date ? $item->working_date->format('d/m/Y') : '---' }}
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="px-4 py-4 align-top">
+                                <div class="font-medium text-gray-900">
+                                    {{ $item->supplier_name }}
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    Đại diện: {{ $item->supplier_representative ?: '---' }}
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    Khu vực: {{ $item->area ?: '---' }}
+                                </div>
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top font-medium text-gray-900">
+                                {{ $this->money($item->import_price) }}
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top">
+                                {{ $this->money($item->invoice_price) }}
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top">
+                                {{ $this->money($item->invoice_difference_amount) }}
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top">
+                                {{ $this->percent($item->invoice_difference_percent) }}
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top text-amber-700">
+                                {{ $this->money($item->invoice_difference_fee) }}
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top font-semibold text-gray-900">
+                                {{ $this->money($item->cost_price) }}
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top">
+                                {{ $this->money($item->selling_price) }}
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top">
+                                <span class="rounded-full px-3 py-1 text-xs font-semibold
+                                    {{ $item->gross_profit_percent >= 30 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700' }}">
+                                    {{ $this->percent($item->gross_profit_percent) }}
+                                </span>
+                            </td>
+
+                            <td class="px-4 py-4 align-top">
+                                <div class="text-sm text-gray-900">
+                                    {{ $item->committed_quantity ? $this->money($item->committed_quantity) : '---' }}
+                                    {{ $item->unit }}
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    Cọc: {{ $item->deposit_amount ? $this->money($item->deposit_amount) : '---' }}
+                                </div>
+                            </td>
+
+                            <td class="px-4 py-4 align-top">
+                                <div class="text-xs text-gray-500">
+                                    {{ $item->start_date ? $item->start_date->format('d/m/Y') : '---' }}
+                                    →
+                                    {{ $item->end_date ? $item->end_date->format('d/m/Y') : '---' }}
+                                </div>
+
+                                @if ($item->contract_url)
+                                    <a href="{{ $item->contract_url }}" target="_blank"
+                                        class="mt-1 inline-flex text-xs font-semibold text-indigo-600 hover:text-indigo-500">
+                                        Xem hợp đồng
+                                    </a>
+                                @else
+                                    <div class="mt-1 text-xs text-gray-400">Chưa có URL</div>
+                                @endif
+                            </td>
+
+                            <td class="px-4 py-4 text-center align-top">
+                                @php
+                                    $statusClasses = [
+                                        'active' => 'bg-blue-50 text-blue-700',
+                                        'completed' => 'bg-green-50 text-green-700',
+                                        'paused' => 'bg-yellow-50 text-yellow-700',
+                                        'cancelled' => 'bg-red-50 text-red-700',
+                                    ];
+                                @endphp
+
+                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$item->status] ?? 'bg-gray-100 text-gray-700' }}">
+                                    {{ $statuses[$item->status] ?? $item->status }}
+                                </span>
+                            </td>
+
+                            <td class="px-4 py-4 text-right align-top">
+                                <div class="flex justify-end gap-3">
+                                    <a href="{{ route('admin.pharma.supplier-trackings.edit', $item->id) }}"
+                                        class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+                                        Sửa
+                                    </a>
+
+                                    <button
+                                        type="button"
+                                        wire:click="delete({{ $item->id }})"
+                                        wire:confirm="Bạn chắc chắn muốn xóa dòng này?"
+                                        class="text-sm font-semibold text-red-600 hover:text-red-500">
+                                        Xóa
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="15" class="px-4 py-12 text-center">
+                                <div class="text-sm font-medium text-gray-900">
+                                    Chưa có dữ liệu theo dõi nhà cung cấp
+                                </div>
+                                <div class="mt-1 text-sm text-gray-500">
+                                    Hãy thêm mới hoặc import Excel để bắt đầu quản lý.
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
 
-        @if (session('error'))
-            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {{ session('error') }}
-            </div>
-        @endif
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-left">
-                        <input type="checkbox" wire:model.live="selectAll"
-                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Thuốc</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Nhà cung cấp</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá nhập</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá HĐ</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Chênh lệch</th>
-                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500">Trạng thái</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Thao tác</th>
-                </tr>
-            </thead>
-
-            <tbody class="divide-y divide-gray-100">
-                @forelse ($items as $item)
-                    <tr>
-                        <td class="px-4 py-4">
-                            <input type="checkbox" wire:model.live="selected" value="{{ $item->id }}"
-                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        </td>
-                        <td class="px-4 py-4">
-                            <div class="font-medium text-gray-900">{{ $item->medicine?->name }}</div>
-                            <div class="text-sm text-gray-500">{{ $item->medicine?->registration_number }}</div>
-                        </td>
-
-                        <td class="px-4 py-4">
-                            <div class="font-medium text-gray-900">{{ $item->supplier_name }}</div>
-                            <div class="text-sm text-gray-500">{{ $item->supplier_representative }}</div>
-                        </td>
-
-                        <td class="px-4 py-4 text-right">{{ number_format($item->import_price) }}</td>
-                        <td class="px-4 py-4 text-right">{{ number_format($item->invoice_price) }}</td>
-                        <td class="px-4 py-4 text-right">{{ number_format($item->price_difference) }}</td>
-
-                        <td class="px-4 py-4 text-center">
-                            <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                                {{ $item->status }}
-                            </span>
-                        </td>
-
-                        <td class="px-4 py-4 text-right">
-                            <a href="{{ route('admin.pharma.supplier-trackings.edit', $item->id) }}"
-                                class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">
-                                Sửa
-                            </a>
-
-                            <button wire:click="delete({{ $item->id }})" wire:confirm="Bạn chắc chắn muốn xóa?"
-                                class="ml-3 text-sm font-semibold text-red-600 hover:text-red-500">
-                                Xóa
-                            </button>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="px-4 py-10 text-center text-gray-500">
-                            Chưa có dữ liệu theo dõi nhà cung cấp.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-
-        <div class="border-t border-gray-200 p-4">
+        <div class="border-t border-gray-200 px-4 py-4">
             {{ $items->links() }}
         </div>
     </div>
