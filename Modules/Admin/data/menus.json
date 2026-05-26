@@ -122,6 +122,22 @@
         ]
     },
     {
+        "name": "Quản lý Đối tác",
+        "url": "\/admin\/partner\/partners",
+        "icon": "users",
+        "can": "create_partner",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Quản lý Hồ sơ Account",
+        "url": "\/admin\/accounts",
+        "icon": "users",
+        "can": "create_account",
+        "is_active": true,
+        "children": []
+    },
+    {
         "name": "DƯỢC PHẨM",
         "url": null,
         "icon": null,
@@ -130,7 +146,7 @@
         "children": [
             {
                 "name": "Hồ sơ Sản phẩm",
-                "url": "\/admin\/pharma",
+                "url": "\/admin\/pharma\/hssp",
                 "icon": "users",
                 "can": "create_pharma",
                 "is_active": true,
@@ -138,7 +154,15 @@
             },
             {
                 "name": "Thuốc trúng thầu",
-                "url": "\/admin\/drug-bid-awards",
+                "url": "\/admin\/pharma\/drug-bid-awards",
+                "icon": "users",
+                "can": "create_pharma",
+                "is_active": true,
+                "children": []
+            },
+            {
+                "name": "Theo dõi nhà cung cấp",
+                "url": "\/admin\/pharma\/supplier-trackings",
                 "icon": "users",
                 "can": "create_pharma",
                 "is_active": true,
