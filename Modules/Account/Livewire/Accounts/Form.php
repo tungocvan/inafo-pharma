@@ -6,9 +6,12 @@ use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Modules\Account\Models\User;
 use Modules\Account\Services\AccountService;
+use Livewire\WithFileUploads;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class Form extends Component
 {
+    use WithFileUploads;
     public ?int $id = null;
 
     public string $name = '';
@@ -60,6 +63,24 @@ class Form extends Component
     public string $customer_status = 'active';
 
     public ?string $customer_note = null;
+
+    public ?string $identity_type = null;
+    public ?string $identity_number = null;
+    public ?string $issued_date = null;
+    public ?string $issued_place = null;
+
+    public ?string $front_image = null;
+    public ?string $back_image = null;
+    public ?string $portrait_4x6_image = null;
+
+    public ?TemporaryUploadedFile $front_image_upload = null;
+    public ?TemporaryUploadedFile $back_image_upload = null;
+    public ?TemporaryUploadedFile $portrait_4x6_image_upload = null;
+
+    public ?string $tax_code = null;
+    public ?string $tax_registered_name = null;
+    public ?string $tax_address = null;
+    public ?string $identity_note = null;
 
     protected AccountService $accountService;
 
@@ -160,6 +181,24 @@ class Form extends Component
     {
         $validated = $this->validate();
 
+        $validated['front_image'] = $this->storeIdentityImage(
+            file: $this->front_image_upload,
+            oldPath: $this->front_image,
+            folder: 'account/identity/front'
+        );
+
+        $validated['back_image'] = $this->storeIdentityImage(
+            file: $this->back_image_upload,
+            oldPath: $this->back_image,
+            folder: 'account/identity/back'
+        );
+
+        $validated['portrait_4x6_image'] = $this->storeIdentityImage(
+            file: $this->portrait_4x6_image_upload,
+            oldPath: $this->portrait_4x6_image,
+            folder: 'account/identity/portrait-4x6'
+        );
+
         if ($this->id) {
             $this->accountService->update($this->id, $validated);
 
@@ -175,6 +214,18 @@ class Form extends Component
         }
 
         $this->redirectRoute('admin.accounts.index', navigate: true);
+    }
+
+    private function storeIdentityImage(
+        ?TemporaryUploadedFile $file,
+        ?string $oldPath,
+        string $folder
+    ): ?string {
+        if (! $file) {
+            return $oldPath;
+        }
+
+        return $file->store($folder, 'public');
     }
 
     private function fillForm(User $user): void
@@ -207,6 +258,21 @@ class Form extends Component
             $this->ward = $user->customerProfile->ward;
             $this->customer_status = $user->customerProfile->status ?? 'active';
             $this->customer_note = $user->customerProfile->note;
+        }
+        if ($user->identityProfile) {
+            $this->identity_type = $user->identityProfile->identity_type;
+            $this->identity_number = $user->identityProfile->identity_number;
+            $this->issued_date = optional($user->identityProfile->issued_date)->format('Y-m-d');
+            $this->issued_place = $user->identityProfile->issued_place;
+
+            $this->front_image = $user->identityProfile->front_image;
+            $this->back_image = $user->identityProfile->back_image;
+            $this->portrait_4x6_image = $user->identityProfile->portrait_4x6_image;
+
+            $this->tax_code = $user->identityProfile->tax_code;
+            $this->tax_registered_name = $user->identityProfile->tax_registered_name;
+            $this->tax_address = $user->identityProfile->tax_address;
+            $this->identity_note = $user->identityProfile->note;
         }
     }
 

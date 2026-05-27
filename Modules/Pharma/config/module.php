@@ -4,7 +4,13 @@ return array (
   'name' => 'Pharma',
   'type' => 'domain',
   'enabled' => true,
-  'tables' => 
+  'permissions' => [
+        'view_pharma',
+        'create_pharma',
+        'edit_pharma',
+        'delete_pharma',
+    ],
+  'tables' =>
   array (
     0 => 'pharma_medicines',
     1 => 'pharma_drug_bid_awards',

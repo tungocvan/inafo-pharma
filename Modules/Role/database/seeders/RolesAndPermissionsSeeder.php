@@ -2,60 +2,72 @@
 
 namespace Modules\Role\database\Seeders;
 
+
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Support\Facades\File;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $modulesPath = base_path('Modules');
+        $guardName = 'admin';
 
-        // Các action mặc định
-        $baseActions = ['view', 'create', 'edit', 'delete'];
+        $permissions = $this->loadModulePermissions();
 
-        $actions = [];
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => $guardName,
+            ]);
+        }
 
-        // Lấy danh sách thư mục Modules
-        $modules = File::directories($modulesPath);
+        $superAdmin = Role::firstOrCreate([
+            'name' => 'Super Admin',
+            'guard_name' => $guardName,
+        ]);
 
-        foreach ($modules as $modulePath) {
-            $moduleName = strtolower(basename($modulePath)); // Product → product
+        $superAdmin->syncPermissions(
+            Permission::where('guard_name', $guardName)->get()
+        );
 
-            foreach ($baseActions as $action) {
-                $actions[] = "{$action}_{$moduleName}";
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+
+    private function loadModulePermissions(): array
+    {
+        $permissions = [];
+
+        foreach (File::directories(base_path('Modules')) as $modulePath) {
+            $moduleConfigFile = $modulePath . '/config/module.php';
+
+            if (! File::exists($moduleConfigFile)) {
+                continue;
             }
+
+            $moduleConfig = require $moduleConfigFile;
+
+            if (! ($moduleConfig['enabled'] ?? true)) {
+                continue;
+            }
+
+            $modulePermissions = $moduleConfig['permissions'] ?? [];
+
+            if (! is_array($modulePermissions)) {
+                continue;
+            }
+
+            $permissions = array_merge($permissions, $modulePermissions);
         }
 
-        // 1. Tạo permissions
-        foreach ($actions as $action) {
-            Permission::firstOrCreate(['name' => $action, 'guard_name' => 'web']);
-            Permission::firstOrCreate(['name' => $action, 'guard_name' => 'admin']);
-        }
-
-        // 2. Role admin
-        $roleAdmin = Role::firstOrCreate([
-            'name' => 'Super Admin',
-            'guard_name' => 'admin'
-        ]);
-
-        $roleAdmin->givePermissionTo(
-            Permission::where('guard_name', 'admin')->get()
-        );
-
-        // 3. Role web
-        $roleWeb = Role::firstOrCreate([
-            'name' => 'Super Admin',
-            'guard_name' => 'web'
-        ]);
-
-        $roleWeb->givePermissionTo(
-            Permission::where('guard_name', 'web')->get()
-        );
-
+        return collect($permissions)
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
     }
 }

@@ -157,7 +157,7 @@
                             </td>
                             <td class="px-4 py-4">
                                 <div class="flex flex-wrap gap-2">
-                                    @forelse ($account->roles as $role)
+                                    @forelse ($account->accountRoles as $role)
                                         <span
                                             class="inline-flex rounded-full px-3 py-1 text-xs font-semibold
                 {{ $role->name === 'Super Admin' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700' }}">
@@ -193,11 +193,18 @@
                                         Sửa
                                     </a>
 
-                                    <button type="button" wire:click="delete({{ $account->id }})"
-                                        wire:confirm="Bạn chắc chắn muốn xóa tài khoản này?"
-                                        class="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500">
-                                        Xóa
-                                    </button>
+                                    @if ($isSuperAdmin)
+                                        <button type="button" disabled
+                                            class="inline-flex h-10 cursor-not-allowed items-center justify-center rounded-xl bg-gray-200 px-4 text-sm font-semibold text-gray-500">
+                                            Không thể xóa
+                                        </button>
+                                    @else
+                                        <button type="button" wire:click="delete({{ $account->id }})"
+                                            wire:confirm="Bạn chắc chắn muốn xóa tài khoản này?"
+                                            class="inline-flex h-10 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500">
+                                            Xóa
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

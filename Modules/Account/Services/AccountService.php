@@ -10,14 +10,21 @@ use Illuminate\Support\Facades\Hash;
 use Modules\Account\Models\CustomerProfile;
 use Modules\Account\Models\EmployeeProfile;
 use Modules\Account\Models\User;
+use Modules\Account\Models\UserIdentityProfile;
 
+use function Laravel\Prompts\alert;
 
 class AccountService
 {
     public function paginate(array $filters = [], int|string $perPage = 10): LengthAwarePaginator|Collection
     {
         $query = User::query()
-            ->with(['roles','employeeProfile', 'customerProfile'])
+            ->with([
+                'accountRoles',
+                'employeeProfile',
+                'customerProfile',
+                'identityProfile',
+            ])
             ->when($filters['search'] ?? null, function ($query, string $search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('name', 'like', "%{$search}%")
@@ -46,7 +53,13 @@ class AccountService
     public function find(int $id): User
     {
         return User::query()
-            ->with(['employeeProfile', 'customerProfile', 'metas'])
+            ->with([
+                'accountRoles',
+                'employeeProfile',
+                'customerProfile',
+                'identityProfile',
+                'metas',
+            ])
             ->findOrFail($id);
     }
 
@@ -56,8 +69,14 @@ class AccountService
             $user = User::query()->create($this->userPayload($data));
 
             $this->syncProfile($user, $data);
+            $this->syncIdentityProfile($user, $data);
 
-            return $user->load(['employeeProfile', 'customerProfile']);
+            return $user->load([
+                'accountRoles',
+                'employeeProfile',
+                'customerProfile',
+                'identityProfile',
+            ]);
         });
     }
 
@@ -69,8 +88,14 @@ class AccountService
             $user->update($this->userPayload($data, true));
 
             $this->syncProfile($user, $data);
+            $this->syncIdentityProfile($user, $data);
 
-            return $user->load(['employeeProfile', 'customerProfile']);
+            return $user->load([
+                'accountRoles',
+                'employeeProfile',
+                'customerProfile',
+                'identityProfile',
+            ]);
         });
     }
 
@@ -79,19 +104,41 @@ class AccountService
         DB::transaction(function () use ($id) {
             $user = $this->find($id);
 
+            if ($user->isSuperAdmin()) {
+                throw new \RuntimeException('Không thể xóa tài khoản Super Admin.');
+            }
+
             $user->delete();
         });
     }
 
-    public function bulkDelete(array $ids): void
+    public function bulkDelete(array $ids): array
     {
-        DB::transaction(function () use ($ids) {
-            User::query()
-                ->whereIn('id', $ids)
-                ->delete();
-        });
-    }
+        $deleted = 0;
+        $skippedAdmin = 0;
 
+        DB::transaction(function () use ($ids, &$deleted, &$skippedAdmin) {
+            User::query()
+                ->with('accountRoles')
+                ->whereIn('id', $ids)
+                ->get()
+                ->each(function (User $user) use (&$deleted, &$skippedAdmin) {
+                    if ($user->isSuperAdmin()) {
+                        $skippedAdmin++;
+
+                        return;
+                    }
+
+                    $user->delete();
+                    $deleted++;
+                });
+        });
+
+        return [
+            'deleted' => $deleted,
+            'skipped_admin' => $skippedAdmin,
+        ];
+    }
     public function toggleActive(int $id): User
     {
         $user = $this->find($id);
@@ -272,5 +319,42 @@ class AccountService
         });
 
         return $count;
+    }
+    private function syncIdentityProfile(User $user, array $data): void
+    {
+        $hasIdentityData = collect([
+            $data['identity_type'] ?? null,
+            $data['identity_number'] ?? null,
+            $data['issued_date'] ?? null,
+            $data['issued_place'] ?? null,
+            $data['front_image'] ?? null,
+            $data['back_image'] ?? null,
+            $data['portrait_4x6_image'] ?? null,
+            $data['tax_code'] ?? null,
+            $data['tax_registered_name'] ?? null,
+            $data['tax_address'] ?? null,
+            $data['identity_note'] ?? null,
+        ])->filter(fn($value) => filled($value))->isNotEmpty();
+
+        if (! $hasIdentityData) {
+            return;
+        }
+
+        UserIdentityProfile::query()->updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'identity_type' => $data['identity_type'] ?? null,
+                'identity_number' => $data['identity_number'] ?? null,
+                'issued_date' => $data['issued_date'] ?? null,
+                'issued_place' => $data['issued_place'] ?? null,
+                'front_image' => $data['front_image'] ?? null,
+                'back_image' => $data['back_image'] ?? null,
+                'portrait_4x6_image' => $data['portrait_4x6_image'] ?? null,
+                'tax_code' => $data['tax_code'] ?? null,
+                'tax_registered_name' => $data['tax_registered_name'] ?? null,
+                'tax_address' => $data['tax_address'] ?? null,
+                'note' => $data['identity_note'] ?? null,
+            ]
+        );
     }
 }

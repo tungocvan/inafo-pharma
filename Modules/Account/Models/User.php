@@ -9,7 +9,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Modules\Account\Models\CustomerProfile;
 use Modules\Account\Models\EmployeeProfile;
 use Modules\Account\Models\UserMeta;
-
+use Spatie\Permission\Models\Role;
 
 class User extends Authenticatable
 {
@@ -49,19 +49,21 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function isSuperAdmin(): bool
+    public function accountRoles()
     {
-        return $this->roles()
-            ->where('name', 'Super Admin')
-            ->exists();
+        return $this->belongsToMany(
+            Role::class,
+            'model_has_roles',
+            'model_id',
+            'role_id'
+        )->wherePivot('model_type', 'App\\Models\\User');
     }
 
-    public function roleNamesText(): string
+    public function isSuperAdmin(): bool
     {
-        return $this->roles
-            ->pluck('name')
-            ->filter()
-            ->implode(', ');
+        return $this->accountRoles()
+            ->where('name', 'Super Admin')
+            ->exists();
     }
     public function employeeProfile()
     {
@@ -76,5 +78,9 @@ class User extends Authenticatable
     public function metas()
     {
         return $this->hasMany(UserMeta::class, 'user_id');
+    }
+    public function identityProfile()
+    {
+        return $this->hasOne(UserIdentityProfile::class, 'user_id');
     }
 }

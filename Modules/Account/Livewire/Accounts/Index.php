@@ -71,7 +71,7 @@ class Index extends Component
 
         $this->selectedIds = collect($accounts instanceof \Illuminate\Pagination\AbstractPaginator ? $accounts->items() : $accounts)
             ->pluck('id')
-            ->map(fn ($id) => (string) $id)
+            ->map(fn($id) => (string) $id)
             ->toArray();
     }
 
@@ -92,12 +92,31 @@ class Index extends Component
             return;
         }
 
-        $this->accountService->bulkDelete($this->selectedIds);
+        $result = $this->accountService->bulkDelete($this->selectedIds);
 
         $this->selectedIds = [];
         $this->selectAll = false;
 
-        session()->flash('success', 'Đã xóa các tài khoản đã chọn.');
+        if ($result['deleted'] > 0 && $result['skipped_admin'] > 0) {
+            session()->flash(
+                'success',
+                "Đã xóa {$result['deleted']} tài khoản. Có {$result['skipped_admin']} tài khoản Super Admin không thể xóa."
+            );
+
+            return;
+        }
+
+        if ($result['deleted'] > 0) {
+            session()->flash('success', "Đã xóa {$result['deleted']} tài khoản.");
+            return;
+        }
+
+        if ($result['skipped_admin'] > 0) {
+            session()->flash('error', 'Không thể xóa tài khoản Super Admin.');
+            return;
+        }
+
+        session()->flash('error', 'Không có tài khoản nào được xóa.');
     }
 
     public function toggleActive(int $id): void

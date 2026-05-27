@@ -5,7 +5,13 @@ return array (
   'type' => 'domain',
   'enabled' => false,
   'enable_pdf_convert' => false,
-  'tables' => 
+  'permissions' => [
+        'view_admission',
+        'create_admission',
+        'edit_admission',
+        'delete_admission',
+    ],
+  'tables' =>
   array (
     0 => 'admission_locations',
     1 => 'admission_applications',
