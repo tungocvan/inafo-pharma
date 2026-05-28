@@ -19,69 +19,30 @@ class ImportExport extends BaseImportExportService
     ];
 
     protected array $requiredHeaders = [
-        'medicine_name',
-        'supplier_name',
+        'tên_thuốc',
+        'nhà_cung_cấp',
     ];
 
     public function headerAliases(): array
     {
         return [
-            'ngày làm việc' => 'working_date',
-            'ngay lam viec' => 'working_date',
-
-            'tên thuốc' => 'medicine_name',
-            'ten thuoc' => 'medicine_name',
-            'ten_thuoc' => 'medicine_name',
-
-            'số đăng ký' => 'registration_number',
-            'so dang ky' => 'registration_number',
-            'so_dang_ky' => 'registration_number',
-            'sdk' => 'registration_number',
-
-            'nhà cung cấp' => 'supplier_name',
-            'nha cung cap' => 'supplier_name',
-
-            'người đại diện' => 'supplier_representative',
-            'nguoi dai dien' => 'supplier_representative',
-
-            'khu vực' => 'area',
-            'khu vuc' => 'area',
-
-            'giá nhập' => 'import_price',
-            'gia nhap' => 'import_price',
-
-            'giá bán' => 'selling_price',
-            'gia ban' => 'selling_price',
-
-            'giá hóa đơn' => 'invoice_price',
-            'gia hoa don' => 'invoice_price',
-
-            '% phí chênh lệch' => 'invoice_difference_percent',
-            '% phi chenh lech' => 'invoice_difference_percent',
-
-            'số lượng cam kết' => 'committed_quantity',
-            'so luong cam ket' => 'committed_quantity',
-
-            'đơn vị' => 'unit',
-            'don vi' => 'unit',
-
-            'tiền cọc' => 'deposit_amount',
-            'tien coc' => 'deposit_amount',
-
-            'ngày bắt đầu' => 'start_date',
-            'ngay bat dau' => 'start_date',
-
-            'ngày kết thúc' => 'end_date',
-            'ngay ket thuc' => 'end_date',
-
-            'url hợp đồng' => 'contract_url',
-            'url hop dong' => 'contract_url',
-
-            'trạng thái' => 'status',
-            'trang thai' => 'status',
-
-            'ghi chú' => 'note',
-            'ghi chu' => 'note',
+            'tên_thuốc' => 'medicine_name',
+            'số_dăng_ký' => 'registration_number',
+            'nhà_cung_cấp' => 'supplier_name',
+            'người_dại_diện' => 'supplier_representative',
+            'khu_vực' => 'area',
+            'giá_nhập' => 'import_price',
+            'giá_bán' => 'selling_price',
+            'giá_hóa_dơn' => 'invoice_price',
+            '%_phí_chênh_lệch' => 'invoice_difference_percent',
+            'số_lượng_cam_kết' => 'committed_quantity',
+            'dơn_vị' => 'unit',
+            'tiền_cọc' => 'deposit_amount',
+            'ngày_bắt_dầu' => 'start_date',
+            'ngày_kết_thúc' => 'end_date',
+            'url_hợp_dồng' => 'contract_url',
+            'trạng_thái' => 'status',
+            'ghi_chú' => 'note',
         ];
     }
 

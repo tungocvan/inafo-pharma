@@ -77,13 +77,14 @@ abstract class BaseImportExportService
                 $this->totalRows++;
 
                 $row = $this->normalizeRowHeaders((array) $rawRow);
-                $row = $this->normalizeRow($row);
 
                 if (! $this->hasRequiredHeaders($row)) {
                     \Log::debug('Import headers check', [
-                        'headers' => $headers ?? null,
+                        'headers' => array_keys($row),
                         'requiredHeaders' => $this->requiredHeaders ?? null,
+                        'row' => $row,
                     ]);
+
                     $this->addError(
                         $this->defaultSheetName,
                         $rowNumber,
@@ -93,6 +94,8 @@ abstract class BaseImportExportService
 
                     continue;
                 }
+
+                $row = $this->normalizeRow($row);
 
                 $validator = Validator::make($row, $this->rules);
 
