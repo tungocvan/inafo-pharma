@@ -26,6 +26,8 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/', [SupplierTrackingController::class, 'index'])->name('index');
         Route::get('/create', [SupplierTrackingController::class, 'create'])->name('create');
         Route::get('/{id}/edit', [SupplierTrackingController::class, 'edit'])->name('edit');
+        Route::get('/import-export', [SupplierTrackingController::class, 'importExport'])
+            ->name('import-export');
     });
 
 });

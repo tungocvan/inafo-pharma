@@ -80,6 +80,10 @@ abstract class BaseImportExportService
                 $row = $this->normalizeRow($row);
 
                 if (! $this->hasRequiredHeaders($row)) {
+                    \Log::debug('Import headers check', [
+                        'headers' => $headers ?? null,
+                        'requiredHeaders' => $this->requiredHeaders ?? null,
+                    ]);
                     $this->addError(
                         $this->defaultSheetName,
                         $rowNumber,
@@ -159,7 +163,7 @@ abstract class BaseImportExportService
         $path = $this->makeExportPath(class_basename($this->modelClass()));
 
         $rows = $this->exportRows($filters)
-            ->map(fn ($item) => $this->mapExportRow($item));
+            ->map(fn($item) => $this->mapExportRow($item));
 
         (new FastExcel($rows))->export(storage_path('app/public/' . $path));
 

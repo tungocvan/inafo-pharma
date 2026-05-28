@@ -47,17 +47,14 @@
 
             <div class="lg:col-span-4">
                 <label class="text-sm font-medium text-gray-700">Tìm kiếm</label>
-                <input
-                    type="text"
-                    wire:model.live.debounce.400ms="search"
+                <input type="text" wire:model.live.debounce.400ms="search"
                     placeholder="Tên thuốc, SĐK, NCC, đại diện, khu vực..."
                     class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
             </div>
 
             <div class="lg:col-span-2">
                 <label class="text-sm font-medium text-gray-700">Trạng thái</label>
-                <select
-                    wire:model.live="status"
+                <select wire:model.live="status"
                     class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
                     <option value="">Tất cả</option>
                     @foreach ($statuses as $value => $label)
@@ -68,8 +65,7 @@
 
             <div class="lg:col-span-2">
                 <label class="text-sm font-medium text-gray-700">Hiển thị</label>
-                <select
-                    wire:model.live="perPage"
+                <select wire:model.live="perPage"
                     class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
                     <option value="10">10 dòng</option>
                     <option value="15">15 dòng</option>
@@ -80,32 +76,25 @@
             </div>
 
             <div class="flex items-end gap-3 lg:col-span-4">
-                <button
-                    type="button"
-                    wire:click="resetFilters"
+                <button type="button" wire:click="resetFilters"
                     class="inline-flex h-[50px] items-center justify-center rounded-xl border border-gray-300 bg-white px-4 font-semibold text-gray-700 hover:bg-gray-50">
                     Reset
                 </button>
 
-                <button
-                    type="button"
-                    wire:click="export"
+                <button type="button" wire:click="export"
                     class="inline-flex h-[50px] items-center justify-center rounded-xl bg-emerald-600 px-4 font-semibold text-white shadow-sm hover:bg-emerald-500">
                     Export Excel
                 </button>
             </div>
         </div>
 
-        <div class="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between">
+        <div
+            class="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between">
             <form wire:submit="import" class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input
-                    type="file"
-                    wire:model="importFile"
-                    accept=".xlsx,.xls,.csv"
+                <input type="file" wire:model="importFile" accept=".xlsx,.xls,.csv"
                     class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 sm:w-80">
 
-                <button
-                    type="submit"
+                <button type="submit"
                     class="inline-flex h-[50px] items-center justify-center rounded-xl bg-indigo-600 px-5 font-semibold text-white shadow-sm hover:bg-indigo-500">
                     Import
                 </button>
@@ -122,16 +111,21 @@
                     </span>
                 @endif
 
-                <button
-                    type="button"
-                    wire:click="deleteSelected"
+                <button type="button" wire:click="deleteSelected"
                     wire:confirm="Bạn chắc chắn muốn xóa các dòng đã chọn?"
                     class="inline-flex h-[50px] items-center justify-center rounded-xl bg-red-600 px-5 font-semibold text-white shadow-sm hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-                    @disabled(! $this->hasSelected)>
+                    @disabled(!$this->hasSelected)>
                     Xóa đã chọn
                 </button>
             </div>
         </div>
+         <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+                @livewire('shared.import-export.panel', [
+                    'serviceClass' => \Modules\Pharma\Services\ImportExport::class,
+                    'title' => 'Import / Export theo dõi nhà cung cấp',
+                    'description' => 'Nhập, xuất và tải file mẫu dữ liệu theo dõi nhà cung cấp thuốc. Các trường công thức sẽ được hệ thống tự tính lại.',
+                ])
+            </div>
     </div>
 
     {{-- TABLE --}}
@@ -141,9 +135,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left">
-                            <input
-                                type="checkbox"
-                                wire:model.live="selectAll"
+                            <input type="checkbox" wire:model.live="selectAll"
                                 class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                         </th>
 
@@ -151,7 +143,8 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Nhà cung cấp</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá nhập</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá HĐ</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Chênh lệch HĐ</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Chênh lệch HĐ
+                        </th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">% phí</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Phí CL</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Giá vốn</th>
@@ -168,10 +161,7 @@
                     @forelse ($items as $item)
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-4 align-top">
-                                <input
-                                    type="checkbox"
-                                    wire:model.live="selected"
-                                    value="{{ $item->id }}"
+                                <input type="checkbox" wire:model.live="selected" value="{{ $item->id }}"
                                     class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                             </td>
 
@@ -231,7 +221,8 @@
                             </td>
 
                             <td class="px-4 py-4 text-right align-top">
-                                <span class="rounded-full px-3 py-1 text-xs font-semibold
+                                <span
+                                    class="rounded-full px-3 py-1 text-xs font-semibold
                                     {{ $item->gross_profit_percent >= 30 ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700' }}">
                                     {{ $this->percent($item->gross_profit_percent) }}
                                 </span>
@@ -274,7 +265,8 @@
                                     ];
                                 @endphp
 
-                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$item->status] ?? 'bg-gray-100 text-gray-700' }}">
+                                <span
+                                    class="rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$item->status] ?? 'bg-gray-100 text-gray-700' }}">
                                     {{ $statuses[$item->status] ?? $item->status }}
                                 </span>
                             </td>
@@ -286,9 +278,7 @@
                                         Sửa
                                     </a>
 
-                                    <button
-                                        type="button"
-                                        wire:click="delete({{ $item->id }})"
+                                    <button type="button" wire:click="delete({{ $item->id }})"
                                         wire:confirm="Bạn chắc chắn muốn xóa dòng này?"
                                         class="text-sm font-semibold text-red-600 hover:text-red-500">
                                         Xóa
