@@ -10,6 +10,9 @@ use Modules\Account\Models\CustomerProfile;
 use Modules\Account\Models\EmployeeProfile;
 use Modules\Account\Models\UserMeta;
 use Spatie\Permission\Models\Role;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Account\Models\UserIdentityProfile;
 
 class User extends Authenticatable
 {
@@ -65,15 +68,7 @@ class User extends Authenticatable
             ->where('name', 'Super Admin')
             ->exists();
     }
-    public function employeeProfile()
-    {
-        return $this->hasOne(EmployeeProfile::class, 'user_id');
-    }
 
-    public function customerProfile()
-    {
-        return $this->hasOne(CustomerProfile::class, 'user_id');
-    }
 
     public function metas()
     {
@@ -82,5 +77,19 @@ class User extends Authenticatable
     public function identityProfile()
     {
         return $this->hasOne(UserIdentityProfile::class, 'user_id');
+    }
+    public function employeeProfile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class, 'user_id');
+    }
+
+    public function customerProfile(): HasOne
+    {
+        return $this->hasOne(CustomerProfile::class, 'user_id');
+    }
+
+    public function identityProfiles(): HasMany
+    {
+        return $this->hasMany(UserIdentityProfile::class, 'user_id');
     }
 }

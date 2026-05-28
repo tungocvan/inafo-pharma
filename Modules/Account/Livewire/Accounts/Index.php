@@ -2,11 +2,13 @@
 
 namespace Modules\Account\Livewire\Accounts;
 
+use Illuminate\Contracts\View\View;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithPagination;
+use Modules\Account\Services\AccountImportService;
 use Modules\Account\Services\AccountService;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class Index extends Component
 {
@@ -27,32 +29,60 @@ class Index extends Component
 
     public bool $selectAll = false;
 
-    public ?TemporaryUploadedFile $importFile = null;
+    public $importFile = null;
+
+    public ?array $importReport = null;
 
     protected AccountService $accountService;
 
-    public function boot(AccountService $accountService): void
-    {
+    protected AccountImportService $accountImportService;
+
+    public function boot(
+        AccountService $accountService,
+        AccountImportService $accountImportService
+    ): void {
         $this->accountService = $accountService;
+        $this->accountImportService = $accountImportService;
+    }
+
+    protected function rules(): array
+    {
+        return [
+            'importFile' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'importFile.required' => 'Vui lòng chọn file Excel để import.',
+            'importFile.file' => 'File import không hợp lệ.',
+            'importFile.mimes' => 'File import phải là định dạng .xlsx hoặc .xls.',
+            'importFile.max' => 'File import không được vượt quá 10MB.',
+        ];
     }
 
     public function updatedSearch(): void
     {
+        $this->resetSelection();
         $this->resetPage();
     }
 
     public function updatedAccountType(): void
     {
+        $this->resetSelection();
         $this->resetPage();
     }
 
     public function updatedIsActive(): void
     {
+        $this->resetSelection();
         $this->resetPage();
     }
 
     public function updatedPerPage(): void
     {
+        $this->resetSelection();
         $this->resetPage();
     }
 
@@ -64,24 +94,36 @@ class Index extends Component
             return;
         }
 
-        $accounts = $this->accountService->paginate(
-            filters: $this->filters(),
-            perPage: $this->perPage
-        );
-
-        $this->selectedIds = collect($accounts instanceof \Illuminate\Pagination\AbstractPaginator ? $accounts->items() : $accounts)
-            ->pluck('id')
-            ->map(fn($id) => (string) $id)
+        $this->selectedIds = $this->accountService
+            ->getDeletableIds($this->filters())
+            ->map(fn($id) => (int) $id)
             ->toArray();
+    }
+
+    public function updatedSelectedIds(): void
+    {
+        $this->selectAll = false;
+    }
+
+    public function toggleActive(int $id): void
+    {
+        $this->accountService->toggleActive($id);
+
+        session()->flash('success', 'Đã cập nhật trạng thái tài khoản.');
     }
 
     public function delete(int $id): void
     {
         $this->accountService->delete($id);
 
-        $this->selectedIds = array_values(array_diff($this->selectedIds, [(string) $id]));
+        $this->selectedIds = array_values(array_filter(
+            $this->selectedIds,
+            fn($selectedId) => (int) $selectedId !== $id
+        ));
 
-        session()->flash('success', 'Đã xóa tài khoản thành công.');
+        $this->selectAll = false;
+
+        session()->flash('success', 'Đã xóa tài khoản.');
     }
 
     public function bulkDelete(): void
@@ -92,82 +134,92 @@ class Index extends Component
             return;
         }
 
-        $result = $this->accountService->bulkDelete($this->selectedIds);
+        $this->accountService->bulkDelete($this->selectedIds);
 
-        $this->selectedIds = [];
-        $this->selectAll = false;
+        $this->resetSelection();
 
-        if ($result['deleted'] > 0 && $result['skipped_admin'] > 0) {
-            session()->flash(
-                'success',
-                "Đã xóa {$result['deleted']} tài khoản. Có {$result['skipped_admin']} tài khoản Super Admin không thể xóa."
+        session()->flash('success', 'Đã xóa các tài khoản đã chọn.');
+    }
+
+    public function import(): void
+    {
+        $this->importAccounts();
+    }
+
+    public function importAccounts(): void
+    {
+        $this->validate();
+
+        try {
+            $path = $this->importFile->store('imports/account', 'local');
+
+            $this->importReport = $this->accountImportService->import(
+                storage_path('app/' . $path)
             );
 
-            return;
-        }
+            $this->reset('importFile');
+            $this->resetSelection();
+            $this->resetPage();
 
-        if ($result['deleted'] > 0) {
-            session()->flash('success', "Đã xóa {$result['deleted']} tài khoản.");
-            return;
-        }
+            if ($this->importReport['success'] ?? false) {
+                session()->flash('success', 'Import tài khoản thành công.');
+                return;
+            }
 
-        if ($result['skipped_admin'] > 0) {
-            session()->flash('error', 'Không thể xóa tài khoản Super Admin.');
-            return;
-        }
+            session()->flash('error', 'Import thất bại. Vui lòng kiểm tra báo cáo lỗi.');
+        } catch (\Throwable $e) {
+            $this->importReport = [
+                'success' => false,
+                'total_rows' => 0,
+                'success_rows' => 0,
+                'error_rows' => 1,
+                'errors' => [
+                    [
+                        'sheet' => 'system',
+                        'row' => '-',
+                        'column' => '-',
+                        'reason' => $e->getMessage(),
+                    ],
+                ],
+            ];
 
-        session()->flash('error', 'Không có tài khoản nào được xóa.');
+            session()->flash('error', 'Import thất bại: ' . $e->getMessage());
+        }
     }
 
-    public function toggleActive(int $id): void
+    public function clearImportReport(): void
     {
-        $this->accountService->toggleActive($id);
+        $this->importReport = null;
 
-        session()->flash('success', 'Đã cập nhật trạng thái tài khoản.');
+        $this->reset('importFile');
+        $this->resetValidation('importFile');
     }
 
-    private function filters(): array
+    public function export(): BinaryFileResponse
+    {
+        return $this->accountService->export($this->filters());
+    }
+
+    protected function filters(): array
     {
         return [
             'search' => $this->search,
             'account_type' => $this->accountType,
             'is_active' => $this->isActive,
+            'per_page' => $this->perPage,
         ];
     }
 
-    public function import(): void
+    protected function resetSelection(): void
     {
-        $this->validate([
-            'importFile' => ['required', 'file', 'mimes:xlsx,csv'],
-        ], [
-            'importFile.required' => 'Vui lòng chọn file import.',
-            'importFile.mimes' => 'File import phải là xlsx hoặc csv.',
-        ]);
-
-        $count = $this->accountService->importFromExcel(
-            $this->importFile->getRealPath()
-        );
-
-        $this->importFile = null;
-        $this->resetPage();
-
-        session()->flash('success', "Đã import {$count} tài khoản.");
+        $this->selectedIds = [];
+        $this->selectAll = false;
     }
 
-    public function export()
-    {
-        $filePath = $this->accountService->exportToExcel($this->filters());
-
-        return response()->download($filePath)->deleteFileAfterSend(true);
-    }
-
-    public function render()
+    public function render(): View
     {
         return view('Account::livewire.accounts.index', [
-            'accounts' => $this->accountService->paginate(
-                filters: $this->filters(),
-                perPage: $this->perPage
-            ),
+            'accounts' => $this->accountService->paginateForAdmin($this->filters()),
         ]);
     }
 }

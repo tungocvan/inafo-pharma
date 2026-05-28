@@ -12,7 +12,7 @@ use Modules\Account\Models\EmployeeProfile;
 use Modules\Account\Models\User;
 use Modules\Account\Models\UserIdentityProfile;
 
-use function Laravel\Prompts\alert;
+
 
 class AccountService
 {
@@ -108,7 +108,21 @@ class AccountService
                 throw new \RuntimeException('Không thể xóa tài khoản Super Admin.');
             }
 
-            $user->delete();
+            EmployeeProfile::query()->where('user_id', $user->id)->delete();
+            CustomerProfile::query()->where('user_id', $user->id)->delete();
+            UserIdentityProfile::query()->where('user_id', $user->id)->delete();
+
+            DB::table('model_has_roles')
+                ->where('model_id', $user->id)
+                ->where('model_type', User::class)
+                ->delete();
+
+            DB::table('model_has_permissions')
+                ->where('model_id', $user->id)
+                ->where('model_type', User::class)
+                ->delete();
+
+            $user->forceDelete();
         });
     }
 
@@ -125,11 +139,24 @@ class AccountService
                 ->each(function (User $user) use (&$deleted, &$skippedAdmin) {
                     if ($user->isSuperAdmin()) {
                         $skippedAdmin++;
-
                         return;
                     }
 
-                    $user->delete();
+                    EmployeeProfile::query()->where('user_id', $user->id)->delete();
+                    CustomerProfile::query()->where('user_id', $user->id)->delete();
+                    UserIdentityProfile::query()->where('user_id', $user->id)->delete();
+
+                    DB::table('model_has_roles')
+                        ->where('model_id', $user->id)
+                        ->where('model_type', User::class)
+                        ->delete();
+
+                    DB::table('model_has_permissions')
+                        ->where('model_id', $user->id)
+                        ->where('model_type', User::class)
+                        ->delete();
+
+                    $user->forceDelete();
                     $deleted++;
                 });
         });
@@ -138,6 +165,29 @@ class AccountService
             'deleted' => $deleted,
             'skipped_admin' => $skippedAdmin,
         ];
+    }
+    public function getDeletableIds(array $filters = []): Collection
+    {
+        return User::query()
+            ->with('accountRoles')
+            ->when($filters['search'] ?? null, function ($query, string $search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->when($filters['account_type'] ?? null, function ($query, string $type) {
+                $query->where('account_type', $type);
+            })
+            ->when(isset($filters['is_active']) && $filters['is_active'] !== '', function ($query) use ($filters) {
+                $query->where('is_active', (bool) $filters['is_active']);
+            })
+            ->latest('id')
+            ->get()
+            ->filter(fn(User $user) => ! $user->isSuperAdmin())
+            ->pluck('id')
+            ->values();
     }
     public function toggleActive(int $id): User
     {
@@ -320,6 +370,28 @@ class AccountService
 
         return $count;
     }
+    public function paginateForAdmin(array $filters = [])
+    {
+        $query = User::query()
+            ->with(['employeeProfile', 'customerProfile', 'identityProfiles', 'roles'])
+            ->when($filters['search'] ?? null, function ($query, $search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
+            ->when($filters['account_type'] ?? null, fn($query, $type) => $query->where('account_type', $type))
+            ->latest();
+
+        if (($filters['per_page'] ?? 10) === 'All') {
+            return $query->get();
+        }
+
+        return $query->paginate((int) ($filters['per_page'] ?? 10));
+    }
+
     private function syncIdentityProfile(User $user, array $data): void
     {
         $hasIdentityData = collect([
@@ -356,5 +428,11 @@ class AccountService
                 'note' => $data['identity_note'] ?? null,
             ]
         );
+    }
+    public function export(array $filters = [])
+    {
+        $filePath = $this->exportToExcel($filters);
+
+        return response()->download($filePath)->deleteFileAfterSend(false);
     }
 }
