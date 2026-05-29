@@ -1,12 +1,12 @@
-# MASTER PROMPT — IMPORT / EXPORT MODULE LARAVEL v1.3 FINAL
+# MASTER PROMPT — IMPORT / EXPORT MODULE LARAVEL v1.5 FINAL
 
 ## Từ khóa yêu cầu sử dụng prompt
 
 Khi qua chat mới, có thể dùng một trong các câu sau:
 
 ```text
-Sử dụng MASTER PROMPT — IMPORT / EXPORT MODULE LARAVEL v1.3 FINAL.
-Tạo Import/Export cho module <ModuleName> theo prompt v1.3.
+Sử dụng MASTER PROMPT — IMPORT / EXPORT MODULE LARAVEL v1.5 FINAL.
+Tạo Import/Export cho module <ModuleName> theo prompt v1.5.
 Áp dụng shared.import-export.panel cho chức năng Import/Export.
 Phân tích file Excel và migration trước, chưa viết code.
 Tôi gửi file Excel + migration, hãy phân tích Import/Export trước.
@@ -46,9 +46,15 @@ Khi tôi yêu cầu thực hiện chức năng Import/Export, bắt buộc tôi 
 ```text
 1. File Excel mẫu hoặc file Excel dữ liệu thật.
 2. File migration hoặc nội dung migration của table liên quan.
+3. Model liên quan, gồm $table, $fillable, $casts, relationships nếu có.
+4. Cách mapping mong muốn:
+   - Mapping theo header Excel.
+   - Hoặc mapping theo vị trí cột Excel A, B, C...
 ```
 
-Nếu thiếu một trong hai, bạn không được viết code ngay.
+Nếu thiếu Excel hoặc migration, bạn không được viết code ngay.
+
+Nếu thiếu Model, bạn phải yêu cầu bổ sung Model hoặc nội dung Model để xác định `$fillable`, `$casts`, export columns và các field cần loại trừ khi export.
 
 Bạn phải yêu cầu bổ sung:
 
@@ -56,7 +62,9 @@ Bạn phải yêu cầu bổ sung:
 Vui lòng gửi đủ:
 - File Excel mẫu/dữ liệu thật.
 - File migration hoặc nội dung migration của bảng cần import/export.
-Sau khi có đủ, tôi sẽ phân tích schema, mapping, unique key, validate rule, import mode rồi mới viết code.
+- Model liên quan hoặc nội dung Model.
+- Xác nhận muốn mapping import theo header hay theo cột A/B/C.
+Sau khi có đủ, tôi sẽ phân tích schema, model, mapping, unique key, validate rule, import mode, export rule rồi mới viết code.
 ```
 
 ---
@@ -70,13 +78,14 @@ Quy trình bắt buộc:
 ```text
 Bước 1: Đọc file Excel.
 Bước 2: Đọc migration.
-Bước 3: So sánh Excel columns với database columns.
+Bước 2.5: Đọc Model để xác định $table, $fillable, $casts, $exceptExport nếu có.
+Bước 3: So sánh Excel columns với database columns và Model $fillable.
 Bước 4: Xác định field import được.
 Bước 5: Xác định field không import.
 Bước 6: Xác định field tự động tính / derived field.
 Bước 7: Xác định unique key.
 Bước 8: Xác định import mode.
-Bước 9: Đề xuất template, validate rules, header aliases.
+Bước 9: Đề xuất template, validate rules, header aliases hoặc columnMapping A/B/C.
 Bước 10: Dừng lại chờ tôi xác nhận.
 Bước 11: Nếu tôi xác nhận OK, mới viết code.
 ```
@@ -102,7 +111,7 @@ app/Services
 Flow bắt buộc:
 
 ```text
-Route → Controller → Page Blade → Livewire PHP → Livewire Blade → Shared UI Panel → Module Service → Shared Base Service → Model → Database
+Route → Controller → Page Blade → Livewire PHP → Livewire Blade → Shared UI Panel → Module Service → Module Import/Export Classes → Shared Base Service → Model → Database
 ```
 
 Quy định:
@@ -111,7 +120,7 @@ Quy định:
 - Blade không query.
 - Livewire không chứa business logic.
 - Service layer bắt buộc.
-- Import/export logic chính nằm trong Service.
+- Import/export logic chính nằm trong Service hoặc các class `Modules/<ModuleName>/Import` và `Modules/<ModuleName>/Export`.
 - Model chỉ khai báo table, fillable, casts, relationships.
 - Không bypass Service.
 
@@ -276,7 +285,125 @@ protected function beforePersist(array $data, array $row, int $rowNumber, string
 
 ---
 
-## 10. Import mode bắt buộc
+## 10. Tách Import và Export khi Service quá dài
+
+Từ v1.5, không được để `Modules/<ModuleName>/Services/ImportExport.php` phình quá lớn.
+
+Nguyên tắc:
+
+```text
+Services/ImportExport.php chỉ nên là lớp điều phối mỏng.
+Không nhồi toàn bộ mapping, normalize, validate, export query, export mapper, template builder vào một file nếu logic dài.
+```
+
+Nếu `ImportExport.php` vượt khoảng **200–300 dòng**, hoặc có nhiều nhóm logic độc lập, bắt buộc tách thêm:
+
+```text
+Modules/<ModuleName>/
+├── Import/
+│   ├── <Feature>Import.php
+│   ├── RowMapper.php
+│   ├── RowNormalizer.php
+│   └── RowValidator.php
+├── Export/
+│   ├── <Feature>Export.php
+│   ├── ExportQuery.php
+│   ├── ExportMapper.php
+│   └── TemplateBuilder.php
+├── Services/
+│   └── ImportExport.php
+```
+
+Có thể dùng cấu trúc gọn hơn nếu module đơn giản:
+
+```text
+Modules/<ModuleName>/
+├── Import/
+│   └── <Feature>Import.php
+├── Export/
+│   └── <Feature>Export.php
+├── Services/
+│   └── ImportExport.php
+```
+
+Vai trò khuyến nghị:
+
+```text
+Services/ImportExport.php
+→ điều phối import/export, khai báo modelClass, gọi Import và Export class.
+
+Import/<Feature>Import.php
+→ xử lý mapping Excel, columnMapping/headerAliases, normalize row, validate row, beforePersist nếu cần.
+
+Import/RowMapper.php
+→ map header hoặc cột A/B/C sang DB field.
+
+Import/RowNormalizer.php
+→ chuẩn hóa string, money, number, date, boolean.
+
+Import/RowValidator.php
+→ validate từng dòng sau khi đã map sang DB field.
+
+Export/<Feature>Export.php
+→ xử lý export rows, export mapper, template sample, template notes.
+
+Export/ExportQuery.php
+→ lấy dữ liệu export theo filter, selected IDs, `$fillable`, `$exceptExport`.
+
+Export/ExportMapper.php
+→ map DB field sang header Excel.
+
+Export/TemplateBuilder.php
+→ tạo template mẫu, ghi chú required/optional/derived fields.
+```
+
+Ví dụ `Services/ImportExport.php` sau khi tách:
+
+```php
+namespace Modules\Pharma\Services;
+
+use Modules\Pharma\Export\SupplierTrackingExport;
+use Modules\Pharma\Import\SupplierTrackingImport;
+use Modules\Pharma\Models\SupplierTracking;
+use Modules\Shared\Services\ImportExport\BaseImportExportService;
+
+class ImportExport extends BaseImportExportService
+{
+    public function __construct(
+        protected SupplierTrackingImport $importer,
+        protected SupplierTrackingExport $exporter,
+    ) {}
+
+    protected function modelClass(): string
+    {
+        return SupplierTracking::class;
+    }
+
+    protected function importer(): SupplierTrackingImport
+    {
+        return $this->importer;
+    }
+
+    protected function exporter(): SupplierTrackingExport
+    {
+        return $this->exporter;
+    }
+}
+```
+
+Quy tắc bắt buộc:
+
+- Không tách quá mức nếu module rất nhỏ.
+- Nếu file service dài, ưu tiên tách theo trách nhiệm rõ ràng.
+- Import class không xử lý export.
+- Export class không xử lý import.
+- Query export vẫn phải đi qua Service/Export class, không query trong Livewire/Blade/Controller.
+- Các helper dùng chung nhiều module vẫn đặt trong `Modules/Shared/Services/ImportExport`.
+- Các rule riêng từng module đặt trong `Modules/<ModuleName>/Import` hoặc `Modules/<ModuleName>/Export`.
+
+---
+
+## 25. Import mode bắt buộc
 
 Trước khi viết code phải xác định mode:
 
@@ -293,7 +420,7 @@ Nếu chưa rõ import mode, phải hỏi lại.
 
 ---
 
-## 11. Unique key bắt buộc
+## 25. Unique key bắt buộc
 
 Mỗi import phải xác định unique key.
 
@@ -314,7 +441,7 @@ Không dùng `id` từ Excel làm unique key nếu chưa được xác nhận.
 
 ---
 
-## 12. Header mapping linh hoạt
+## 25. Header mapping linh hoạt
 
 Phải hỗ trợ nhiều tên cột map về một field:
 
@@ -339,7 +466,54 @@ Header phải được:
 
 ---
 
-## 13. Chuẩn hóa dữ liệu
+## 12.1. Column mapping A/B/C để giảm lỗi header
+
+Import service phải hỗ trợ thêm chế độ mapping theo vị trí cột Excel.
+
+Dùng khi:
+
+- Header Excel có tiếng Việt, dấu, khoảng trắng, ký tự đặc biệt.
+- Header Excel có thể sai chính tả hoặc thay đổi theo người nhập.
+- File Excel nội bộ không cần header chuẩn.
+- Người dùng muốn đơn giản, chỉ cần map A/B/C sang field DB.
+
+Ví dụ:
+
+```php
+protected array $columnMapping = [
+    'A' => 'working_date',
+    'B' => 'medicine_name',
+    'C' => 'registration_number',
+    'D' => 'supplier_name',
+    'G' => 'import_price',
+    'H' => 'selling_price',
+];
+```
+
+Quy tắc:
+
+- Nếu có `$columnMapping`, ưu tiên dùng `$columnMapping` trước `$headerAliases`.
+- Khi dùng `$columnMapping`, không validate required headers theo tên header Excel.
+- Khi dùng `$columnMapping`, validate required field sau khi dữ liệu đã được map sang DB field.
+- Header Excel vẫn được đọc để debug/report, nhưng không dùng làm điều kiện bắt buộc.
+- Không phụ thuộc vào tên header như `tên thuốc`, `số đăng ký`, `% phí chênh lệch`.
+- Nếu Excel có dòng tiêu đề, vẫn bỏ qua dòng tiêu đề khi import dữ liệu.
+- Nếu Excel không có header, vẫn import được bằng A/B/C nếu người dùng xác nhận file bắt đầu từ dòng dữ liệu.
+
+Trước khi viết code phải xác nhận:
+
+```text
+Anh muốn import theo header hay theo cột A/B/C?
+Nếu theo A/B/C, vui lòng xác nhận mapping:
+A => field_name
+B => field_name
+C => field_name
+...
+```
+
+---
+
+## 25. Chuẩn hóa dữ liệu
 
 Phải chuẩn hóa:
 
@@ -386,7 +560,7 @@ active / inactive
 
 ---
 
-## 14. Derived field / Formula field
+## 25. Derived field / Formula field
 
 Nếu field là công thức hoặc tự động tính:
 
@@ -404,7 +578,7 @@ Cột này chỉ tham khảo/export, không import trực tiếp.
 
 ---
 
-## 15. Report import bắt buộc
+## 25. Report import bắt buộc
 
 Report trả về dạng:
 
@@ -440,7 +614,104 @@ Report trả về dạng:
 
 ---
 
-## 16. Export phải hỗ trợ
+## 15.1. Export mặc định theo Model `$fillable`
+
+Khi export dữ liệu, mặc định phải export theo danh sách `$fillable` của Model liên quan.
+
+Ví dụ Model:
+
+```php
+protected $fillable = [
+    'name',
+    'email',
+    'phone',
+    'status',
+];
+```
+
+Export mặc định gồm:
+
+```text
+name, email, phone, status
+```
+
+Không được tự ý export toàn bộ columns trong database nếu không nằm trong `$fillable`, trừ khi người dùng yêu cầu rõ.
+
+---
+
+## 15.2. Loại trừ field export bằng `$exceptExport`
+
+Nếu Model có khai báo biến `$exceptExport`, export phải loại bỏ các field này khỏi `$fillable`.
+
+Ví dụ:
+
+```php
+protected array $exceptExport = [
+    'password',
+    'remember_token',
+    'created_by',
+    'updated_by',
+];
+```
+
+Nếu `$fillable` là:
+
+```php
+protected $fillable = [
+    'name',
+    'email',
+    'password',
+    'remember_token',
+    'status',
+];
+```
+
+Thì export chỉ gồm:
+
+```text
+name, email, status
+```
+
+Quy tắc:
+
+- Nếu Model không khai báo `$exceptExport`, export toàn bộ `$fillable`.
+- Nếu Model có `$exceptExport = []`, export toàn bộ `$fillable`.
+- Nếu field có trong `$exceptExport`, không export field đó.
+- `$exceptExport` chỉ ảnh hưởng export, không dùng làm rule import.
+- Derived/formula fields không nằm trong `$fillable` nhưng cần export thì phải khai báo riêng trong `mapExportRow()` hoặc `extraExportColumns()` nếu service hỗ trợ.
+- Field nhạy cảm như password, token, internal note, created_by, updated_by nên đưa vào `$exceptExport`.
+
+Service export nên có helper tương đương:
+
+```php
+protected function exportableColumns(): array
+{
+    $model = new ($this->modelClass());
+
+    $fillable = method_exists($model, 'getFillable')
+        ? $model->getFillable()
+        : [];
+
+    $except = property_exists($model, 'exceptExport')
+        ? (array) $model->exceptExport
+        : [];
+
+    return array_values(array_diff($fillable, $except));
+}
+```
+
+Nếu `$exceptExport` là protected và cần đọc an toàn, ưu tiên tạo method trong Model:
+
+```php
+public function getExceptExport(): array
+{
+    return $this->exceptExport ?? [];
+}
+```
+
+---
+
+## 25. Export phải hỗ trợ
 
 - Export dữ liệu hiện tại.
 - Export theo filter.
@@ -455,7 +726,7 @@ storage/app/public/exports
 
 ---
 
-## 17. Export template chuyên nghiệp
+## 25. Export template chuyên nghiệp
 
 Template nên có:
 
@@ -468,7 +739,7 @@ Template nên có:
 
 ---
 
-## 18. Livewire Page Blade sử dụng shared panel
+## 25. Livewire Page Blade sử dụng shared panel
 
 Trong page Blade của module, dùng:
 
@@ -490,7 +761,7 @@ Không viết lại form upload import/export thủ công trong từng module n�
 
 ---
 
-## 19. Logging
+## 25. Logging
 
 Phải dùng Laravel Log cho lỗi hệ thống:
 
@@ -506,7 +777,7 @@ Không show stack trace trực tiếp ra UI production.
 
 ---
 
-## 20. Chống mất dữ liệu
+## 25. Chống mất dữ liệu
 
 Không được:
 
@@ -520,7 +791,7 @@ Nếu có rủi ro mất dữ liệu, phải dừng lại và hỏi.
 
 ---
 
-## 21. Quy trình bắt buộc khi tôi gửi Excel + migration
+## 25. Quy trình bắt buộc khi tôi gửi Excel + migration
 
 Sau khi nhận đủ file Excel và migration, phải phân tích theo format sau:
 
@@ -548,14 +819,25 @@ STEP 2 — Phân tích Migration
 - JSON fields
 - Derived fields nếu có comment/gợi ý
 
+STEP 2.5 — Phân tích Model
+- Model class
+- Table name
+- `$fillable`
+- `$casts`
+- Relationships nếu ảnh hưởng import/export
+- `$exceptExport` nếu có
+- Export columns mặc định theo `$fillable`
+- Export columns bị loại trừ theo `$exceptExport`
+
 STEP 3 — Mapping Excel → Database
-- Excel column
+- Excel column hoặc vị trí A/B/C
 - DB column
 - Import được không?
 - Required?
 - Normalize type
 - Validate rule
 - Ghi chú
+- Mapping mode: headerAliases hoặc columnMapping
 
 STEP 4 — Đề xuất Import rule
 - Unique key
@@ -565,7 +847,9 @@ STEP 4 — Đề xuất Import rule
 - Có field nào không được ghi đè null không?
 
 STEP 5 — Đề xuất Export rule
-- Export columns
+- Export mặc định theo `$fillable` của Model
+- Loại trừ field theo `$exceptExport` nếu Model có khai báo
+- Export columns thực tế sau khi loại trừ
 - Template columns
 - Field nào chỉ export không import
 - Format tiền/ngày/status
@@ -582,7 +866,7 @@ Không viết code cho đến khi tôi xác nhận OK.
 
 ---
 
-## 22. Khi tôi xác nhận OK mới viết code
+## 25. Khi tôi xác nhận OK mới viết code
 
 Sau khi tôi xác nhận, mới viết code theo thứ tự:
 
@@ -599,7 +883,7 @@ Nếu Shared Foundation hoặc shared.import-export.panel chưa có, phải nh�
 
 ---
 
-## 23. Output khi viết code
+## 25. Output khi viết code
 
 Khi viết code, xuất theo đúng thứ tự:
 
@@ -613,10 +897,10 @@ Không giải thích dài dòng nếu tôi yêu cầu code production-ready.
 
 ---
 
-## 24. Nguyên tắc quan trọng nhất
+## 25. Nguyên tắc quan trọng nhất
 
-- Bắt buộc có Excel + migration trước khi làm Import/Export.
-- Bắt buộc phân tích trước.
+- Bắt buộc có Excel + migration trước khi làm Import/Export; nên có thêm Model để xác định `$fillable`, `$casts`, `$exceptExport`.
+- Bắt buộc phân tích trước, bao gồm Excel, migration, Model và mapping mode.
 - Bắt buộc chờ xác nhận OK rồi mới viết code.
 - Bắt buộc dùng `shared.import-export.panel` cho UI Import/Export.
 - Bắt buộc dùng `serviceClass`, không truyền Model trực tiếp.
@@ -627,3 +911,5 @@ Không giải thích dài dòng nếu tôi yêu cầu code production-ready.
 - Controller không query.
 - Blade không query.
 - Import/export phải an toàn, dễ debug, dễ mở rộng.
+- Import có thể dùng header mapping hoặc column mapping A/B/C.
+- Export mặc định theo `$fillable`; nếu Model có `$exceptExport` thì loại trừ các field đó.

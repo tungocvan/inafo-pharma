@@ -76,23 +76,23 @@ abstract class BaseImportExportService
                 $rowNumber = $index + 2;
                 $this->totalRows++;
 
-                $row = $this->normalizeRowHeaders((array) $rawRow);
+                $rawRowArray = (array) $rawRow;
 
-                if (! $this->hasRequiredHeaders($row)) {
-                    \Log::debug('Import headers check', [
-                        'headers' => array_keys($row),
-                        'requiredHeaders' => $this->requiredHeaders ?? null,
-                        'row' => $row,
-                    ]);
+                if (method_exists($this, 'columnMapping') && ! empty($this->columnMapping())) {
+                    $row = $this->normalizeRowByColumnMapping($rawRowArray);
+                } else {
+                    $row = $this->normalizeRowHeaders($rawRowArray);
 
-                    $this->addError(
-                        $this->defaultSheetName,
-                        $rowNumber,
-                        null,
-                        'File thiếu cột bắt buộc.'
-                    );
+                    if (! $this->hasRequiredHeaders($row)) {
+                        $this->addError(
+                            $this->defaultSheetName,
+                            $rowNumber,
+                            null,
+                            'File thiếu cột bắt buộc.'
+                        );
 
-                    continue;
+                        continue;
+                    }
                 }
 
                 $row = $this->normalizeRow($row);
@@ -160,7 +160,32 @@ abstract class BaseImportExportService
             return $this->report(false);
         }
     }
+    protected function normalizeRowByColumnMapping(array $rawRow): array
+    {
+        $values = array_values($rawRow);
+        $mapping = $this->columnMapping();
 
+        $row = [];
+
+        foreach ($mapping as $columnLetter => $field) {
+            $index = $this->columnLetterToIndex($columnLetter);
+            $row[$field] = $values[$index] ?? null;
+        }
+
+        return $row;
+    }
+
+    protected function columnLetterToIndex(string $letter): int
+    {
+        $letter = strtoupper(trim($letter));
+        $number = 0;
+
+        for ($i = 0; $i < strlen($letter); $i++) {
+            $number = $number * 26 + (ord($letter[$i]) - ord('A') + 1);
+        }
+
+        return $number - 1;
+    }
     public function export(array $filters = []): string
     {
         $path = $this->makeExportPath(class_basename($this->modelClass()));
