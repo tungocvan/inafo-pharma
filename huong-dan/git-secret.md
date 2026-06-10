@@ -21,7 +21,8 @@ thay đổi địa chỉ kho:
 git remote set-url origin git@github.com:tungocvan/inafo-pharma.git
 
 cách Add key vào GitHub:
-cat ~/.ssh/id_ed25519.pub
+ls ~/.ssh/*.pub
+cat ~/.ssh/id_rsa.pub
 
 👉 GitHub SSH Keys Settings
 → Add SSH key

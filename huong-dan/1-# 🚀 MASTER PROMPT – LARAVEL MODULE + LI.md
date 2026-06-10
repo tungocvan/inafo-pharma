@@ -856,6 +856,10 @@ Code phải:
 - Không bỏ validation.
 - Không bỏ Service.
 - Không bỏ responsive UI nếu là Blade.
+- Code phải chia block rõ ràng
+- Trong code phải có comment để tôi replace nhanh
+- Không viết “god function”
+- Dễ đọc – dễ sửa – dễ mở rộng
 
 ---
 

@@ -254,6 +254,10 @@ Không query trực tiếp trong Blade.
 
 Không viết business logic chính trong Livewire nếu đã có Service.
 
+Viết Code trong Blade phải chia block rõ ràng
+Trong code phải có comment để tôi replace nhanh
+
+
 ---
 
 ## 8. Quy chuẩn table/list
