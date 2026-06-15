@@ -1,3 +1,6 @@
+
+<Module_Name>="Account"
+
 Step 01:
 Read docs/NAME_PROJECT_ANALYSIS.md
 
@@ -18,6 +21,7 @@ Estimate:
 
 Generate implementation order.
 
+<Module_Name>="Account"
 Step 02:
 You are a Senior Laravel 12 Architect.
 
@@ -25,13 +29,13 @@ Read ROADMAP.md first.
 
 Analyze this module only:
 
-Modules/Account
+Modules/<Module_Name>
 
 Do not change any code yet.
 
 Generate this file:
 
-docs/modules/Account/ANALYSIS.md
+docs/modules/<Module_Name>/ANALYSIS.md
 
 Please analyze by this flow:
 
@@ -82,13 +86,13 @@ Read ROADMAP.md first.
 
 Analyze this module only:
 
-Modules/Account
+Modules/<Module_Name>
 
 Do not change any code yet.
 
 Generate this file:
 
-docs/modules/Account/ANALYSIS.md
+docs/modules/<Module_Name>/ANALYSIS.md
 
 Please analyze by this flow:
 
@@ -135,14 +139,14 @@ Important rules:
 Step 04:
 Read:
 
-docs/modules/Account/ANALYSIS.md 
+docs/modules/<Module_Name>/ANALYSIS.md 
 ROADMAP.md
 
 Do not write code yet.
 
 Create:
 
-docs/modules/Account/REFACTOR_PLAN.md
+docs/modules/<Module_Name>/REFACTOR_PLAN.md
 
 Requirements:
 
@@ -191,15 +195,15 @@ Livewire 3 best practices.
 Every recommendation must contain exact file paths.
 
 Step 05:
-docs/modules/Account/ANALYSIS.md
+docs/modules/<Module_Name>/ANALYSIS.md
 ROADMAP.md
-docs/modules/Account/REFACTOR_PLAN.md
+docs/modules/<Module_Name>/REFACTOR_PLAN.md
 
 Do not write code.
 
 Generate:
 
-docs/modules/Account/REBUILD_SPEC.md 
+docs/modules/<Module_Name>/REBUILD_SPEC.md 
 
 Include:
 
@@ -218,18 +222,27 @@ This document will become the source of truth for implementation.
 
 Use:
 Cấp độ 1 — 
+
+composer.json
+        ↓
+ModuleServiceProvider.php
+        ↓
+PROJECT_BOOTSTRAP.md
+        ↓
+ROADMAP.md
+        ↓
 ANALYSIS.md
-    ↓
+        ↓
 REFACTOR_PLAN.md
-    ↓
+        ↓
 REBUILD_SPEC.md
-    ↓
+        ↓
 FULL CODE
 
 Cấp độ 2 — 
-Rewrite Module: Modules/Account
+Rewrite Module: Modules/<Module_Name>
 Không sửa code cũ.
-Thiết kế lại hoàn toàn Module Account theo kiến trúc chuẩn.
+Thiết kế lại hoàn toàn Module <Module_Name> theo kiến trúc chuẩn.
 
 Cấp độ 3 — Generate Full Module From Specification
 Bạn đã có:
@@ -240,14 +253,14 @@ REBUILD_SPEC.md
 Sau đó yêu cầu Codex:
 Read:
 
-docs/modules/Account/ANALYSIS.md
-docs/modules/Account/REFACTOR_PLAN.md
-docs/modules/Account/REBUILD_SPEC.md
+docs/modules/<Module_Name>/ANALYSIS.md
+docs/modules/<Module_Name>/REFACTOR_PLAN.md
+docs/modules/<Module_Name>/REBUILD_SPEC.md
 ROADMAP.md
 
 Generate a completely new version of:
 
-Modules/Account
+Modules/<Module_Name>
 
 Do not modify existing code.
 
@@ -260,7 +273,7 @@ Module Architecture
 
 Required Structure:
 
-Modules/Account/
+Modules/<Module_Name>/
 
 ├── Routes/
 ├── Livewire/
@@ -313,3 +326,64 @@ I. Routes
 J. Tests
 
 Generate files one by one.
+
+
+-------------------------
+MODULE_NAME=Category
+
+Before doing anything, read these files in order:
+
+1. docs/CODEX_BOOTSTRAP.md
+2. docs/AI_PROJECT_CONTEXT.md
+3. docs/PROJECT_BOOTSTRAP.md
+4. ROADMAP.md
+5. docs/modules/Category/ANALYSIS.md
+6. docs/modules/Category/REFACTOR_PLAN.md
+7. docs/modules/Category/REBUILD_SPEC.md
+
+Then rebuild the module:
+
+Modules/Category
+
+Goal:
+
+Rewrite/refactor the Category module according to REBUILD_SPEC.md.
+
+Important rules:
+
+* Follow the actual module autoload architecture from docs/PROJECT_BOOTSTRAP.md.
+* Follow the coding standards from docs/AI_PROJECT_CONTEXT.md.
+* Follow the implementation priorities from ROADMAP.md.
+* Follow the module-specific analysis, refactor plan, and rebuild spec.
+* Do not modify unrelated modules.
+* Do not create a new ServiceProvider unless PROJECT_BOOTSTRAP.md requires it.
+* Do not change composer.json unless absolutely required.
+* Preserve existing database compatibility unless REBUILD_SPEC.md explicitly says otherwise.
+* Preserve existing routes and Livewire aliases unless REBUILD_SPEC.md explicitly says otherwise.
+* Keep business logic in Services.
+* Keep Livewire focused on UI state and actions.
+* Keep ImportExport.php as a thin orchestrator.
+* Use transactions for multi-record writes.
+* Add authorization checks for mutating actions.
+* Add validation before persistence.
+* Prevent N+1 queries.
+
+Implementation order:
+
+1. List all files that will be changed or created.
+2. Explain the change plan briefly.
+3. Implement P0 items first.
+4. Then implement P1 items.
+5. Ignore P2 unless safe and clearly isolated.
+6. Generate or update tests where possible.
+7. Generate:
+
+docs/modules/Category/IMPLEMENTATION_SUMMARY.md
+
+Include:
+
+* Files changed
+* What was implemented
+* Remaining risks
+* Tests added or recommended
+* Manual verification checklist
