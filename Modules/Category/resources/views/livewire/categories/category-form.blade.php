@@ -1,293 +1,248 @@
-<div class="max-w-5xl mx-auto">
-
-    <!-- HEADER -->
-    <div class="flex items-center justify-between mb-8">
+<div class="mx-auto max-w-5xl">
+    <div class="mb-8 flex items-center justify-between">
         <div>
             <h2 class="text-2xl font-bold text-gray-900">
                 {{ $categoryId ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới' }}
             </h2>
-            <p class="mt-1 text-sm text-gray-500">
-                Quản lý danh mục theo từng loại hệ thống
-            </p>
+            <p class="mt-1 text-sm text-gray-500">Quản lý danh mục theo từng loại hệ thống.</p>
         </div>
 
         <a href="{{ route('admin.category.index') }}"
-            class="px-4 py-3 rounded-xl border border-gray-300 text-sm bg-white hover:bg-gray-50">
+            class="rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm hover:bg-gray-50">
             Hủy
         </a>
     </div>
 
-    <form wire:submit="save" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        <!-- LEFT -->
-        <div class="lg:col-span-2 space-y-6">
-
-            <div class="bg-white rounded-xl shadow-sm p-6 space-y-6">
-
-                <!-- NAME -->
+    <form wire:submit="save" class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-2">
+            <div class="space-y-6 rounded-xl bg-white p-6 shadow-sm">
                 <div>
-                    <label class="text-sm font-medium text-gray-900">
-                        Tên danh mục *
-                    </label>
-
-                    <input type="text" wire:model.live="name"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1
-                           focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-
+                    <label class="text-sm font-medium text-gray-900">Tên danh mục *</label>
+                    <input type="text" wire:model.live.debounce.300ms="name"
+                        class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
                     @error('name')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- SLUG -->
                 <div>
                     <label class="text-sm font-medium text-gray-900">Slug</label>
-
-                    <input type="text" wire:model="slug"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 bg-gray-50
-                           focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-
+                    <input type="text" wire:model.live="slug"
+                        class="mt-1 w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
                     @error('slug')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
                     @enderror
                 </div>
-
             </div>
         </div>
 
-        <!-- RIGHT -->
         <div class="space-y-6">
-
-            <div class="bg-white rounded-xl shadow-sm p-6 space-y-6">
-
-                <!-- TYPE -->
+            <div class="space-y-6 rounded-xl bg-white p-6 shadow-sm">
                 <div>
-                    <label class="text-sm font-medium text-gray-900">
-                        Loại đối tượng
-                    </label>
-
-                    <div class="flex gap-2 mt-1">
+                    <label class="text-sm font-medium text-gray-900">Loại đối tượng</label>
+                    <div class="mt-1 flex gap-2">
                         <select wire:model.live="type"
-                            class="w-full rounded-xl border border-gray-300 px-4 py-3
-            focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-
-                            @foreach ($this->types as $t)
-                                <option value="{{ $t->type }}">
-                                    {{ $t->icon }} {{ $t->title }}
+                            class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                            <option value="">-- Chọn loại --</option>
+                            @foreach ($this->types as $categoryType)
+                                <option value="{{ $categoryType->type }}">
+                                    {{ $categoryType->icon }} {{ $categoryType->title }}
                                 </option>
                             @endforeach
                         </select>
 
                         <button type="button" wire:click="openTypeModal"
-                            class="px-4 py-3 rounded-xl border border-gray-300 bg-white hover:bg-gray-50">
+                            class="rounded-xl border border-gray-300 bg-white px-4 py-3 hover:bg-gray-50"
+                            aria-label="Quản lý loại danh mục">
                             +
                         </button>
                     </div>
-                </div>
-
-                <!-- PARENT -->
-                <div>
-                    <label class="text-sm font-medium text-gray-900">
-                        Danh mục cha
-                    </label>
-
-                    <select wire:model="parent_id"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1
-                            focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-
-                        <option value="">-- Root --</option>
-
-                        @foreach ($this->parents as $p)
-                            <option value="{{ $p->id }}">
-                                {{ $p->view_name }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    @error('parent_id')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @error('type')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- SORT -->
                 <div>
-                    <label class="text-sm font-medium text-gray-900">
-                        Thứ tự
-                    </label>
-
-                    <input type="number" wire:model="sort_order"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1">
+                    <label class="text-sm font-medium text-gray-900">Danh mục cha</label>
+                    <select wire:model.live="parent_id"
+                        class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                        <option value="">-- Root --</option>
+                        @foreach ($this->parents as $parent)
+                            <option value="{{ $parent['id'] }}">{{ $parent['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('parent_id')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
-                <!-- ACTIVE -->
-                <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium">Hiển thị</span>
-
-                    <input type="checkbox" wire:model="is_active">
+                <div>
+                    <label class="text-sm font-medium text-gray-900">Thứ tự</label>
+                    <input type="number" min="0" wire:model.live="sort_order"
+                        class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3">
+                    @error('sort_order')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
+                <label class="flex items-center justify-between text-sm font-medium">
+                    <span>Hiển thị</span>
+                    <input type="checkbox" wire:model.live="is_active">
+                </label>
+                @error('is_active')
+                    <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                @enderror
             </div>
 
-            <!-- IMAGE -->
-            <x-image-upload label="Ảnh danh mục" wire:model="newImage" :oldImage="$oldImage" :newImage="$newImage" />
+            <x-category::image-upload
+                label="Ảnh danh mục"
+                wire:model="newImage"
+                :old-image="$oldImage"
+                :new-image="$newImage" />
 
-            <!-- SUBMIT -->
-            <button type="submit"
-                class="w-full py-3 rounded-xl bg-indigo-600 text-white font-semibold
-                hover:bg-indigo-500 transition">
-
-                <span wire:loading.remove>Lưu danh mục</span>
-                <span wire:loading>Đang lưu...</span>
+            <button type="submit" wire:loading.attr="disabled" wire:target="save"
+                class="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50">
+                <span wire:loading.remove wire:target="save">Lưu danh mục</span>
+                <span wire:loading wire:target="save">Đang lưu...</span>
             </button>
-
         </div>
     </form>
+
     @if ($showTypeModal)
-
-        <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
-
-            <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-
-                <!-- HEADER -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
+            <div class="max-h-[90vh] w-full max-w-lg space-y-6 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900">
-                        Quản lý loại đối tượng
-                    </h3>
-
-                    <button wire:click="$set('showTypeModal', false)" class="text-gray-400 hover:text-gray-600">
-                        ✕
+                    <h3 class="text-lg font-bold text-gray-900">Quản lý loại đối tượng</h3>
+                    <button type="button" wire:click="$set('showTypeModal', false)"
+                        class="text-gray-400 hover:text-gray-600" aria-label="Đóng">
+                        X
                     </button>
                 </div>
 
-                <!-- SELECT TYPE -->
                 <div>
-                    <label class="text-sm font-medium text-gray-900">
-                        Chọn loại để chỉnh sửa
-                    </label>
-
+                    <label class="text-sm font-medium text-gray-900">Chọn loại để chỉnh sửa</label>
                     <select wire:model.live="selectedType"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-2
-                           focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-
-                        <option value="">➕ Tạo mới</option>
-
-                        @foreach ($this->types as $t)
-                            <option value="{{ $t->type }}">
-                                {{ $t->icon }} {{ $t->title }}
+                        class="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                        <option value="">Tạo mới</option>
+                        @foreach ($this->types as $categoryType)
+                            <option value="{{ $categoryType->type }}">
+                                {{ $categoryType->icon }} {{ $categoryType->title }}
                             </option>
                         @endforeach
                     </select>
+                    @error('selectedType')
+                        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
-                <!-- CREATE NEW -->
-                @if (!$selectedType)
+                @if (! $selectedType)
                     <div class="space-y-4 border-t pt-4">
-
                         <div>
                             <label class="text-sm font-medium">Type</label>
-                            <input wire:model="newType" class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1">
+                            <input wire:model.live="newType"
+                                class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3">
+                            @error('newType')
+                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <div>
                             <label class="text-sm font-medium">Title</label>
-                            <input wire:model="newTypeTitle"
-                                class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1">
+                            <input wire:model.live="newTypeTitle"
+                                class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3">
+                            @error('newTypeTitle')
+                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
 
-                        <!-- ICON PICKER (compact horizontal) -->
                         <div>
                             <label class="text-sm font-medium">Icon</label>
-
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                @foreach (['📦', '🛍️', '📝', '📂', '🏷️', '⚙️', '⭐', '📊', '🚀', '🔥', '💡', '🎯'] as $icon)
-                                    <button type="button" wire:click="$set('newTypeIcon', '{{ $icon }}')"
-                                        class="w-9 h-9 text-base flex items-center justify-center rounded-lg border
-                                           hover:bg-gray-50 transition
-                                           {{ $newTypeIcon === $icon ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200' }}">
-                                        {{ $icon }}
-                                    </button>
-                                @endforeach
-                            </div>
-
-                            <input wire:model="newTypeIcon"
-                                class="w-full rounded-xl border border-gray-300 px-4 py-2 mt-2 text-sm"
-                                placeholder="hoặc nhập icon">
+                            <input wire:model.live="newTypeIcon"
+                                class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3"
+                                placeholder="Icon hoặc emoji">
+                            @error('newTypeIcon')
+                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
 
-                        <button wire:click="createType"
-                            class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700">
-                            + Tạo mới
-                        </button>
-                    </div>
-                @endif
-
-                <!-- EDIT -->
-                @if ($selectedType)
-
-                    <div class="space-y-4 border-t pt-4">
-
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm font-semibold text-gray-900">
-                                Chỉnh sửa
-                            </span>
-
-                            <button wire:click="deleteType" class="text-red-500 text-sm hover:underline">
-                                Xóa
+                        @if (auth('admin')->user()?->can('create_category'))
+                            <button type="button" wire:click="createType" wire:loading.attr="disabled"
+                                wire:target="createType"
+                                class="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+                                Tạo mới
                             </button>
-                        </div>
-
+                        @endif
+                    </div>
+                @else
+                    <div class="space-y-4 border-t pt-4">
                         <div>
                             <label class="text-sm font-medium">Title</label>
-                            <input wire:model="editTitle"
-                                class="w-full rounded-xl border border-gray-300 px-4 py-3 mt-1">
+                            <input wire:model.live="editTitle"
+                                class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3">
+                            @error('editTitle')
+                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
 
-                        <!-- ICON EDIT (LIVE SYNC + PREVIEW) -->
                         <div>
                             <label class="text-sm font-medium">Icon</label>
-
-                            <div class="flex items-center gap-3 mt-2">
-
-                                <!-- preview -->
-                                <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xl">
-                                    {{ $editIcon ?? '📦' }}
-                                </div>
-
-                                <input wire:model.live="editIcon"
-                                    class="w-full rounded-xl border border-gray-300 px-4 py-3" placeholder="icon">
-                            </div>
-
-                            <!-- picker horizontal -->
-                            <div class="flex flex-wrap gap-2 mt-3">
-                                @foreach (['📦', '🛍️', '📝', '📂', '🏷️', '⚙️', '⭐', '📊', '🚀', '🔥', '💡', '🎯'] as $icon)
-                                    <button type="button" wire:click="$set('editIcon', '{{ $icon }}')"
-                                        class="w-8 h-8 text-sm flex items-center justify-center rounded-lg border
-                                           hover:bg-gray-50 transition
-                                           {{ $editIcon === $icon ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200' }}">
-                                        {{ $icon }}
-                                    </button>
-                                @endforeach
-                            </div>
+                            <input wire:model.live="editIcon"
+                                class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3"
+                                placeholder="Icon hoặc emoji">
+                            @error('editIcon')
+                                <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
 
-                        <!-- ACTIVE -->
                         <label class="flex items-center gap-2 text-sm">
-                            <input type="checkbox" wire:model="editActive">
+                            <input type="checkbox" wire:model.live="editActive">
                             Active
                         </label>
+                        @error('editActive')
+                            <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
+                        @enderror
 
-                        <!-- UPDATE -->
-                        <button wire:click="updateType"
-                            class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700">
-                            Cập nhật
-                        </button>
+                        <div class="flex gap-3">
+                            @if (auth('admin')->user()?->can('edit_category'))
+                                <button type="button" wire:click="updateType" wire:loading.attr="disabled"
+                                    wire:target="updateType"
+                                    class="flex-1 rounded-xl bg-indigo-600 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+                                    Cập nhật
+                                </button>
+                            @endif
 
+                            @if (auth('admin')->user()?->can('delete_category'))
+                                <button type="button" wire:click="requestTypeDelete"
+                                    class="rounded-xl border border-red-300 px-4 py-3 font-semibold text-red-600">
+                                    Xóa
+                                </button>
+                            @endif
+                        </div>
                     </div>
-
                 @endif
-
             </div>
         </div>
+    @endif
 
+    @if ($confirmingTypeDelete)
+        <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                <h3 class="text-lg font-semibold text-gray-900">Xác nhận xóa loại danh mục</h3>
+                <p class="mt-2 text-sm text-gray-600">
+                    Chỉ loại chưa có danh mục phụ thuộc mới được xóa.
+                </p>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" wire:click="cancelTypeDelete"
+                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium">
+                        Hủy
+                    </button>
+                    <button type="button" wire:click="confirmTypeDelete" wire:loading.attr="disabled"
+                        wire:target="confirmTypeDelete"
+                        class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                        Xóa
+                    </button>
+                </div>
+            </div>
+        </div>
     @endif
 </div>

@@ -341,7 +341,7 @@ Before doing anything, read these files in order:
 6. docs/modules/Category/REFACTOR_PLAN.md
 7. docs/modules/Category/REBUILD_SPEC.md
 
-Then rebuild the module:
+Then refactor the existing module safely:
 
 Modules/Category
 

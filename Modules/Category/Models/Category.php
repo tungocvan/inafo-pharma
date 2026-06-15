@@ -2,17 +2,30 @@
 
 namespace Modules\Category\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-//use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Builder;
 
 class Category extends Model
 {
+    protected $table = 'categories';
+
     protected $fillable = [
-        'name','slug','type','parent_id','image',
-        'is_active','sort_order','meta_title','meta_description'
+        'name',
+        'slug',
+        'url',
+        'icon',
+        'can',
+        'type',
+        'type_title',
+        'parent_id',
+        'description',
+        'image',
+        'is_active',
+        'sort_order',
+        'meta_title',
+        'meta_description',
     ];
 
     protected $casts = [
@@ -20,39 +33,35 @@ class Category extends Model
         'sort_order' => 'integer',
     ];
 
-    public function typeInfo()
+    public function typeInfo(): BelongsTo
     {
         return $this->belongsTo(CategoryType::class, 'type', 'type');
     }
 
-    public function parent()
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
     }
 
-    public function children()
+    public function children(): HasMany
     {
-        return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order');
+        return $this->hasMany(self::class, 'parent_id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
     }
 
-    public function childrenRecursive()
+    public function scopeOfType(Builder $query, string $type): Builder
     {
-        return $this->children()->with('childrenRecursive');
+        return $query->where('type', $type);
     }
 
-    public function scopeOfType($q, $type)
+    public function scopeActive(Builder $query): Builder
     {
-        return $q->where('type', $type);
+        return $query->where('is_active', true);
     }
 
-    public function getAllChildrenIds(): array
+    public function scopeRoots(Builder $query): Builder
     {
-        $ids = [$this->id];
-
-        foreach ($this->childrenRecursive as $child) {
-            $ids = array_merge($ids, $child->getAllChildrenIds());
-        }
-
-        return $ids;
+        return $query->whereNull('parent_id');
     }
 }

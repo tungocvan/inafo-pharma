@@ -2,76 +2,156 @@
 
 namespace Modules\Category\Livewire\Categories;
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
-use Modules\Category\Models\Category;
-use Illuminate\Support\Facades\Storage;
-use Modules\Category\Models\CategoryType;
+use Livewire\WithPagination;
+use Modules\Category\Services\CategoryService;
+use Modules\Category\Services\CategoryTypeService;
 
 class CategoryTable extends Component
 {
-    public $type = 'product'; // Mặc định là Product
-    public $types = [];
+    use WithPagination;
 
+    public string $search = '';
 
-    public function mount()
-    {
-        $this->types = CategoryType::where('is_active', true)
-            ->orderBy('sort_order') // đúng yêu cầu của bạn
-            ->get();
+    public ?string $type = null;
 
-        // default type
-        $this->type = $this->types->first()?->type ?? null;
+    public string $status = '';
+
+    public string $sortBy = 'sort_order';
+
+    public string $sortDirection = 'asc';
+
+    public int $perPage = 10;
+
+    public array $perPageOptions = [10, 25, 50, 100];
+
+    public ?int $pendingDeleteId = null;
+
+    protected CategoryService $categoryService;
+
+    protected CategoryTypeService $categoryTypeService;
+
+    public function boot(
+        CategoryService $categoryService,
+        CategoryTypeService $categoryTypeService
+    ): void {
+        $this->categoryService = $categoryService;
+        $this->categoryTypeService = $categoryTypeService;
     }
-    public function refreshTypes()
+
+    public function mount(): void
     {
-        $this->types = CategoryType::where('is_active', true)
-            ->orderBy('sort_order')
-            ->get();
-    }
-    // Chuyển Tab (Product <-> Post)
-    public function setType($type)
-    {
-        $this->type = $type;
+        $this->authorizePermission('view_category');
+        $this->type = $this->categoryTypeService->firstActiveType();
     }
 
-    public function delete($id)
+    public function getTypesProperty()
     {
-        $category = Category::find($id);
-        if ($category) {
-            if ($category->image) {
-                Storage::disk('public')->delete($category->image);
+        return $this->categoryTypeService->listForAdmin(activeOnly: true);
+    }
+
+    public function setType(?string $type): void
+    {
+        $this->authorizePermission('view_category');
+
+        if ($type !== null) {
+            $categoryType = $this->categoryTypeService->find($type);
+
+            if (! $categoryType->is_active) {
+                throw ValidationException::withMessages([
+                    'type' => 'Loại danh mục không hoạt động.',
+                ]);
             }
-            // Lưu ý: Cần xử lý logic con cái (Xóa con hoặc set parent_id = null)
-            // Ở đây ta dùng delete() mặc định
-            $category->delete();
         }
+
+        $this->type = $type;
+        $this->resetPage();
     }
 
-    public function toggleStatus($id)
+    public function updatedSearch(): void
     {
-        $category = Category::find($id);
-        if ($category) {
-            $category->is_active = !$category->is_active;
-            $category->save();
+        $this->resetPage();
+    }
+
+    public function updatedType(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatus(string $status): void
+    {
+        if (! in_array($status, ['', 'active', 'inactive'], true)) {
+            $this->status = '';
         }
+
+        $this->resetPage();
+    }
+
+    public function updatedPerPage(int $perPage): void
+    {
+        if (! in_array($perPage, $this->perPageOptions, true)) {
+            $this->perPage = 10;
+        }
+
+        $this->resetPage();
+    }
+
+    public function requestDelete(int $id): void
+    {
+        $this->authorizePermission('delete_category');
+        $this->pendingDeleteId = $id;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->pendingDeleteId = null;
+        $this->resetErrorBag('delete');
+    }
+
+    public function confirmDelete(): void
+    {
+        $this->authorizePermission('delete_category');
+
+        if ($this->pendingDeleteId === null) {
+            return;
+        }
+
+        $this->categoryService->delete($this->pendingDeleteId);
+        $this->pendingDeleteId = null;
+        $this->dispatch('notify', content: 'Xóa danh mục thành công', type: 'success');
+    }
+
+    public function setActive(int $id, bool $active): void
+    {
+        $this->authorizePermission('edit_category');
+        $this->categoryService->setActive($id, $active);
+        $this->dispatch('notify', content: 'Cập nhật trạng thái thành công', type: 'success');
     }
 
     public function render()
     {
-        // Load danh mục theo TYPE và cấu trúc 3 cấp (Cha -> Con -> Cháu)
-        $categories = Category::where('type', $this->type)
-            ->whereNull('parent_id')
-            ->with(['children' => function ($q) {
-                $q->orderBy('sort_order', 'asc')
-                    ->with(['children' => function ($q2) { // Cấp 3
-                        $q2->orderBy('sort_order', 'asc');
-                    }]);
-            }])
-            ->orderBy('sort_order', 'asc')
-            ->get();
+        $this->authorizePermission('view_category');
 
         return view('Category::livewire.categories.category-table', [
-            'categories' => $categories
+            'categories' => $this->categoryService->paginateForAdmin([
+                'search' => $this->search,
+                'type' => $this->type,
+                'status' => $this->status,
+                'sortBy' => $this->sortBy,
+                'sortDirection' => $this->sortDirection,
+                'perPage' => $this->perPage,
+            ]),
         ]);
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = Auth::guard('admin')->user();
+
+        abort_unless($user, 403);
+        Gate::forUser($user)->authorize($permission);
     }
 }
