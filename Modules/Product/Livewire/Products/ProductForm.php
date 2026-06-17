@@ -2,11 +2,10 @@
 
 namespace Modules\Product\Livewire\Products;
 
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Product\Models\Product;
-use Modules\Product\Models\Category;
-use Illuminate\Support\Str;
+use Modules\Product\Services\ProductService;
 
 class ProductForm extends Component
 {
@@ -14,155 +13,153 @@ class ProductForm extends Component
 
     public $productId = null;
 
-    // --- Basic Info ---
-    public $title, $slug, $short_description, $description;
-    public $regular_price, $sale_price;
+    public $title;
+    public $slug;
+    public $short_description;
+    public $description;
+    public $regular_price;
+    public $sale_price;
     public $is_active = true;
     public $category_ids = [];
     public $affiliate_commission_rate;
-    // --- Images ---
-    public $newImage;   // Ảnh đại diện mới
-    public $oldImage;   // Ảnh đại diện cũ
 
-    // --- BỔ SUNG: GALLERY & TAGS ---
-    public $gallery = [];      // Mảng chứa đường dẫn ảnh cũ (từ DB)
-    public $newGallery = [];   // Mảng chứa file ảnh mới upload (Livewire Upload)
+    public $newImage;
+    public $oldImage;
+    public $gallery = [];
+    public $newGallery = [];
 
-    public $tags = [];         // Mảng chứa các tag đã add
-    public $tagInput = '';     // Biến tạm để nhập tag
+    public $tags = [];
+    public $tagInput = '';
 
-    // --- Load Data ---
-    public function mount($id = null)
+    protected ProductService $products;
+
+    public function boot(ProductService $products): void
     {
-        if ($id) {
-            $product = Product::with('categories')->findOrFail($id);
-            $this->productId = $product->id;
+        $this->products = $products;
+    }
 
-            // Map dữ liệu cũ
-            $this->title = $product->title;
-            $this->slug = $product->slug;
-            $this->regular_price = $product->regular_price;
-            $this->sale_price = $product->sale_price;
-            $this->short_description = $product->short_description;
-            $this->description = $product->description;
-            $this->is_active = (bool) $product->is_active;
-            $this->oldImage = $product->image;
-            $this->affiliate_commission_rate = $product->affiliate_commission_rate;
-            // Danh mục
-            $this->category_ids = $product->categories->pluck('id')->map(fn($i)=>(string)$i)->toArray();
+    public function mount($id = null): void
+    {
+        if (! $id) {
+            $this->authorizeAdmin('create_product');
 
-            // Gallery & Tags (Decode JSON nếu cần, hoặc Laravel cast tự xử lý)
-            $this->gallery = $product->gallery ?? [];
-            $this->tags = $product->tags ?? [];
+            return;
         }
+
+        $this->authorizeAdmin('edit_product');
+
+        $product = $this->products->findForEdit((int) $id);
+        $this->productId = $product->id;
+        $this->title = $product->title;
+        $this->slug = $product->slug;
+        $this->regular_price = $product->regular_price;
+        $this->sale_price = $product->sale_price;
+        $this->short_description = $product->short_description;
+        $this->description = $product->description;
+        $this->is_active = (bool) $product->is_active;
+        $this->oldImage = $product->image;
+        $this->affiliate_commission_rate = $product->affiliate_commission_rate;
+        $this->category_ids = $product->categories->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->gallery = $product->gallery ?? [];
+        $this->tags = $product->tags ?? [];
     }
 
     public function getCategoriesProperty()
     {
-        return Category::where('type', 'product')
-            ->whereNull('parent_id') // Chỉ lấy ông Tổ
-            ->with(['children.children']) // Eager load con và cháu
-            ->orderBy('sort_order')
-            ->get();
+        return $this->products->productCategoryTree();
     }
 
-    // --- Logic TAGS ---
-    public function addTag()
+    public function addTag(): void
     {
-        if (!empty($this->tagInput)) {
-            // Thêm vào mảng nếu chưa tồn tại
-            if (!in_array($this->tagInput, $this->tags)) {
-                $this->tags[] = $this->tagInput;
-            }
-            $this->tagInput = ''; // Reset ô nhập
+        $tag = trim((string) $this->tagInput);
+
+        if ($tag !== '' && ! in_array($tag, $this->tags, true)) {
+            $this->tags[] = $tag;
         }
+
+        $this->tagInput = '';
     }
 
-    public function removeTag($index)
+    public function removeTag($index): void
     {
         unset($this->tags[$index]);
-        $this->tags = array_values($this->tags); // Re-index array
+        $this->tags = array_values($this->tags);
     }
 
-    // --- Logic GALLERY ---
-    public function removeOldGallery($index)
+    public function removeOldGallery($index): void
     {
-        // Xóa ảnh cũ khỏi danh sách hiển thị (Khi save sẽ cập nhật lại DB)
         unset($this->gallery[$index]);
         $this->gallery = array_values($this->gallery);
     }
 
-    public function removeNewGallery($index)
+    public function removeNewGallery($index): void
     {
-        // Xóa ảnh mới vừa upload (chưa lưu)
         unset($this->newGallery[$index]);
         $this->newGallery = array_values($this->newGallery);
     }
 
-    protected function rules()
+    protected function rules(): array
     {
         return [
-            'title' => 'required|min:3',
-            'slug' => 'required|unique:wp_products,slug,' . $this->productId,
+            'title' => 'required|string|min:3|max:255',
+            'slug' => 'nullable|string|max:255',
             'regular_price' => 'required|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0',
+            'short_description' => 'nullable|string',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
             'category_ids' => 'array',
+            'category_ids.*' => 'integer',
             'newImage' => 'nullable|image|max:5120',
-            'affiliate_commission_rate' => 'nullable|numeric|min:0|max:100',
-            // Validate mảng ảnh mới
             'newGallery.*' => 'image|max:5120',
+            'affiliate_commission_rate' => 'nullable|numeric|min:0|max:100',
             'tags' => 'array',
+            'tags.*' => 'string|max:100',
         ];
     }
 
     public function save()
     {
+        $this->authorizeAdmin($this->productId ? 'edit_product' : 'create_product');
         $this->validate();
 
-        // 1. Xử lý Gallery: Gộp ảnh cũ + ảnh mới upload
-        $finalGallery = $this->gallery; // Bắt đầu bằng ảnh cũ còn lại
-
-        foreach ($this->newGallery as $file) {
-            $finalGallery[] = $file->store('products/gallery', 'public');
-        }
-
-        $data = [
+        $payload = [
             'title' => $this->title,
-            'slug' => $this->slug ?: Str::slug($this->title),
+            'slug' => $this->slug ?: Str::slug((string) $this->title),
             'regular_price' => $this->regular_price,
             'sale_price' => $this->sale_price,
             'short_description' => $this->short_description,
             'description' => $this->description,
             'is_active' => $this->is_active,
-            'tags' => $this->tags,        // Lưu mảng tags (Model tự cast JSON)
-            'gallery' => $finalGallery,   // Lưu mảng gallery (Model tự cast JSON)
+            'tags' => $this->tags,
+            'gallery' => $this->gallery,
+            'newGallery' => $this->newGallery,
+            'newImage' => $this->newImage,
             'affiliate_commission_rate' => $this->affiliate_commission_rate ?: null,
+            'category_ids' => $this->category_ids,
         ];
 
-        if ($this->newImage) {
-            $data['image'] = $this->newImage->store('products', 'public');
-        }
-
         if ($this->productId) {
-            $product = Product::find($this->productId);
-            $product->update($data);
+            $this->products->update((int) $this->productId, $payload);
         } else {
-            $product = Product::create($data);
+            $this->products->create($payload);
         }
-
-        // Sync Categories
-        $product->categories()->sync($this->category_ids);
 
         return redirect()->route('admin.products.index');
     }
 
-    // Auto Slug
-    public function updatedTitle($value)
+    public function updatedTitle($value): void
     {
-        $this->slug = Str::slug($value);
+        $this->slug = Str::slug((string) $value);
     }
 
     public function render()
     {
-        return view('Product::livewire.products.product-form');
+        return view('product::livewire.products.product-form');
+    }
+
+    private function authorizeAdmin(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }

@@ -114,10 +114,10 @@
                             <input type="checkbox" wire:model.live="selectAll" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
                         </th>
 
-                        @foreach(['title' => 'Sản phẩm', 'regular_price' => 'Giá bán', 'stock_qty' => 'Tồn kho', 'is_active' => 'Trạng thái'] as $field => $label)
+                        @foreach(['title' => 'Sản phẩm', 'regular_price' => 'Giá bán', 'quantity' => 'Tồn kho', 'is_active' => 'Trạng thái'] as $field => $label)
                             <th scope="col" wire:click="sortBy('{{ $field }}')"
-                                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide cursor-pointer group hover:bg-gray-100 transition select-none {{ $sortColumn === $field ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-500' }} {{ in_array($field, ['regular_price', 'stock_qty']) ? 'text-right' : '' }} {{ $field === 'is_active' ? 'text-center' : '' }}">
-                                <div class="flex items-center gap-1 {{ in_array($field, ['regular_price', 'stock_qty']) ? 'justify-end' : '' }} {{ $field === 'is_active' ? 'justify-center' : '' }}">
+                                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide cursor-pointer group hover:bg-gray-100 transition select-none {{ $sortColumn === $field ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-500' }} {{ in_array($field, ['regular_price', 'quantity']) ? 'text-right' : '' }} {{ $field === 'is_active' ? 'text-center' : '' }}">
+                                <div class="flex items-center gap-1 {{ in_array($field, ['regular_price', 'quantity']) ? 'justify-end' : '' }} {{ $field === 'is_active' ? 'justify-center' : '' }}">
                                     {{ $label }}
                                     @if($sortColumn === $field)
                                         <svg class="w-3 h-3 {{ $sortDirection === 'asc' ? 'rotate-180' : '' }} transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -166,8 +166,8 @@
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                @if($item->stock_qty > 0)
-                                    <span class="text-sm font-medium text-gray-900">{{ $item->stock_qty }}</span>
+                                @if($item->quantity > 0)
+                                    <span class="text-sm font-medium text-gray-900">{{ $item->quantity }}</span>
                                 @else
                                     <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Hết hàng</span>
                                 @endif

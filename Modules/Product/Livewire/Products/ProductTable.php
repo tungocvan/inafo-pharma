@@ -3,193 +3,168 @@
 namespace Modules\Product\Livewire\Products;
 
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithFileUploads;
-use Modules\Product\Models\Product;
-use Modules\Product\Models\Category;
+use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 use Modules\Product\Exports\ProductsExport;
 use Modules\Product\Imports\ProductsImport;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Str;
+use Modules\Product\Services\ProductService;
 
 class ProductTable extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination;
+    use WithFileUploads;
 
-    // --- 1. FILTERS & PAGINATION ---
     public $search = '';
     public $category_id = '';
     public $perPage = 10;
 
-    // --- 2. SORTING ---
     public $sortColumn = 'created_at';
     public $sortDirection = 'desc';
 
-    // --- 3. BULK ACTIONS ---
     public $selected = [];
     public $selectAll = false;
 
-    // --- 4. MODALS STATE ---
     public $importFile;
     public $showImportModal = false;
 
     public $showCategoryModal = false;
     public $bulkCategoryIds = [];
 
-    // ==========================================
-    // COMPUTED PROPERTIES
-    // ==========================================
+    protected ProductService $products;
+
+    public function boot(ProductService $products): void
+    {
+        $this->products = $products;
+    }
+
     public function getCategoriesProperty()
     {
-        // Lấy toàn bộ danh mục sản phẩm
-        $categories = Category::where('type', 'product')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
-
-        // Chuyển đổi thành dạng cây phẳng (Flat Tree) để hiển thị trong Select
-        return collect($this->buildTreeOption($categories));
+        return $this->products->flatProductCategoryOptions();
     }
 
-    // 2. THÊM HÀM ĐỆ QUY TẠO VIEW NAME
-    private function buildTreeOption($categories, $parentId = null, $prefix = '')
+    public function updatedSearch(): void
     {
-        $result = [];
-
-        foreach ($categories as $category) {
-            if ($category->parent_id == $parentId) {
-                // Tạo tên hiển thị có gạch đầu dòng
-                // Ví dụ: "Điện tử", "-- Laptop", "---- Gaming"
-                $category->view_name = $prefix . $category->name;
-
-                $result[] = $category;
-
-                // Gọi đệ quy cho con (thêm prefix dài hơn)
-                $children = $this->buildTreeOption($categories, $category->id, $prefix . '— '); // Dùng dấu gạch dài em-dash cho đẹp
-                $result = array_merge($result, $children);
-            }
-        }
-        return $result;
+        $this->resetPage();
+        $this->resetSelection();
     }
 
-    // ==========================================
-    // LIFECYCLE & UPDATES
-    // ==========================================
-    public function updatedSearch() { $this->resetPage(); }
-    public function updatedCategoryId() { $this->resetPage(); }
-    public function updatedPerPage() { $this->resetPage(); }
-
-    public function updatedSelectAll($value)
+    public function updatedCategoryId(): void
     {
-        if ($value) {
-            $this->selected = $this->getProductsQuery()->pluck('id')->map(fn($id) => (string)$id)->toArray();
-        } else {
-            $this->selected = [];
-        }
+        $this->resetPage();
+        $this->resetSelection();
     }
 
-    // ==========================================
-    // ACTIONS: FILTERS
-    // ==========================================
-    public function clearSearch()
+    public function updatedPerPage(): void
+    {
+        $this->perPage = $this->products->normalizePerPage($this->perPage);
+        $this->resetPage();
+        $this->resetSelection();
+    }
+
+    public function updatedSelectAll($value): void
+    {
+        $this->selected = $value ? $this->products->currentPageIds($this->filters()) : [];
+    }
+
+    public function clearSearch(): void
     {
         $this->search = '';
         $this->resetPage();
+        $this->resetSelection();
     }
 
-    public function clearCategory()
+    public function clearCategory(): void
     {
         $this->category_id = '';
         $this->resetPage();
+        $this->resetSelection();
     }
 
-    public function sortBy($column)
+    public function sortBy($column): void
     {
+        $column = $this->products->normalizeSortColumn((string) $column);
+
         if ($this->sortColumn === $column) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
             $this->sortColumn = $column;
             $this->sortDirection = 'asc';
         }
+
+        $this->resetSelection();
     }
 
-    // ==========================================
-    // ACTIONS: SINGLE ROW
-    // ==========================================
-    public function toggleStatus($id)
+    public function toggleStatus($id): void
     {
-        $product = Product::find($id);
-        if ($product) {
-            $product->is_active = !$product->is_active;
-            $product->save();
-        }
+        $this->authorizeAdmin('edit_product');
+        $this->products->toggleStatus((int) $id);
     }
 
-    public function duplicate($id)
+    public function duplicate($id): void
     {
-        $product = Product::with('categories')->find($id);
-        if ($product) {
-            $newProduct = $product->replicate();
-            $newProduct->title = $product->title . ' (Copy)';
-            $newProduct->slug = Str::slug($newProduct->title) . '-' . time();
-            $newProduct->is_active = false;
-            $newProduct->created_at = now();
-            $newProduct->save();
-
-            // Copy quan hệ category
-            $newProduct->categories()->sync($product->categories->pluck('id'));
-        }
+        $this->authorizeAdmin('create_product');
+        $this->products->duplicate((int) $id);
     }
 
-    public function delete($id)
+    public function delete($id): void
     {
-        Product::destroy($id);
+        $this->authorizeAdmin('delete_product');
+        $this->products->delete((int) $id);
+        $this->resetSelection();
     }
 
-    // ==========================================
-    // ACTIONS: BULK (HÀNG LOẠT)
-    // ==========================================
-    public function deleteSelected()
+    public function deleteSelected(): void
     {
-        Product::whereIn('id', $this->selected)->delete();
-        $this->reset(['selected', 'selectAll']);
+        $this->authorizeAdmin('delete_product');
+        $this->products->deleteMany($this->selected);
+        $this->resetSelection();
     }
 
-    public function openCategoryModal()
+    public function openCategoryModal(): void
     {
+        $this->authorizeAdmin('edit_product');
         $this->reset('bulkCategoryIds');
         $this->showCategoryModal = true;
     }
 
-    public function applyCategories()
+    public function applyCategories(): void
     {
+        $this->authorizeAdmin('edit_product');
         $this->validate([
+            'selected' => 'required|array|min:1',
+            'selected.*' => 'integer',
             'bulkCategoryIds' => 'required|array|min:1',
-        ], ['bulkCategoryIds.required' => 'Vui lòng chọn ít nhất 1 danh mục.']);
+            'bulkCategoryIds.*' => 'integer',
+        ], [
+            'selected.required' => 'Vui lòng chọn ít nhất 1 sản phẩm.',
+            'bulkCategoryIds.required' => 'Vui lòng chọn ít nhất 1 danh mục.',
+        ]);
 
-        if (!empty($this->selected)) {
-            $products = Product::whereIn('id', $this->selected)->get();
-            foreach ($products as $product) {
-                // Thêm mới mà không xóa danh mục cũ
-                $product->categories()->syncWithoutDetaching($this->bulkCategoryIds);
-            }
-        }
-
+        $this->products->addCategoriesToProducts($this->selected, $this->bulkCategoryIds);
         $this->showCategoryModal = false;
-        $this->reset(['selected', 'selectAll', 'bulkCategoryIds']);
+        $this->reset(['bulkCategoryIds']);
+        $this->resetSelection();
     }
 
-    // ==========================================
-    // ACTIONS: IMPORT / EXPORT
-    // ==========================================
+    public function removeCategory($productId, $categoryId): void
+    {
+        $this->authorizeAdmin('edit_product');
+        $this->products->removeCategory((int) $productId, (int) $categoryId);
+    }
+
     public function export()
     {
-        $ids = !empty($this->selected) ? $this->selected : null;
-        return Excel::download(new ProductsExport($ids), 'products_' . date('Y-m-d') . '.xlsx');
+        $this->authorizeAdmin('view_product');
+
+        $ids = $this->selected !== [] ? $this->selected : null;
+
+        return Excel::download(new ProductsExport($ids), 'products_'.date('Y-m-d').'.xlsx');
     }
 
-    public function import()
+    public function import(): void
     {
+        $this->authorizeAdmin('create_product');
         $this->validate([
             'importFile' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
@@ -200,45 +175,32 @@ class ProductTable extends Component
         $this->importFile = null;
     }
 
-    // ==========================================
-    // RENDER
-    // ==========================================
-    private function getProductsQuery()
-    {
-        $query = Product::with('categories')
-            ->where('title', 'like', '%' . $this->search . '%')
-            ->orderBy($this->sortColumn, $this->sortDirection);
-
-        if (!empty($this->category_id)) {
-            $query->whereHas('categories', function($q) {
-                $q->where('id', $this->category_id);
-            });
-        }
-
-        return $query;
-    }
-
-    // --- ACTION: GỠ DANH MỤC KHỎI SẢN PHẨM ---
-    public function removeCategory($productId, $categoryId)
-    {
-        $product = Product::find($productId);
-
-        if ($product) {
-            // detach: Chỉ gỡ mối quan hệ, không xóa danh mục gốc
-            $product->categories()->detach($categoryId);
-        }
-    }
-
     public function render()
     {
-        $query = $this->getProductsQuery();
-
-        $products = $this->perPage === 'all'
-            ? $query->paginate(999999)
-            : $query->paginate($this->perPage);
-
-        return view('Product::livewire.products.product-table', [
-            'products' => $products
+        return view('product::livewire.products.product-table', [
+            'products' => $this->products->paginateForAdmin($this->filters()),
         ]);
+    }
+
+    private function filters(): array
+    {
+        return [
+            'search' => $this->search,
+            'category_id' => $this->category_id,
+            'perPage' => $this->perPage,
+            'sortColumn' => $this->sortColumn,
+            'sortDirection' => $this->sortDirection,
+        ];
+    }
+
+    private function resetSelection(): void
+    {
+        $this->selected = [];
+        $this->selectAll = false;
+    }
+
+    private function authorizeAdmin(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }

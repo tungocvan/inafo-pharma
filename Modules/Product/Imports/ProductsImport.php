@@ -2,38 +2,53 @@
 
 namespace Modules\Product\Imports;
 
-use Modules\Product\Models\Product;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Illuminate\Support\Str;
+use Modules\Product\Services\ProductService;
 
 class ProductsImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        // Xử lý dữ liệu thô từ Excel
-        $gallery = !empty($row['album_anh_json']) ? json_decode($row['album_anh_json'], true) : [];
-        $tags    = !empty($row['tags_json']) ? json_decode($row['tags_json'], true) : [];
-        $catIds  = !empty($row['danh_muc_ids']) ? explode(',', $row['danh_muc_ids']) : [];
-
-        $product = Product::create([
-            'title'             => $row['ten_san_pham'],
-            'slug'              => $row['slug'] ?? Str::slug($row['ten_san_pham']),
-            'regular_price'     => $row['gia_goc'] ?? 0,
-            'sale_price'        => $row['gia_sale'],
-            'short_description' => $row['mo_ta_ngan'],
-            'description'       => $row['chi_tiet'],
-            'image'             => $row['anh_dai_dien'],
-            'gallery'           => $gallery,
-            'tags'              => $tags,
-            'is_active'         => $row['trang_thai'] ?? 1,
+        return app(ProductService::class)->importRow([
+            'title' => $row['ten_san_pham'] ?? null,
+            'slug' => $row['slug'] ?? null,
+            'regular_price' => $row['gia_goc'] ?? 0,
+            'sale_price' => $row['gia_sale'] ?? null,
+            'short_description' => $row['mo_ta_ngan'] ?? null,
+            'description' => $row['chi_tiet'] ?? null,
+            'image' => $row['anh_dai_dien'] ?? null,
+            'gallery' => $this->jsonArray($row['album_anh_json'] ?? null, 'album_anh_json'),
+            'tags' => $this->jsonArray($row['tags_json'] ?? null, 'tags_json'),
+            'category_ids' => $row['danh_muc_ids'] ?? null,
+            'is_active' => $this->booleanValue($row['trang_thai'] ?? true),
         ]);
+    }
 
-        // Sync Categories
-        if (!empty($catIds)) {
-            $product->categories()->sync($catIds);
+    private function jsonArray(mixed $value, string $field): array
+    {
+        if ($value === null || $value === '') {
+            return [];
         }
 
-        return $product;
+        $decoded = json_decode((string) $value, true);
+
+        if (! is_array($decoded)) {
+            throw ValidationException::withMessages([
+                $field => 'Giá trị JSON không hợp lệ.',
+            ]);
+        }
+
+        return $decoded;
+    }
+
+    private function booleanValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'active', 'published'], true);
     }
 }

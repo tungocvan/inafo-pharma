@@ -65,7 +65,7 @@
                         </div>
 
                         <div wire:key="editor-wrapper-summary">
-                            <x-editor
+                            <x-admin::editor
                                 wire:model="summary"
                                 label="Mô tả ngắn (Summary)"
                                 placeholder="Tóm tắt nội dung chính..."
@@ -75,7 +75,7 @@
                         </div>
 
                         <div wire:key="editor-wrapper-content">
-                            <x-editor
+                            <x-admin::editor
                                 wire:model="content"
                                 label="Nội dung chi tiết"
                                 mode="full"

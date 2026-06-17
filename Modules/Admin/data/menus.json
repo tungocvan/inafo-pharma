@@ -24,10 +24,26 @@
         "children": []
     },
     {
+        "name": "Quản lý Sản phẩm",
+        "url": "\/admin\/products",
+        "icon": "users",
+        "can": "create_product",
+        "is_active": true,
+        "children": []
+    },
+    {
         "name": "Quản lý các Chuyên mục",
         "url": "\/admin\/category",
         "icon": "Menu",
         "can": "view_customer",
+        "is_active": true,
+        "children": []
+    },
+    {
+        "name": "Quản lý Bài viết",
+        "url": "\/admin\/posts",
+        "icon": "users",
+        "can": "create_post",
         "is_active": true,
         "children": []
     },

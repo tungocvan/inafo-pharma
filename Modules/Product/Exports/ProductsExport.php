@@ -2,24 +2,23 @@
 
 namespace Modules\Product\Exports;
 
-use Modules\Product\Models\Product;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Modules\Product\Services\ProductService;
 
 class ProductsExport implements FromCollection, WithHeadings, WithMapping
 {
-    protected $ids;
+    protected ?array $ids;
 
-    public function __construct($ids = null)
+    public function __construct(?array $ids = null)
     {
         $this->ids = $ids;
     }
 
     public function collection()
     {
-        $query = Product::with('categories');
-        return $this->ids ? $query->whereIn('id', $this->ids)->get() : $query->get();
+        return app(ProductService::class)->exportRows($this->ids);
     }
 
     public function headings(): array
@@ -46,9 +45,9 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping
             $product->short_description,
             $product->description,
             $product->image,
-            json_encode($product->gallery, JSON_UNESCAPED_UNICODE), // Encode JSON
-            json_encode($product->tags, JSON_UNESCAPED_UNICODE),    // Encode JSON
-            $product->categories->pluck('id')->implode(','),        // IDs ngăn cách dấu phẩy
+            json_encode($product->gallery, JSON_UNESCAPED_UNICODE),
+            json_encode($product->tags, JSON_UNESCAPED_UNICODE),
+            $product->categories->pluck('id')->implode(','),
             $product->is_active ? 1 : 0,
             $product->created_at,
         ];

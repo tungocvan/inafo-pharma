@@ -22,19 +22,30 @@
         </label>
     @endif
 
-    <div x-data="{
-        value: @entangle($model).live,
+	    <div x-data="{
+	        value: @entangle($model).live,
+	        editor: null,
 
-        init() {
-            $(document).ready(() => {
-                // Cấu hình Toolbar theo chế độ
-                let toolbarConfig = this.getToolbar();
+	        init() {
+	            const boot = () => {
+	                if (!window.jQuery || !$.fn.summernote) {
+	                    setTimeout(boot, 100);
+	                    return;
+	                }
 
-                $('#{{ $editorId }}').summernote({
-                    placeholder: '{{ $placeholder }}',
-                    tabsize: 2,
-                    height: '{{ $height }}',
-                    toolbar: toolbarConfig,
+	                if (this.editor) {
+	                    return;
+	                }
+
+	                // Cấu hình Toolbar theo chế độ
+	                let toolbarConfig = this.getToolbar();
+	                this.editor = $('#{{ $editorId }}');
+
+	                this.editor.summernote({
+	                    placeholder: '{{ $placeholder }}',
+	                    tabsize: 2,
+	                    height: '{{ $height }}',
+	                    toolbar: toolbarConfig,
 
                     // --- ĐÃ XÓA PHẦN 'icons': {...} ĐỂ DÙNG ICON MẶC ĐỊNH ---
                     // Summernote Lite tự động dùng font mặc định của nó, đảm bảo hiện icon 100%
@@ -45,18 +56,20 @@
                             // Chỉnh font placeholder cho đồng bộ
                             $('.note-placeholder').css('font-family', 'ui-sans-serif, system-ui, sans-serif');
                         }
-                    }
-                });
+	                    }
+	                });
 
-                if (this.value) { $('#{{ $editorId }}').summernote('code', this.value); }
+	                if (this.value) { this.editor.summernote('code', this.value); }
 
-                this.$watch('value', (newVal) => {
-                    if (newVal !== $('#{{ $editorId }}').summernote('code')) {
-                        $('#{{ $editorId }}').summernote('code', newVal);
-                    }
-                });
-            });
-        },
+	                this.$watch('value', (newVal) => {
+	                    if (newVal !== this.editor.summernote('code')) {
+	                        this.editor.summernote('code', newVal);
+	                    }
+	                });
+	            };
+
+	            boot();
+	        },
 
         getToolbar() {
             // CHẾ ĐỘ ĐƠN GIẢN (SIMPLE) - Dùng cho Mô tả ngắn
@@ -159,11 +172,14 @@
     @enderror
 
 </div>
-{{-- khai báo trên layout chính để load jQuery và Summernote một lần duy nhất, tránh lỗi khi có nhiều editor trên trang --}}
-{{-- @once
-    @push('scripts')
-         <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-         <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
-         <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+
+@once
+    @push('styles')
+        <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
     @endpush
-@endonce --}}
+
+    @push('scripts')
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+    @endpush
+@endonce

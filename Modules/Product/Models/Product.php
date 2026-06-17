@@ -3,8 +3,8 @@
 namespace Modules\Product\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany; // <--- Nhớ import dòng này
-use Modules\Website\Models\Wishlist; // <--- Import Model Wishlist
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Website\Models\Wishlist;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
@@ -37,8 +37,12 @@ class Product extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_featured' => 'boolean',
         'gallery' => 'array',
         'tags' => 'array',
+        'quantity' => 'integer',
+        'sold_count' => 'integer',
+        'views' => 'integer',
         'regular_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
         'affiliate_commission_rate' => 'decimal:2',

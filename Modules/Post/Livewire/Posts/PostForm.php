@@ -2,167 +2,153 @@
 
 namespace Modules\Post\Livewire\Posts;
 
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
 use Modules\Post\Models\Post;
-use Modules\Post\Models\Category;
-use Modules\Post\Models\Tag;
+use Modules\Post\Services\PostService;
 
 class PostForm extends Component
 {
     use WithFileUploads;
 
     public $postId;
-    public $isEdit = false;
 
-    // Fields bảng wp_posts
+    public bool $isEdit = false;
+
     public $name;
-    public $slug;
-    public $summary;
-    public $content;
-    public $thumbnail; // Đường dẫn ảnh cũ
-    public $new_thumbnail; // File upload mới
 
-    public $status = 'published';
-    public $is_featured = false;
+    public $slug;
+
+    public $summary;
+
+    public $content;
+
+    public $thumbnail;
+
+    public $new_thumbnail;
+
+    public string $status = 'published';
+
+    public bool $is_featured = false;
 
     public $meta_title;
+
     public $meta_description;
 
-    // Relations
-    public $selectedCategories = []; // Mảng ID danh mục được chọn
-    public $inputTags = ''; // String tags
+    public array $selectedCategories = [];
 
-    // Mount dữ liệu từ Controller truyền vào (qua View Wrapper)
-    public function mount($id = null)
+    public string $inputTags = '';
+
+    public function mount(?int $id = null): void
     {
-        if ($id) {
-            $this->postId = $id;
-            $this->isEdit = true;
+        $posts = app(PostService::class);
 
-            // Load bài viết kèm danh mục và tags
-            $post = Post::with('categories', 'tags')->findOrFail($id);
+        if (! $id) {
+            $this->authorizeAdmin('create_post');
 
-            $this->name = $post->name;
-            $this->slug = $post->slug;
-            $this->summary = $post->summary;
-            $this->content = $post->content;
-            $this->thumbnail = $post->thumbnail;
-            $this->status = $post->status;
-            $this->is_featured = (bool) $post->is_featured;
-            $this->meta_title = $post->meta_title;
-            $this->meta_description = $post->meta_description;
+            return;
+        }
 
-            // Load danh mục đã chọn (Pluck ID)
-            $this->selectedCategories = $post->categories->pluck('id')->toArray();
+        $this->authorizeAdmin('edit_post');
 
-            // Load tags (Implode name)
-            $this->inputTags = $post->tags->pluck('name')->implode(', ');
+        $post = $posts->findForEdit($id);
+
+        $this->postId = $post->id;
+        $this->isEdit = true;
+        $this->name = $post->name;
+        $this->slug = $post->slug;
+        $this->summary = $post->summary;
+        $this->content = $post->content;
+        $this->thumbnail = $post->thumbnail;
+        $this->status = $post->status;
+        $this->is_featured = (bool) $post->is_featured;
+        $this->meta_title = $post->meta_title;
+        $this->meta_description = $post->meta_description;
+        $this->selectedCategories = $post->categories->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->inputTags = $post->tags->pluck('name')->implode(', ');
+    }
+
+    public function updatedName($value): void
+    {
+        if (! $this->isEdit || blank($this->slug)) {
+            $this->slug = Str::slug($value);
+        }
+
+        if (blank($this->meta_title)) {
+            $this->meta_title = $value;
         }
     }
 
-    // Tự động tạo slug khi nhập tên (nếu đang tạo mới hoặc slug rỗng)
-    public function updatedName($val)
+    public function updatedSummary($value): void
     {
-        // Tự động tạo Slug
-        if (!$this->isEdit || empty($this->slug)) {
-            $this->slug = Str::slug($val);
-        }
-
-        // Tự động điền Meta Title (Nếu ô này đang trống)
-        if (empty($this->meta_title)) {
-            $this->meta_title = $val;
-        }
-    }
-
-    // 2. KHI NGƯỜI DÙNG GÕ TÓM TẮT
-    public function updatedSummary($val)
-    {
-        // Tự động điền Meta Description (Nếu ô này đang trống)
-        if (empty($this->meta_description)) {
-            $this->meta_description = $val;
+        if (blank($this->meta_description)) {
+            $this->meta_description = $value;
         }
     }
 
     public function save()
     {
-        $this->validate([
-            'name' => 'required|max:255',
-            'slug' => 'required|unique:wp_posts,slug,' . $this->postId,
-            'status' => 'required|in:published,draft,hidden',
-            'new_thumbnail' => 'nullable|image|max:2048',
+        $posts = app(PostService::class);
+
+        $this->authorizeAdmin($this->isEdit ? 'edit_post' : 'create_post');
+
+        $validated = $this->validate($this->rules());
+
+        $payload = array_merge($validated, [
+            'category_ids' => $this->selectedCategories,
+            'tags' => $this->inputTags,
+            'thumbnail' => $this->thumbnail,
+            'new_thumbnail' => $this->new_thumbnail,
+            'user_id' => auth('admin')->id(),
         ]);
 
-        // 1. Xử lý Upload Ảnh
-        $imagePath = $this->thumbnail;
-        if ($this->new_thumbnail) {
-            $imagePath = $this->new_thumbnail->store('posts', 'public');
+        if ($this->isEdit) {
+            $posts->update((int) $this->postId, $payload);
+        } else {
+            $posts->create($payload);
         }
-
-        $finalMetaTitle = $this->meta_title ?: $this->name;
-        $finalMetaDesc = $this->meta_description ?: $this->summary;
-
-        // 2. Chuẩn bị dữ liệu cơ bản
-        $data = [
-            'name' => $this->name,
-            'slug' => $this->slug,
-            'summary' => $this->summary,
-            'content' => $this->content,
-            'thumbnail' => $imagePath,
-            'status' => $this->status,
-            'is_featured' => $this->is_featured,
-            'meta_title' => $finalMetaTitle,
-            'meta_description' => $finalMetaDesc,
-            'user_id' => Auth::id(),
-        ];
-
-        // 3. Xử lý logic ngày đăng (published_at)
-        // Chỉ thêm published_at = now() nếu đây là bài viết MỚI (không phải edit)
-        if (!$this->isEdit) {
-            $data['published_at'] = now();
-        }
-        // Nếu là Edit ($this->isEdit = true), ta không thêm key 'published_at' vào mảng $data
-        // thì Laravel sẽ tự động BỎ QUA cột đó, giữ nguyên giá trị cũ trong DB.
-
-        // 4. Lưu bài viết
-        $post = Post::updateOrCreate(
-            ['id' => $this->postId],
-            $data
-        );
-
-        // 5. Sync Categories
-        $post->categories()->sync($this->selectedCategories);
-
-        // 6. Sync Tags
-        $tagIds = [];
-        if (!empty($this->inputTags)) {
-            $tagsArray = explode(',', $this->inputTags);
-            foreach ($tagsArray as $tagName) {
-                $tagName = trim($tagName);
-                if ($tagName) {
-                    $tag = Tag::firstOrCreate(
-                        ['name' => $tagName],
-                        ['slug' => Str::slug($tagName)]
-                    );
-                    $tagIds[] = $tag->id;
-                }
-            }
-        }
-        $post->tags()->sync($tagIds);
 
         session()->flash('success', $this->isEdit ? 'Cập nhật bài viết thành công.' : 'Thêm bài viết mới thành công.');
+
         return redirect()->route('admin.posts.index');
     }
 
     public function render()
     {
-        // Lấy danh mục từ bảng 'categories' có type = 'post'
-        $categories = Category::where('type', 'post')->get();
+        $posts = app(PostService::class);
 
         return view('Post::livewire.posts.post-form', [
-            'categories' => $categories
+            'categories' => $posts->postCategoryOptions(),
         ]);
+    }
+
+    private function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique((new Post())->getTable(), 'slug')->ignore($this->postId),
+            ],
+            'summary' => ['nullable', 'string'],
+            'content' => ['nullable', 'string'],
+            'status' => ['required', Rule::in(PostService::STATUSES)],
+            'is_featured' => ['boolean'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:255'],
+            'selectedCategories' => ['array'],
+            'selectedCategories.*' => ['integer'],
+            'inputTags' => ['nullable', 'string', 'max:1000'],
+            'new_thumbnail' => ['nullable', 'image', 'max:2048'],
+        ];
+    }
+
+    private function authorizeAdmin(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }
