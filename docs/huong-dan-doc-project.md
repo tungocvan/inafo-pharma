@@ -405,11 +405,12 @@ ROADMAP.md
 REFACTOR_PLAN.md
 REBUILD_SPEC.md
 Sau đó yêu cầu Codex:
-Read:
 
+Read:
 docs/modules/<Module_Name>/ANALYSIS.md
 docs/modules/<Module_Name>/REFACTOR_PLAN.md
 docs/modules/<Module_Name>/REBUILD_SPEC.md
+docs/modules/<Module_Name>/INFORMATION.md if exists
 ROADMAP.md
 
 Generate a completely new version of:
@@ -483,7 +484,12 @@ Generate files one by one.
 
 
 -------------------------
-MODULE_NAME=Category
+
+# MASTER PROMPT — REWRITE / REFACTOR EXISTING MODULE v1.0
+
+Module_Name=<Module_Name>
+
+You are a Senior Laravel 12 Developer and Refactoring Architect.
 
 Before doing anything, read these files in order:
 
@@ -491,53 +497,101 @@ Before doing anything, read these files in order:
 2. docs/AI_PROJECT_CONTEXT.md
 3. docs/PROJECT_BOOTSTRAP.md
 4. ROADMAP.md
-5. docs/modules/Category/ANALYSIS.md
-6. docs/modules/Category/REFACTOR_PLAN.md
-7. docs/modules/Category/REBUILD_SPEC.md
+5. docs/modules/<Module_Name>/ANALYSIS.md
+6. docs/modules/<Module_Name>/REFACTOR_PLAN.md
+7. docs/modules/<Module_Name>/REBUILD_SPEC.md
+8. docs/modules/<Module_Name>/INFORMATION.md if exists
 
-Then refactor the existing module safely:
+Target module:
 
-Modules/Category
+Modules/<Module_Name>
 
 Goal:
 
-Rewrite/refactor the Category module according to REBUILD_SPEC.md.
+Rewrite/refactor the existing <Module_Name> module according to REBUILD_SPEC.md and INFORMATION.md if it exists.
 
 Important rules:
 
+* Do not start coding before listing the files that will be changed or created.
+* Do not modify unrelated modules.
+* Do not remove existing features unless REBUILD_SPEC.md explicitly requires it.
+* Preserve existing database compatibility unless REBUILD_SPEC.md explicitly says otherwise.
+* Preserve existing routes unless REBUILD_SPEC.md explicitly says otherwise.
+* Preserve existing Livewire aliases unless REBUILD_SPEC.md explicitly says otherwise.
 * Follow the actual module autoload architecture from docs/PROJECT_BOOTSTRAP.md.
 * Follow the coding standards from docs/AI_PROJECT_CONTEXT.md.
 * Follow the implementation priorities from ROADMAP.md.
-* Follow the module-specific analysis, refactor plan, and rebuild spec.
-* Do not modify unrelated modules.
-* Do not create a new ServiceProvider unless PROJECT_BOOTSTRAP.md requires it.
+* Follow module-specific issues from ANALYSIS.md.
+* Follow REFACTOR_PLAN.md for priority and risk control.
+* Follow REBUILD_SPEC.md for target architecture.
+* If INFORMATION.md exists, treat it as the final architecture review.
+* Do not create a new ServiceProvider unless PROJECT_BOOTSTRAP.md explicitly requires it.
 * Do not change composer.json unless absolutely required.
-* Preserve existing database compatibility unless REBUILD_SPEC.md explicitly says otherwise.
-* Preserve existing routes and Livewire aliases unless REBUILD_SPEC.md explicitly says otherwise.
+* If composer.json must be changed, explain why before changing it.
 * Keep business logic in Services.
-* Keep Livewire focused on UI state and actions.
+* Keep Livewire focused on UI state, validation, events, pagination, filters, and actions.
 * Keep ImportExport.php as a thin orchestrator.
-* Use transactions for multi-record writes.
+* Split large Import/Export logic into dedicated Import and Export classes when needed.
+* Use DB transactions for multi-record writes.
 * Add authorization checks for mutating actions.
 * Add validation before persistence.
-* Prevent N+1 queries.
+* Prevent N+1 queries with eager loading where needed.
+* Avoid large unrelated rewrites.
+* Prefer small, safe, reviewable changes.
 
 Implementation order:
 
-1. List all files that will be changed or created.
-2. Explain the change plan briefly.
-3. Implement P0 items first.
-4. Then implement P1 items.
-5. Ignore P2 unless safe and clearly isolated.
-6. Generate or update tests where possible.
-7. Generate:
+1. Read all required documents.
+2. Summarize the current module goal.
+3. List all files that will be changed or created.
+4. Explain the change plan briefly.
+5. Implement P0 Critical items first.
+6. Implement P1 Important items next.
+7. Ignore P2 unless safe, isolated, and low-risk.
+8. Update or generate tests where possible.
+9. Run or suggest verification commands.
+10. Generate:
 
-docs/modules/Category/IMPLEMENTATION_SUMMARY.md
+docs/modules/<Module_Name>/IMPLEMENTATION_SUMMARY.md
 
-Include:
+IMPLEMENTATION_SUMMARY.md must include:
 
 * Files changed
+* Files created
 * What was implemented
+* What was intentionally not changed
 * Remaining risks
-* Tests added or recommended
+* Tests added
+* Tests recommended
 * Manual verification checklist
+* Migration notes if any
+* Rollback notes if any
+
+Safety rules:
+
+* If there is conflict between documents, priority order is:
+
+1. INFORMATION.md
+2. REBUILD_SPEC.md
+3. REFACTOR_PLAN.md
+4. ANALYSIS.md
+5. ROADMAP.md
+6. PROJECT_BOOTSTRAP.md
+7. AI_PROJECT_CONTEXT.md
+8. CODEX_BOOTSTRAP.md
+
+* If a change is risky or uncertain, do not guess.
+* Mark it as:
+
+NEEDS CONFIRMATION BEFORE CODING
+
+* Do not modify unrelated modules to solve local module problems.
+* Do not introduce a new package unless explicitly approved.
+* Do not rename public routes, Livewire aliases, database tables, or columns unless explicitly approved.
+
+Final output after implementation:
+
+* Brief summary
+* Files changed
+* Tests run or recommended
+* Any remaining manual checks
