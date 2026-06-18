@@ -1,281 +1,387 @@
-# Modules/Pharma — Analysis
+# Pharma Module Analysis
 
-Generated: 2026-06-14
+Assessment date: 2026-06-18
 
-Summary: detailed slice-level analysis of `Modules/Pharma` following the requested flow.
+Scope: `Modules/Pharma` only.
 
-**Module purpose**
-- Provide administration UIs and import/export for Pharma domain: medicines catalogue, drug bid awards, and supplier tracking.
-- Key folder: Modules/Pharma
+Mandatory context read:
 
----
+- `ROADMAP.md`
+- `docs/AI_PROJECT_CONTEXT.md`
+- `docs/CODEX_BOOTSTRAP.md`
 
-**Route list**
-- Web routes (admin, auth:admin middleware):
-  - [Modules/Pharma/routes/web.php](Modules/Pharma/routes/web.php)
-    - GET `admin/pharma/hssp/` -> name: `admin.pharma.hssp.index` -> Controller: `Modules\\Pharma\\Http\\Controllers\\PharmaController@index` ([file](Modules/Pharma/Http/Controllers/PharmaController.php))
-    - GET `admin/pharma/hssp/create` -> name: `admin.pharma.hssp.create` -> `PharmaController@create`
-    - GET `admin/pharma/hssp/{id}/edit` -> name: `admin.pharma.hssp.edit` -> `PharmaController@edit`
-    - GET `admin/pharma/drug-bid-awards/` -> `admin.pharma.drug-bid-awards.index` -> `DrugBidAwardController@index` ([file](Modules/Pharma/Http/Controllers/DrugBidAwardController.php))
-    - GET `admin/pharma/drug-bid-awards/create` -> `admin.pharma.drug-bid-awards.create` -> `DrugBidAwardController@create`
-    - GET `admin/pharma/drug-bid-awards/{id}/edit` -> `admin.pharma.drug-bid-awards.edit` -> `DrugBidAwardController@edit`
-    - GET `admin/pharma/supplier-trackings/` -> `admin.pharma.supplier-trackings.index` -> `SupplierTrackingController@index` ([file](Modules/Pharma/Http/Controllers/SupplierTrackingController.php))
-    - GET `admin/pharma/supplier-trackings/create` -> `admin.pharma.supplier-trackings.create` -> `SupplierTrackingController@create`
-    - GET `admin/pharma/supplier-trackings/{id}/edit` -> `admin.pharma.supplier-trackings.edit` -> `SupplierTrackingController@edit`
-    - GET `admin/pharma/supplier-trackings/{id}/show` -> `SupplierTrackingController@show`
-    - GET `admin/pharma/supplier-trackings/import-export` -> `admin.pharma.supplier-trackings.import-export` -> `SupplierTrackingController@importExport` (route exists in file)
-- API routes:
-  - [Modules/Pharma/routes/api.php](Modules/Pharma/routes/api.php)
-    - GET `/pharma` -> `Modules\\Pharma\\Http\\Controllers\\Api\\PharmaController@index` (note: controller is empty) ([file](Modules/Pharma/Http/Controllers/Api/PharmaController.php))
+## 1. Module Purpose
 
----
+`Modules/Pharma` is a domain module for managing pharmaceutical records and related commercial tracking:
 
-**Controllers**
-- [Modules/Pharma/Http/Controllers/PharmaController.php](Modules/Pharma/Http/Controllers/PharmaController.php)
-  - Methods: `index()`, `create()`, `edit(int $id)` — only return pages (no business logic). No authorization calls (commented middleware present but disabled).
-- [Modules/Pharma/Http/Controllers/DrugBidAwardController.php](Modules/Pharma/Http/Controllers/DrugBidAwardController.php)
-  - Methods: `index()`, `create()`, `edit(int $id)` — return blade pages.
-- [Modules/Pharma/Http/Controllers/SupplierTrackingController.php](Modules/Pharma/Http/Controllers/SupplierTrackingController.php)
-  - Methods: `index()`, `create()`, `edit(int $id)`, `show(int $id)` — return blade pages.
-- [Modules/Pharma/Http/Controllers/Api/PharmaController.php](Modules/Pharma/Http/Controllers/Api/PharmaController.php)
-  - Empty stub.
+- Medicine master records in `pharma_medicines`.
+- Drug bid award records in `pharma_drug_bid_awards`.
+- Supplier tracking, pricing, invoice difference, cost, profit, contract, and import/export records in `pharma_supplier_trackings`.
 
-Notes: controllers are presentation-only — Livewire components and services hold business logic.
+The module currently mixes legacy custom CSV/FastExcel import/export flows with the shared import/export foundation.
 
----
+## 2. Route List
 
-**Page Blade files**
-- Pages that mount Livewire components:
-  - [Modules/Pharma/resources/views/pages/index.blade.php](Modules/Pharma/resources/views/pages/index.blade.php) -> `@livewire('pharma.medicine.index')`
-  - [Modules/Pharma/resources/views/pages/create.blade.php](Modules/Pharma/resources/views/pages/create.blade.php) -> `@livewire('pharma.medicine.form')`
-  - [Modules/Pharma/resources/views/pages/edit.blade.php](Modules/Pharma/resources/views/pages/edit.blade.php) -> `@livewire('pharma.medicine.form', ['id' => $id])`
-  - [Modules/Pharma/resources/views/pages/drug-bid-award/index.blade.php](Modules/Pharma/resources/views/pages/drug-bid-award/index.blade.php) -> `@livewire('pharma.drug-bid-award.index')`
-  - [Modules/Pharma/resources/views/pages/drug-bid-award/create.blade.php](Modules/Pharma/resources/views/pages/drug-bid-award/create.blade.php) -> `@livewire('pharma.drug-bid-award.form')`
-  - [Modules/Pharma/resources/views/pages/drug-bid-award/edit.blade.php](Modules/Pharma/resources/views/pages/drug-bid-award/edit.blade.php) -> `@livewire('pharma.drug-bid-award.form', ['id'=>$id])`
-  - [Modules/Pharma/resources/views/pages/supplier-trackings/*.blade.php](Modules/Pharma/resources/views/pages/supplier-trackings) -> supplier trackings pages mount Livewire components.
+### Web Routes
 
----
+File: `Modules/Pharma/routes/web.php`
 
-**Livewire PHP classes** (component classes)
-- [Modules/Pharma/Livewire/Medicine/Index.php](Modules/Pharma/Livewire/Medicine/Index.php)
-  - Public: `$search, $page, $perPage, $filterCircularGroup, $filterSpecialControl, $selectedIds, $selectAll, $importFile`
-  - Listeners: `refreshComponent`.
-  - Actions: `importData()`, `deleteMedicine(int $id)`, `deleteSelected()`, `exportData()`, `resetFilters()`, pagination helpers.
-  - Interacts with: `Modules\\Pharma\\Services\\MedicineService` (dependency-injected or via app()).
-- [Modules/Pharma/Livewire/Medicine/Form.php](Modules/Pharma/Livewire/Medicine/Form.php)
-  - Mounts medicine by id via `MedicineService::findOrFail`.
-  - Rules defined in `rules()`.
-  - Actions: `save()` -> calls `MedicineService->store` or `update`.
-- [Modules/Pharma/Livewire/DrugBidAward/Index.php](Modules/Pharma/Livewire/DrugBidAward/Index.php)
-  - Uses `WithPagination`, import/export and batch delete; interacts with `DrugBidAwardService`.
-- [Modules/Pharma/Livewire/DrugBidAward/Form.php](Modules/Pharma/Livewire/DrugBidAward/Form.php)
-  - Mounts `DrugBidAwardService::findOrFail` and renders a list of `Medicine::latest()->get()`.
-  - Rules provided via `rules()`.
-- [Modules/Pharma/Livewire/SupplierTrackings/Index.php](Modules/Pharma/Livewire/SupplierTrackings/Index.php)
-  - Actions: import/export, delete, deleteSelected; interacts with `SupplierTrackingService` and `Modules\\Pharma\\Services\\ImportExport` via shared import-export panel in blade.
-- [Modules/Pharma/Livewire/SupplierTrackings/Form.php](Modules/Pharma/Livewire/SupplierTrackings/Form.php) — (file exists in file list; review expected but not opened; similar pattern to other forms).
+All web routes are grouped under `admin/pharma`, route name prefix `admin.pharma.`, middleware `web` and `auth:admin`.
 
-Livewire naming: components are registered under `pharma.*` (see page blades using `pharma.medicine.index`, `pharma.drug-bid-award.index`, `pharma.supplier-trackings.index`).
+| Method | URI | Name | Controller |
+|---|---|---|---|
+| GET | `admin/pharma/hssp` | `admin.pharma.hssp.index` | `Modules\Pharma\Http\Controllers\PharmaController@index` |
+| GET | `admin/pharma/hssp/create` | `admin.pharma.hssp.create` | `Modules\Pharma\Http\Controllers\PharmaController@create` |
+| GET | `admin/pharma/hssp/{id}/edit` | `admin.pharma.hssp.edit` | `Modules\Pharma\Http\Controllers\PharmaController@edit` |
+| GET | `admin/pharma/drug-bid-awards` | `admin.pharma.drug-bid-awards.index` | `Modules\Pharma\Http\Controllers\DrugBidAwardController@index` |
+| GET | `admin/pharma/drug-bid-awards/create` | `admin.pharma.drug-bid-awards.create` | `Modules\Pharma\Http\Controllers\DrugBidAwardController@create` |
+| GET | `admin/pharma/drug-bid-awards/{id}/edit` | `admin.pharma.drug-bid-awards.edit` | `Modules\Pharma\Http\Controllers\DrugBidAwardController@edit` |
+| GET | `admin/pharma/supplier-trackings` | `admin.pharma.supplier-trackings.index` | `Modules\Pharma\Http\Controllers\SupplierTrackingController@index` |
+| GET | `admin/pharma/supplier-trackings/create` | `admin.pharma.supplier-trackings.create` | `Modules\Pharma\Http\Controllers\SupplierTrackingController@create` |
+| GET | `admin/pharma/supplier-trackings/{id}/edit` | `admin.pharma.supplier-trackings.edit` | `Modules\Pharma\Http\Controllers\SupplierTrackingController@edit` |
+| GET | `admin/pharma/supplier-trackings/import-export` | `admin.pharma.supplier-trackings.import-export` | `Modules\Pharma\Http\Controllers\SupplierTrackingController@importExport` |
 
----
+Route problem:
 
-**Livewire Blade views**
-- [Modules/Pharma/resources/views/livewire/medicine/index.blade.php](Modules/Pharma/resources/views/livewire/medicine/index.blade.php)
-- [Modules/Pharma/resources/views/livewire/medicine/form.blade.php](Modules/Pharma/resources/views/livewire/medicine/form.blade.php)
-- [Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php](Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php)
-- [Modules/Pharma/resources/views/livewire/drug-bid-award/form.blade.php](Modules/Pharma/resources/views/livewire/drug-bid-award/form.blade.php)
-- [Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php](Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php)
-- [Modules/Pharma/resources/views/livewire/supplier-trackings/form.blade.php](Modules/Pharma/resources/views/livewire/supplier-trackings/form.blade.php)
-- Shared/simple placeholders: [Modules/Pharma/resources/views/livewire/placeholder.blade.php](Modules/Pharma/resources/views/livewire/placeholder.blade.php)
+- P0: `Modules/Pharma/routes/web.php` defines `supplier-trackings/import-export`, but `Modules/Pharma/Http/Controllers/SupplierTrackingController.php` has no `importExport()` method. This route will fail at runtime.
 
----
+### API Routes
 
-**Shared Components used (references)**
-- Uses `x-select-search` (project-level shared component) from views; not defined in this module. Search path: global components (likely `Modules/Shared` or `resources/views/components`).
-- Module-local component: [Modules/Pharma/resources/views/components/placeholder.blade.php](Modules/Pharma/resources/views/components/placeholder.blade.php)
+File: `Modules/Pharma/routes/api.php`
 
----
+| Method | URI | Controller |
+|---|---|---|
+| GET | `pharma` | `Modules\Pharma\Http\Controllers\Api\PharmaController@index` |
 
-**Services and public methods**
-All service files located in `Modules/Pharma/Services`.
+Route problem:
 
-- [Modules/Pharma/Services/MedicineService.php](Modules/Pharma/Services/MedicineService.php)
-  - getPaginatedMedicines(?string $search, int $perPage, int $page, ?string $circularGroup, ?string $specialControl): LengthAwarePaginator
-  - getUniqueCircularGroups(): array
-  - findOrFail(int $id): Medicine
-  - store(array $data): Medicine
-  - update(int $id, array $data): Medicine
-  - delete(int $id): bool
-  - importFromCsv(string $filePath): int
-  - exportToCsv(?string $search, ?string $circularGroup, ?string $specialControl): string
+- P0: `Modules/Pharma/routes/api.php` exposes `GET /pharma` without authentication, while the only controller class `Modules/Pharma/Http/Controllers/Api/PharmaController.php` has no `index()` method. It is both publicly exposed and broken.
 
-- [Modules/Pharma/Services/MedicineImportService.php](Modules/Pharma/Services/MedicineImportService.php)
-  - importFromCsv(string $filePath): int
-  - Note: overlaps strongly with `MedicineService::importFromCsv` — duplicate import implementations.
+## 3. Controllers
 
-- [Modules/Pharma/Services/DrugBidAwardService.php](Modules/Pharma/Services/DrugBidAwardService.php)
-  - getPaginated(?string $search, ?string $investor, ?string $company, int $perPage): LengthAwarePaginator
-  - findOrFail(int $id)
-  - store(array $data)
-  - update(int $id, array $data)
-  - delete(int $id): bool
-  - getUniqueInvestors(): array
-  - getUniqueCompanies(): array
-  - importFromCsv(string $filePath): int
-  - exportToCsv(?string $search, ?string $investor, ?string $company): string
+- `Modules/Pharma/Http/Controllers/PharmaController.php`
+  - Thin page controller for medicine index/create/edit.
+  - Has commented permission middleware in `__construct()`.
+- `Modules/Pharma/Http/Controllers/DrugBidAwardController.php`
+  - Thin page controller for bid award index/create/edit.
+- `Modules/Pharma/Http/Controllers/SupplierTrackingController.php`
+  - Thin page controller for supplier tracking index/create/edit/show.
+  - Missing `importExport()` despite route.
+- `Modules/Pharma/Http/Controllers/Api/PharmaController.php`
+  - Empty scaffold controller.
+  - Missing `index()` despite API route.
 
-- [Modules/Pharma/Services/SupplierTrackingService.php](Modules/Pharma/Services/SupplierTrackingService.php)
-  - paginate(array $filters = [], int $perPage = 15)
-  - medicinesForSelect(): Collection
-  - find(int $id): SupplierTracking
-  - create(array $data): SupplierTracking
-  - update(int $id, array $data): SupplierTracking
-  - delete(int $id)
-  - deleteMany(array $ids)
-  - getFilteredIds(array $filters = []): Collection
-  - previewCalculate(array $data): array
-  - exportRows(array $filters = []): Collection
-  - importRows(Collection $rows): array
+Controller issues:
 
-- [Modules/Pharma/Services/ImportExport.php](Modules/Pharma/Services/ImportExport.php)
-  - Extends `Modules\\Shared\\Services\\ImportExport\\BaseImportExportService`
-  - modelClass(), rules(), columnMapping(), normalizeRow(), exportRows(), mapExportRow(), templateSampleRow()
-  - Purpose: plug into shared import-export panel used in supplier-trackings index view.
+- P0: `Modules/Pharma/Http/Controllers/PharmaController.php` comments out permission middleware, and no Pharma controller enforces capability-level authorization beyond `auth:admin`.
+- P1: `Modules/Pharma/Http/Controllers/SupplierTrackingController.php` contains a `show()` method for a page view that exists, but no route points to it.
+- P2: `Modules/Pharma/Http/Controllers/Api/PharmaController.php` is unused/broken scaffold code unless a real API endpoint is planned.
 
-- CLI: [Modules/Pharma/Console/Commands/ImportMedicineCommand.php](Modules/Pharma/Console/Commands/ImportMedicineCommand.php)
-  - `medicine:import {file}` — delegates to `MedicineImportService`.
+## 4. Page Blade Files
 
----
+- `Modules/Pharma/resources/views/pages/index.blade.php`
+  - Mounts `pharma.medicine.index`.
+- `Modules/Pharma/resources/views/pages/create.blade.php`
+  - Mounts `pharma.medicine.form`.
+- `Modules/Pharma/resources/views/pages/edit.blade.php`
+  - Mounts `pharma.medicine.form` with `id`.
+- `Modules/Pharma/resources/views/pages/drug-bid-award/index.blade.php`
+  - Mounts `pharma.drug-bid-award.index`.
+- `Modules/Pharma/resources/views/pages/drug-bid-award/create.blade.php`
+  - Mounts `pharma.drug-bid-award.form`.
+- `Modules/Pharma/resources/views/pages/drug-bid-award/edit.blade.php`
+  - Mounts `pharma.drug-bid-award.form` with `id`.
+- `Modules/Pharma/resources/views/pages/supplier-trackings/index.blade.php`
+  - Mounts `pharma.supplier-trackings.index`.
+- `Modules/Pharma/resources/views/pages/supplier-trackings/create.blade.php`
+  - Mounts `pharma.supplier-trackings.form`.
+- `Modules/Pharma/resources/views/pages/supplier-trackings/edit.blade.php`
+  - Mounts `pharma.supplier-trackings.form` with `id`.
+- `Modules/Pharma/resources/views/pages/supplier-trackings/show.blade.php`
+  - Empty shell with commented Livewire mount.
+- `Modules/Pharma/resources/views/pharma.blade.php`
+  - Scaffold placeholder page.
 
-**Models and database tables**
-- [Modules/Pharma/Models/Medicine.php](Modules/Pharma/Models/Medicine.php)
-  - Table: `pharma_medicines` (migration: [database/migrations/2026_05_21_145242_create_medicines_table.php](Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php))
-  - Important: composite unique index `(registration_number, packaging_specification)` defined in migration.
-- [Modules/Pharma/Models/DrugBidAward.php](Modules/Pharma/Models/DrugBidAward.php)
-  - Table: `pharma_drug_bid_awards` (migration: [database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php](Modules/Pharma/database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php))
-  - Relationship: `medicine()` belongsTo `Medicine` with `medicine_id` nullable.
-- [Modules/Pharma/Models/SupplierTracking.php](Modules/Pharma/Models/SupplierTracking.php)
-  - Table: `pharma_supplier_trackings` (migration: [database/migrations/2026_05_23_141810_create_supplier_trackings_table.php](Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php))
-  - Relationship: `medicine()` belongsTo `Medicine` cascade on delete.
-- [Modules/Pharma/Models/Pharma.php](Modules/Pharma/Models/Pharma.php) — placeholder/empty model.
+Page Blade issues:
 
----
+- P1: `Modules/Pharma/resources/views/pages/*.blade.php` and nested page blades use `container-fluid`, which conflicts with the active Tailwind/Admin UI standard.
+- P2: `Modules/Pharma/resources/views/pages/supplier-trackings/show.blade.php` appears unused and empty.
+- P2: `Modules/Pharma/resources/views/pharma.blade.php` appears to be scaffold placeholder output, not linked by module routes.
 
-**Migrations**
-- [Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php](Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php)
-- [Modules/Pharma/database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php](Modules/Pharma/database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php)
-- [Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php](Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php)
+## 5. Livewire PHP Classes
 
-Notes: migrations declare indexes and constraints (including composite unique on bid awards and unique on medicine reg+pack). SupplierTracking uses cascadeOnDelete for medicine.
+- `Modules/Pharma/Livewire/Medicine/Index.php`
+  - Search, filters, manual pagination state, import CSV/XLSX upload, export CSV, single delete, bulk delete.
+- `Modules/Pharma/Livewire/Medicine/Form.php`
+  - Medicine create/edit form and validation.
+- `Modules/Pharma/Livewire/DrugBidAward/Index.php`
+  - Search, filters, pagination, import CSV/TXT, export CSV, single delete, bulk delete.
+- `Modules/Pharma/Livewire/DrugBidAward/Form.php`
+  - Drug bid award create/edit form and validation.
+- `Modules/Pharma/Livewire/SupplierTrackings/Index.php`
+  - Search, status filter, pagination, custom FastExcel import/export, shared import/export panel, single delete, bulk delete.
+- `Modules/Pharma/Livewire/SupplierTrackings/Form.php`
+  - Supplier tracking create/edit form, calculation preview, validation.
 
----
+Livewire issues:
 
-**Import / Export classes**
-- `Modules/Pharma/Services/ImportExport.php` — adapter for the shared import-export base service. Handles column mapping, normalization, and export mapping.
-- `Modules/Pharma/Services/MedicineImportService.php` — CLI/streaming CSV importer used by `medicine:import` command. Duplicate with `MedicineService::importFromCsv`.
-- `Modules/Pharma/Services/MedicineService::importFromCsv()` — web Livewire importer; similar logic to `MedicineImportService`.
-- `Modules/Pharma/Console/Commands/ImportMedicineCommand.php` — CLI wrapper.
+- P0: `Modules/Pharma/Livewire/*/Index.php` and form classes expose mutating actions such as create/update/delete/import/export without visible permission checks.
+- P1: `Modules/Pharma/Livewire/DrugBidAward/Form.php` directly queries `Modules\Pharma\Models\Medicine` in `render()`, bypassing the service layer and loading all medicines.
+- P1: `Modules/Pharma/Livewire/Medicine/Index.php` uses manual `$page` state instead of `WithPagination`, increasing pagination consistency risk.
+- P1: `Modules/Pharma/Livewire/SupplierTrackings/Index.php` performs FastExcel import/export orchestration and filesystem directory creation inside Livewire instead of delegating to the shared import/export service.
+- P1: `Modules/Pharma/Livewire/SupplierTrackings/Form.php` calls `app(SupplierTrackingService::class)` inside `recalculate()` instead of using a consistent injected service boundary.
+- P1: `Modules/Pharma/Livewire/SupplierTrackings/Index.php` keeps formatting methods `money()` and `percent()` in Livewire; similar formatting exists in `Form.php`, creating duplicate UI logic.
 
-Risks: two different CSV import implementations (see Duplicate Logic).
+## 6. Livewire Blade Views
 
----
+- `Modules/Pharma/resources/views/livewire/medicine/index.blade.php`
+- `Modules/Pharma/resources/views/livewire/medicine/form.blade.php`
+- `Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php`
+- `Modules/Pharma/resources/views/livewire/drug-bid-award/form.blade.php`
+- `Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php`
+- `Modules/Pharma/resources/views/livewire/supplier-trackings/form.blade.php`
+- `Modules/Pharma/resources/views/livewire/placeholder.blade.php`
 
-**Authorization / security risks**
-Every risk below lists the exact file path where the risky behavior or missing guard is found.
+Livewire Blade issues:
 
-- Missing action-level authorization on admin routes and Livewire actions: [Modules/Pharma/routes/web.php](Modules/Pharma/routes/web.php) — routes are protected by `auth:admin` only; controllers have commented-out permission middleware ([Modules/Pharma/Http/Controllers/PharmaController.php](Modules/Pharma/Http/Controllers/PharmaController.php)). Priority: P0.
+- P1: `Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php` renders both custom import/export controls and `shared.import-export.panel`, so users can trigger two different import/export implementations for the same data.
+- P1: `Modules/Pharma/resources/views/livewire/medicine/index.blade.php` and `Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php` expose `All` pagination that maps to `999999` records in Livewire/service code.
+- P1: `Modules/Pharma/resources/views/livewire/drug-bid-award/index.blade.php` formats dates with `date('d/m/Y', strtotime($award->decision_date))` even though the model casts `decision_date` to a date object.
+- P1: `Modules/Pharma/resources/views/livewire/medicine/index.blade.php`, `drug-bid-award/index.blade.php`, and `supplier-trackings/index.blade.php` render external URLs directly as links; validation allows URLs but no allowlist or download/ownership checks exist.
+- P2: `Modules/Pharma/resources/views/livewire/placeholder.blade.php` appears unused placeholder output.
 
-- File imports and downloads accept user-provided files/paths and immediately process them:
-  - Livewire import handlers read uploaded files directly: [Modules/Pharma/Livewire/Medicine/Index.php](Modules/Pharma/Livewire/Medicine/Index.php)::importData and [Modules/Pharma/Livewire/DrugBidAward/Index.php](Modules/Pharma/Livewire/DrugBidAward/Index.php)::importData. Priority: P0.
+## 7. Services and Public Methods
 
-- Export endpoints write to `storage_path('app/public/...')` and return file downloads: [Modules/Pharma/Services/MedicineService.php](Modules/Pharma/Services/MedicineService.php)::exportToCsv and [Modules/Pharma/Services/DrugBidAwardService.php](Modules/Pharma/Services/DrugBidAwardService.php)::exportToCsv — ensure storage permissions and cleanup. Priority: P1.
+### `Modules/Pharma/Services/MedicineService.php`
 
-- CLI command accepts arbitrary file path `medicine:import {file}` -> [Modules/Pharma/Console/Commands/ImportMedicineCommand.php](Modules/Pharma/Console/Commands/ImportMedicineCommand.php). If run in production, could allow reading arbitrary server files if misused. Priority: P0.
+Public methods:
 
-- Potential disclosure of exception messages in session flashes: many Livewire components append `$e->getMessage()` to user-visible `session()->flash('error', ...)` — e.g. [Modules/Pharma/Livewire/Medicine/Index.php](Modules/Pharma/Livewire/Medicine/Index.php)::importData and others. This may leak internal data. Priority: P0.
+- `getPaginatedMedicines(?string $search = null, int $perPage = 10, int $page = 1, ?string $circularGroup = null, ?string $specialControl = null): LengthAwarePaginator`
+- `getUniqueCircularGroups(): array`
+- `findOrFail(int $id): Medicine`
+- `store(array $data): Medicine`
+- `update(int $id, array $data): Medicine`
+- `delete(int $id): bool`
+- `importFromCsv(string $filePath): int`
+- `exportToCsv(?string $search = null, ?string $circularGroup = null, ?string $specialControl = null): string`
 
-- Api controller stub exists with public GET: [Modules/Pharma/routes/api.php](Modules/Pharma/routes/api.php) -> [Modules/Pharma/Http/Controllers/Api/PharmaController.php](Modules/Pharma/Http/Controllers/Api/PharmaController.php) (empty) — review before enabling. Priority: P1.
+### `Modules/Pharma/Services/MedicineImportService.php`
 
----
+Public methods:
 
-**Validation problems**
-- Generally good Livewire `rules()` present in form components. Noted issues:
-  - `MedicineForm::rules()` uses `'profile_link' => 'nullable|url'` — if users paste internal file paths, `url` won't block `file://`; Laravel `url` rule passes `http/https`; confirm acceptance. File: [Modules/Pharma/Livewire/Medicine/Form.php](Modules/Pharma/Livewire/Medicine/Form.php). Priority: P1.
+- `importFromCsv(string $filePath): int`
 
-  - `DrugBidAward/Form.php` uses `'medicine_id' => 'nullable|exists:pharma_medicines,id'` — when `medicine_id` is null there is no enforcement that `medicine_name` must match some controlled vocabulary; risk of inconsistent data. File: [Modules/Pharma/Livewire/DrugBidAward/Form.php]. Priority: P2.
+### `Modules/Pharma/Services/DrugBidAwardService.php`
 
-  - `SupplierTrackingService::importRows()` expects specific headers and performs `create()` calls without validating final payload against service rules (validation occurs in `ImportExport` class when using shared panel). Two import paths (FastExcel in Livewire and BaseImportExportService) may accept different column sets; mismatch risk. Files: [Modules/Pharma/Livewire/SupplierTrackings/Index.php], [Modules/Pharma/Services/ImportExport.php]. Priority: P1.
+Public methods:
 
-  - CSV import implementations use `fgetcsv` without explicit encoding checks or robust header mapping; malformed CSVs may shift columns. Files: [Modules/Pharma/Services/MedicineService.php], [Modules/Pharma/Services/MedicineImportService.php], [Modules/Pharma/Services/DrugBidAwardService.php]. Priority: P1.
+- `getPaginated(?string $search = null, ?string $investor = null, ?string $company = null, int $perPage = 10): LengthAwarePaginator`
+- `findOrFail(int $id)`
+- `store(array $data)`
+- `update(int $id, array $data)`
+- `delete(int $id): bool`
+- `getUniqueInvestors(): array`
+- `getUniqueCompanies(): array`
+- `importFromCsv(string $filePath): int`
+- `exportToCsv(?string $search = null, ?string $investor = null, ?string $company = null): string`
 
----
+### `Modules/Pharma/Services/SupplierTrackingService.php`
 
-**Transaction risks**
-- Many write operations use DB transactions (`store`, `update`, `delete` in `MedicineService`, `DrugBidAwardService`). Good.
-  - [Modules/Pharma/Services/MedicineService.php] — uses DB::transaction for store/update/delete and uses DB::beginTransaction in importFromCsv and properly rollbacks on error. Good.
-  - [Modules/Pharma/Services/DrugBidAwardService.php] — uses transactions for store/update/delete and for import. Good.
-- Problems:
-  - `SupplierTrackingService::create()` and `update()` do not wrap operations in a DB transaction; they call Eloquent `create()` and `update()` directly and rely on simple operations. If importRows loops call `create()` many times, partial failures may leave partial state. File: [Modules/Pharma/Services/SupplierTrackingService.php]. Priority: P1.
-  - Batch deletion in `SupplierTrackingService::deleteMany()` uses direct `whereIn('id', $ids)->delete()` without transaction or soft-delete semantics; if downstream invariants exist, this may be risky. Priority: P1.
-  - Livewire batch delete loops call service->delete per id (each inside transaction for Medicine/DrugBidAward) — fine but slow; bulk delete could be optimized with transaction/wrapper. Files: livewire components. Priority: P2.
+Public methods:
 
----
+- `paginate(array $filters = [], int $perPage = 15)`
+- `medicinesForSelect(): Collection`
+- `find(int $id): SupplierTracking`
+- `create(array $data): SupplierTracking`
+- `update(int $id, array $data): SupplierTracking`
+- `delete(int $id): void`
+- `deleteMany(array $ids): void`
+- `getFilteredIds(array $filters = []): Collection`
+- `previewCalculate(array $data): array`
+- `exportRows(array $filters = []): Collection`
+- `importRows(Collection $rows): array`
 
-**N+1 / query performance risks**
-- DrugBidAwardService uses `with('medicine')` in both list and export to avoid N+1: good. ([Modules/Pharma/Services/DrugBidAwardService.php](Modules/Pharma/Services/DrugBidAwardService.php))
-- SupplierTrackingService uses `with('medicine')` in paginate and exportRows: good.
-- MedicineService list queries do not eager-load relations (no relation used); fine.
-- Livewire components sometimes fetch `Medicine::latest()->get()` in `DrugBidAward/Form.php` -> this loads all medicines into memory; potential heavy load for large datasets. File: [Modules/Pharma/Livewire/DrugBidAward/Form.php]. Priority: P1.
-- `Index` components sometimes use `perPage === 'All' ? 999999 : (int)$perPage` — this may request all records and return large datasets to memory; used in `Medicine/Index` and `DrugBidAward/Index`. Files: [Modules/Pharma/Livewire/Medicine/Index.php], [Modules/Pharma/Livewire/DrugBidAward/Index.php]. Priority: P1.
+### `Modules/Pharma/Services/ImportExport.php`
 
----
+Public methods:
 
-**Duplicate logic**
-- Two CSV import implementations for medicines:
-  - [Modules/Pharma/Services/MedicineService.php::importFromCsv]()
-  - [Modules/Pharma/Services/MedicineImportService.php::importFromCsv]()
-  Both parse CSV, map columns and call `Medicine::updateOrCreate`. This duplication increases maintenance and bug risk. Priority: P1.
+- `rules(): array`
+- `modelClass(): string`
+- `columnMapping(): array`
+- `normalizeRow(array $row): array`
+- `exportRows(array $filters = []): Collection`
+- `mapExportRow($row): array`
+- `templateSampleRow(): array`
 
-- Two import mechanisms for supplier-trackings:
-  - `Livewire/SupplierTrackings/Index.php` uses `FastExcel` and `SupplierTrackingService::importRows()`
-  - `Services/ImportExport.php` integrates with `Modules\\Shared\\Services\\ImportExport\\BaseImportExportService` and is used by shared import-export panel. Duplicate import code paths and slightly different validation/normalization. Priority: P1.
+Service issues:
 
-- Some monetary parsing logic repeated across `SupplierTrackingService::parseNumber`, `ImportExport::toDecimal`, and others — candidate to centralize. Priority: P2.
+- P1: `Modules/Pharma/Services/MedicineService.php` and `Modules/Pharma/Services/MedicineImportService.php` duplicate medicine CSV import behavior with different unique keys.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` and `Modules/Pharma/Services/ImportExport.php` duplicate supplier tracking import/export logic with different status vocabularies and report shapes.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` create/update/delete/deleteMany/importRows are not wrapped in transactions.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` importRows performs one medicine query per imported row, creating import-time N+1 behavior.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` exportRows calls `get()` and maps the full filtered dataset in memory.
+- P1: `Modules/Pharma/Services/ImportExport.php` exportRows ignores `$filters` and loads all supplier tracking records.
+- P1: `Modules/Pharma/Services/MedicineService.php` importFromCsv validates XLSX uploads at the Livewire layer but reads the file with `fgetcsv()`, so XLSX files are accepted but not correctly parsed.
+- P1: `Modules/Pharma/Services/DrugBidAwardService.php` importFromCsv requires semicolon-delimited CSV while the UI copy does not clearly enforce delimiter expectations.
+- P1: `Modules/Pharma/Services/MedicineService.php`, `DrugBidAwardService.php`, and `MedicineImportService.php` use ad hoc CSV parsing instead of the shared import/export foundation required by the active standard.
 
----
+## 8. Models and Database Tables
 
-**Files that look unused / suspicious**
-- [Modules/Pharma/Http/Controllers/Api/PharmaController.php](Modules/Pharma/Http/Controllers/Api/PharmaController.php) — empty stub. Priority: P2 (remove or implement).
-- [Modules/Pharma/Models/Pharma.php](Modules/Pharma/Models/Pharma.php) — placeholder class with no usage. Priority: P2.
-- [Modules/Pharma/Services/ImportExport.php] may duplicate shared service behavior but is intentionally an adapter; confirm reuse. Priority: P2.
-- [Modules/Pharma/resources/views/components/placeholder.blade.php](Modules/Pharma/resources/views/components/placeholder.blade.php) and [Modules/Pharma/resources/views/livewire/placeholder.blade.php](Modules/Pharma/resources/views/livewire/placeholder.blade.php) — small utilities; confirm usage. Priority: P2.
+### Models
 
----
+- `Modules/Pharma/Models/Medicine.php`
+  - Table: `pharma_medicines`
+  - Uses `$guarded = ['id']`.
+  - Casts dates, boolean, and declared price.
+- `Modules/Pharma/Models/DrugBidAward.php`
+  - Table: `pharma_drug_bid_awards`
+  - Fillable fields defined.
+  - Belongs to `Medicine`.
+- `Modules/Pharma/Models/SupplierTracking.php`
+  - Table: `pharma_supplier_trackings`
+  - Fillable fields defined.
+  - Belongs to `Medicine`.
+  - Has public `$exceptExport`.
+- `Modules/Pharma/Models/Pharma.php`
+  - Empty scaffold model.
 
-**Refactor plan (with priorities)**
-P0 Critical (must fix before broad refactor / before production use):
-- P0-01: Add capability/permission checks to all admin routes and Livewire actions that mutate data. Files: [Modules/Pharma/routes/web.php], Livewire components in [Modules/Pharma/Livewire/**]. Priority: P0.
-- P0-02: Remove or restrict CLI import command from production or require path whitelisting and RBAC for `medicine:import` ([Modules/Pharma/Console/Commands/ImportMedicineCommand.php]). Priority: P0.
-- P0-03: Stop returning raw exception messages to users. Replace `session()->flash('error', $e->getMessage())` uses with sanitized messages and record full exception in logs. Files: e.g. [Modules/Pharma/Livewire/Medicine/Index.php], [Modules/Pharma/Livewire/DrugBidAward/Index.php], etc. Priority: P0.
+Model issues:
 
-P1 Important (improve correctness, performance, maintainability)
-- P1-01: Consolidate import logic: unify `MedicineImportService` and `MedicineService::importFromCsv` into a single service used by both CLI and Livewire. Files: [Modules/Pharma/Services/MedicineImportService.php], [Modules/Pharma/Services/MedicineService.php]. Priority: P1.
-- P1-02: Standardize supplier-tracking import path: choose either `FastExcel`+`SupplierTrackingService::importRows` or the shared `ImportExport` adapter and migrate code to single contract. Files: [Modules/Pharma/Services/ImportExport.php], [Modules/Pharma/Livewire/SupplierTrackings/Index.php], [Modules/Pharma/Services/SupplierTrackingService.php]. Priority: P1.
-- P1-03: Wrap multi-row create/update operations in transactions where partial writes are unacceptable (e.g., `SupplierTrackingService::importRows()` and `create()`/`update()` flows). Files: [Modules/Pharma/Services/SupplierTrackingService.php]. Priority: P1.
-- P1-04: Avoid large uncontrolled `perPage === 'All' ? 999999` patterns — implement chunked/queued exports and server-side caps. Files: [Modules/Pharma/Livewire/**/Index.php]. Priority: P1.
-- P1-05: Replace `Model::latest()->get()` in form mounts with paginated or search-based select for medicines to prevent loading full table into memory. File: [Modules/Pharma/Livewire/DrugBidAward/Form.php]. Priority: P1.
-- P1-06: Harden CSV parsing: verify headers, normalize encodings, and add strict column mapping with error reporting instead of silent skips. Files: [Modules/Pharma/Services/MedicineService.php], [Modules/Pharma/Services/MedicineImportService.php], [Modules/Pharma/Services/DrugBidAwardService.php]. Priority: P1.
+- P1: `Modules/Pharma/Models/Medicine.php` uses broad `$guarded` instead of explicit `$fillable`, weakening import/export defaults and mass-assignment clarity.
+- P1: `Modules/Pharma/Models/SupplierTracking.php` declares `public array $exceptExport`; active export conventions prefer a safe accessor or clear model-level export exclusion contract.
+- P2: `Modules/Pharma/Models/Pharma.php` appears unused scaffold code.
 
-P2 Nice to have (cleanup, developer experience)
-- P2-01: Remove unused/placeholder files (`Modules/Pharma/Models/Pharma.php`, Api controller stub) or implement them if needed. Priority: P2.
-- P2-02: Centralize numeric parsing and date parsing utilities used by SupplierTrackingService and ImportExport to `Modules/Shared` helper to reduce duplication. Files: [Modules/Pharma/Services/SupplierTrackingService.php], [Modules/Pharma/Services/ImportExport.php]. Priority: P2.
-- P2-03: Add unit/integration tests for imports, exports, and composite unique constraints to prevent silent duplicate creation (migration+service tests). Files to add tests referencing migrations and services. Priority: P2.
-- P2-04: Improve export cleanup: store exports in temp folder, use storage disks and cleanup older files. Files: [Modules/Pharma/Services/*::exportToCsv]. Priority: P2.
+### Database Tables and Migrations
 
----
+- `Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php`
+  - Creates `pharma_medicines`.
+  - Unique key: `registration_number + packaging_specification`.
+- `Modules/Pharma/database/migrations/2026_05_22_135028_create_drug_bid_awards_table.php`
+  - Creates `pharma_drug_bid_awards`.
+  - Nullable FK `medicine_id` to `pharma_medicines`, `onDelete set null`.
+  - Unique key: `bidding_notice_code + medicine_name + winning_company_name`.
+  - Indexes `investor_name`, `winning_company_name`.
+- `Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php`
+  - Creates `pharma_supplier_trackings`.
+  - Required FK `medicine_id` to `pharma_medicines`, cascade delete.
+  - Indexes `medicine_id + supplier_name`, `status`.
 
-If you'd like I can next:
-- produce a prioritized patch set implementing P0 fixes (authorization checks, safe error messages, CLI restrictions), or
-- create a unit-test scaffold for import/export and the composite unique cases.
+Migration issues:
 
-Which next step do you prefer?
+- P1: `Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php` has no indexes for search/filter fields used by services such as `name`, `active_ingredients`, `circular_group`, and `is_special_control`.
+- P1: `Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php` has no unique key matching `Modules/Pharma/Services/ImportExport.php` uniqueBy fields `medicine_id`, `supplier_name`, `working_date`.
+- P1: `Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php` uses `cascadeOnDelete()` for medicine deletion, which can destroy supplier tracking history when a medicine is deleted.
+- P1: `Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php` stores `status` as a free string with no DB constraint and inconsistent application vocabularies.
+- P2: `Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php` has sparse column comments compared with later migrations.
+
+## 9. Import/Export Classes
+
+- `Modules/Pharma/Services/MedicineService.php`
+  - Custom CSV import/export for medicines.
+- `Modules/Pharma/Services/MedicineImportService.php`
+  - Separate CSV import service for medicine console import.
+- `Modules/Pharma/Services/DrugBidAwardService.php`
+  - Custom CSV import/export for drug bid awards.
+- `Modules/Pharma/Services/SupplierTrackingService.php`
+  - Custom FastExcel import/export for supplier tracking.
+- `Modules/Pharma/Services/ImportExport.php`
+  - Shared-foundation implementation for supplier tracking.
+- `Modules/Pharma/Console/Commands/ImportMedicineCommand.php`
+  - Artisan command `medicine:import {file}` that delegates to `MedicineImportService`.
+
+Import/export issues:
+
+- P1: `Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php` presents both the custom supplier import/export and shared import/export panel on the same screen.
+- P1: `Modules/Pharma/Services/ImportExport.php` accepts status values `active`, `inactive`, `draft`, `expired`, while `Modules/Pharma/Livewire/SupplierTrackings/Index.php` and `Form.php` use `active`, `completed`, `paused`, `cancelled`.
+- P1: `Modules/Pharma/Services/ImportExport.php` maps columns J, L, M, and N to calculated fields, then recalculates them. This is mostly safe, but the template/mapping can confuse users into thinking calculated spreadsheet values are imported.
+- P1: `Modules/Pharma/Services/MedicineService.php` and `Modules/Pharma/Services/DrugBidAwardService.php` return raw exception messages to Livewire flash messages during import failures.
+- P1: `Modules/Pharma/Console/Commands/ImportMedicineCommand.php` accepts any filesystem path available to the process; appropriate for CLI, but it should be documented as an operator-only command and not wired to web execution.
+
+## 10. Authorization/Security Risks
+
+- P0: `Modules/Pharma/routes/api.php` exposes an unauthenticated API route.
+- P0: `Modules/Pharma/routes/web.php` only uses `auth:admin`; no named permissions are enforced for create, edit, delete, bulk delete, import, or export.
+- P0: `Modules/Pharma/Livewire/Medicine/Index.php`, `DrugBidAward/Index.php`, and `SupplierTrackings/Index.php` trust client-selected IDs for deletes and bulk deletes without server-side authorization checks.
+- P0: `Modules/Pharma/Livewire/*/Form.php` update paths accept route-provided IDs and rely on service `findOrFail()` only, with no record-level permission or ownership check.
+- P1: `Modules/Pharma/Livewire/Medicine/Index.php` and `DrugBidAward/Index.php` flash raw exception messages on import/save errors, which can leak internal details.
+- P1: `Modules/Pharma/resources/views/livewire/*` opens user-provided document URLs in new tabs without `rel="noopener noreferrer"` and without URL allowlist policy.
+
+## 11. Validation Problems
+
+- P1: `Modules/Pharma/Livewire/Medicine/Form.php` validates `registration_number` but does not enforce uniqueness with ignore-current-record logic matching the database unique key.
+- P1: `Modules/Pharma/Livewire/DrugBidAward/Form.php` does not validate uniqueness for `bidding_notice_code + medicine_name + winning_company_name`, so DB exceptions can surface during save.
+- P1: `Modules/Pharma/Livewire/SupplierTrackings/Form.php` validates `status` as a string only, not as an allowed enum set.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` importRows does not validate normalized rows with Laravel validator rules before create.
+- P1: `Modules/Pharma/Services/MedicineService.php` importFromCsv uses positional indexes without count checks before accessing indexes up to `20`.
+- P1: `Modules/Pharma/Services/DrugBidAwardService.php` importFromCsv only checks `count($data) < 12`, then parses date with a single format that can throw and roll back the whole file.
+- P1: `Modules/Pharma/Livewire/SupplierTrackings/Index.php` upload validation has no explicit max file size.
+- P2: `Modules/Pharma/Livewire/SupplierTrackings/Form.php` validates `contract_url` as string instead of URL, despite rendering it as an external link.
+
+## 12. Transaction Risks
+
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` create, update, delete, deleteMany, and importRows are not transactional.
+- P1: `Modules/Pharma/Livewire/Medicine/Index.php` and `DrugBidAward/Index.php` bulk delete loops call delete one row at a time; a mid-loop failure can leave partial deletion.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` importRows creates rows one by one and continues on errors, but the partial-import behavior is not documented or surfaced with the shared report format.
+- P1: `Modules/Pharma/Services/MedicineService.php`, `DrugBidAwardService.php`, and `MedicineImportService.php` manually begin/commit/rollback transactions around file handles; `DB::transaction()` plus `finally` file close would reduce resource-leak risk.
+
+## 13. N+1/Query Performance Risks
+
+- P1: `Modules/Pharma/Livewire/DrugBidAward/Form.php` loads all medicines with `Medicine::query()->latest()->get()` every render.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` `medicinesForSelect()` loads all medicine options; this will become heavy for large medicine catalogs.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` importRows queries Medicine per row by registration number.
+- P1: `Modules/Pharma/Services/SupplierTrackingService.php` exportRows loads all matching rows into memory with `get()`.
+- P1: `Modules/Pharma/Services/ImportExport.php` exportRows loads all supplier tracking records and ignores filters.
+- P1: `Modules/Pharma/Livewire/Medicine/Index.php` and `DrugBidAward/Index.php` use `999999` as a substitute for `All`, which is unbounded for practical memory and response time.
+- P1: `Modules/Pharma/Services/DrugBidAwardService.php` and `MedicineService.php` use `like '%term%'` on unindexed text columns.
+
+## 14. Duplicate Logic
+
+- P1: Medicine import is duplicated in `Modules/Pharma/Services/MedicineService.php` and `Modules/Pharma/Services/MedicineImportService.php`.
+- P1: Supplier tracking import/export is duplicated in `Modules/Pharma/Services/SupplierTrackingService.php`, `Modules/Pharma/Services/ImportExport.php`, and `Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php`.
+- P1: Money and percent formatting are duplicated in `Modules/Pharma/Livewire/SupplierTrackings/Index.php` and `Modules/Pharma/Livewire/SupplierTrackings/Form.php`.
+- P1: Supplier tracking search/filter query logic is duplicated across `paginate()`, `getFilteredIds()`, and `exportRows()` in `Modules/Pharma/Services/SupplierTrackingService.php`.
+- P1: Medicine and drug bid award list pages duplicate import/upload/table/bulk-delete patterns instead of sharing module or shared components.
+
+## 15. Files That Look Unused
+
+- P2: `Modules/Pharma/Models/Pharma.php` is an empty scaffold model and appears unused.
+- P2: `Modules/Pharma/resources/views/pharma.blade.php` is a scaffold placeholder and appears unused by routes.
+- P2: `Modules/Pharma/resources/views/components/placeholder.blade.php` appears only used by the unused scaffold page.
+- P2: `Modules/Pharma/resources/views/livewire/placeholder.blade.php` appears unused.
+- P2: `Modules/Pharma/resources/views/pages/supplier-trackings/show.blade.php` has no route and no mounted component.
+- P2: `Modules/Pharma/readme.md` contains scaffold command notes, not module documentation.
+- P1: `Modules/Pharma/routes/web.php` references `SupplierTrackingController@importExport`, but the method and likely page are missing.
+- P1: `Modules/Pharma/routes/api.php` references `Api\PharmaController@index`, but the method is missing.
+
+## 16. Refactor Plan
+
+### P0 Critical
+
+- P0: Remove, protect, or implement the unauthenticated broken API route in `Modules/Pharma/routes/api.php` and `Modules/Pharma/Http/Controllers/Api/PharmaController.php`.
+- P0: Add named permission checks for all Pharma admin pages and Livewire mutating actions in `Modules/Pharma/routes/web.php`, `Modules/Pharma/Http/Controllers/*.php`, and `Modules/Pharma/Livewire/**/*.php`.
+- P0: Fix the broken `admin.pharma.supplier-trackings.import-export` route by adding a real controller/page flow or removing the route from `Modules/Pharma/routes/web.php`.
+- P0: Add server-side authorization checks for single and bulk delete IDs in `Modules/Pharma/Livewire/Medicine/Index.php`, `Modules/Pharma/Livewire/DrugBidAward/Index.php`, and `Modules/Pharma/Livewire/SupplierTrackings/Index.php`.
+
+### P1 Important
+
+- P1: Consolidate import/export onto the shared `Modules/Shared/Services/ImportExport` architecture, starting with supplier tracking and then medicines and drug bid awards.
+- P1: Remove duplicate supplier tracking import/export controls from `Modules/Pharma/resources/views/livewire/supplier-trackings/index.blade.php` after the shared panel behavior is confirmed.
+- P1: Replace direct model queries in `Modules/Pharma/Livewire/DrugBidAward/Form.php` with service methods and searchable/bounded medicine selection.
+- P1: Add transaction boundaries to `Modules/Pharma/Services/SupplierTrackingService.php` create/update/delete/deleteMany/importRows.
+- P1: Add bulk-delete service methods for medicine and bid award records so Livewire does not loop row by row.
+- P1: Align supplier tracking status values across `Modules/Pharma/Services/ImportExport.php`, `Modules/Pharma/Livewire/SupplierTrackings/*.php`, and `Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php`.
+- P1: Replace `All => 999999` behavior in `Modules/Pharma/Livewire/Medicine/Index.php` and `Modules/Pharma/Livewire/DrugBidAward/Index.php` with capped or guarded behavior.
+- P1: Add validation for database unique keys in `Modules/Pharma/Livewire/Medicine/Form.php` and `Modules/Pharma/Livewire/DrugBidAward/Form.php`.
+- P1: Add explicit `$fillable` to `Modules/Pharma/Models/Medicine.php`.
+- P1: Review cascade delete in `Modules/Pharma/database/migrations/2026_05_23_141810_create_supplier_trackings_table.php` and decide whether supplier history should be retained when medicine records are deleted.
+- P1: Add indexes that match actual searches and filters in `Modules/Pharma/database/migrations/2026_05_21_145242_create_medicines_table.php`.
+- P1: Normalize safe error handling so Livewire does not flash raw exception messages from import/save failures.
+
+### P2 Nice To Have
+
+- P2: Remove confirmed scaffold placeholders: `Modules/Pharma/Models/Pharma.php`, `Modules/Pharma/resources/views/pharma.blade.php`, `Modules/Pharma/resources/views/components/placeholder.blade.php`, and `Modules/Pharma/resources/views/livewire/placeholder.blade.php`.
+- P2: Replace page blade `container-fluid` wrappers with the active Tailwind Admin UI page container.
+- P2: Convert manual inline SVGs to shared/icon components where the project standard supports it.
+- P2: Add real module documentation to replace scaffold notes in `Modules/Pharma/readme.md`.
+- P2: Extract shared formatting helpers for money and percent display in supplier tracking views.
+- P2: Add `rel="noopener noreferrer"` to external document links in Pharma Livewire blades.

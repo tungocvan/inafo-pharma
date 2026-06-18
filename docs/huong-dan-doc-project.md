@@ -23,7 +23,7 @@ Generate implementation order.
 
 Step 02:
 
-<Module_Name>="Account"
+<Module_Name>="Website"
 You are a Senior Laravel 12 Architect.
 
 Read ROADMAP.md first.
@@ -82,9 +82,11 @@ Important rules:
 - Every issue must include exact file path.
 - Every recommendation must include priority: P0, P1, or P2.
 
+
+
+
 Step 03:
 
-You are a Senior Laravel 12 Architect.
 Read:
 docs/modules/<Module_Name>/ANALYSIS.md 
 docs/AI_PROJECT_CONTEXT.md if exists
@@ -154,80 +156,11 @@ Important rules:
 
 Step 04:
 
-Read:
-docs/modules/<Module_Name>/ANALYSIS.md 
+<Module_Name>="Website"
+ROADMAP.md
 docs/AI_PROJECT_CONTEXT.md if exists
 docs/CODEX_BOOTSTRAP.md if exists
-ROADMAP.md
-
-Do not write code yet.
-
-Create:
-
-docs/modules/<Module_Name>/REFACTOR_PLAN.md
-For every issue found in ANALYSIS.md, generate:
-
-# <Module_Name> Refactor Plan
-
-## 1. Executive Summary
-
-## 2. P0 Critical Fixes
-
-For each item:
-
-* Issue
-* Root Cause
-* Business Impact
-* Technical Impact
-* Proposed Solution
-* Files To Change
-* Risk Level
-* Complexity
-* Estimated Effort
-* Acceptance Criteria
-
-## 3. P1 Important Refactors
-
-Use the same structure.
-
-## 4. P2 Nice To Have Improvements
-
-Use the same structure.
-
-## 5. Recommended Implementation Order
-
-### Phase 1: Safety and Security
-
-### Phase 2: Correctness and Maintainability
-
-### Phase 3: Performance and Cleanup
-
-## 6. Files Change Matrix
-
-Create a table:
-
-| File Path | Change Type | Priority | Reason |
-
-## 7. Risk Control
-
-Explain what should not be changed yet.
-
-Important rules:
-
-* Do not generate code.
-* Do not modify files except creating REFACTOR_PLAN.md.
-* Focus on Laravel 12 best practices.
-* Focus on Livewire 3 best practices.
-* Keep module boundaries clean.
-* Every recommendation must contain exact file paths.
-
-Step 05:
-
-<Module_Name>=""
 docs/modules/<Module_Name>/ANALYSIS.md
-docs/AI_PROJECT_CONTEXT.md if exists
-docs/CODEX_BOOTSTRAP.md if exists
-ROADMAP.md
 docs/modules/<Module_Name>/REFACTOR_PLAN.md
 
 Do not write code.
