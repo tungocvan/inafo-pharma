@@ -79,9 +79,7 @@ class CartService
 
         // 1. Logic Giá: Ưu tiên giá Sale nếu có và hợp lệ
         // Giả sử logic là: nếu sale_price > 0 thì dùng, ko thì dùng regular
-        $realPrice = ($product->sale_price > 0 && $product->sale_price < $product->regular_price)
-                     ? $product->sale_price
-                     : $product->regular_price;
+        $realPrice = $this->getProductPrice($product);
 
         // 2. Kiểm tra item đã có trong giỏ chưa
         $cartItem = $cart->items()->where('product_id', $productId)->first();
@@ -116,7 +114,7 @@ class CartService
     {
         if ($quantity <= 0) return $this->removeItem($itemId);
 
-        $item = CartItem::with('product')->findOrFail($itemId);
+        $item = $this->getCartItemForCurrentCart($itemId, ['product']);
 
         // Check tồn kho khi update
         if ($item->product->quantity < $quantity) {
@@ -124,7 +122,7 @@ class CartService
         }
 
         // Lấy lại giá hiện tại để tính total chính xác
-        $realPrice = ($item->product->sale_price > 0) ? $item->product->sale_price : $item->product->regular_price;
+        $realPrice = $this->getProductPrice($item->product);
 
         $item->update([
             'quantity' => $quantity,
@@ -135,9 +133,23 @@ class CartService
         return true;
     }
 
+    public function incrementItem($itemId)
+    {
+        $item = $this->getCartItemForCurrentCart($itemId);
+
+        return $this->updateQuantity($itemId, $item->quantity + 1);
+    }
+
+    public function decrementItem($itemId)
+    {
+        $item = $this->getCartItemForCurrentCart($itemId);
+
+        return $this->updateQuantity($itemId, $item->quantity - 1);
+    }
+
     public function removeItem($itemId)
     {
-        return CartItem::destroy($itemId);
+        return $this->getCartItemForCurrentCart($itemId)->delete();
     }
 
     public function applyCoupon($code)
@@ -206,5 +218,23 @@ class CartService
             'coupon_code' => $cart->coupon ? $cart->coupon->code : null,
             'total'       => $total
         ];
+    }
+
+    protected function getCartItemForCurrentCart($itemId, array $with = [])
+    {
+        $query = $this->getCart()->items();
+
+        if ($with) {
+            $query->with($with);
+        }
+
+        return $query->whereKey($itemId)->firstOrFail();
+    }
+
+    protected function getProductPrice(WpProduct $product)
+    {
+        return ($product->sale_price > 0 && $product->sale_price < $product->regular_price)
+            ? $product->sale_price
+            : $product->regular_price;
     }
 }

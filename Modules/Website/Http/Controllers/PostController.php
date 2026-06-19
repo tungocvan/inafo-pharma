@@ -3,7 +3,6 @@
 namespace Modules\Website\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Website\Models\Post;
 use Illuminate\Http\Request;
 
 class PostController extends Controller
@@ -11,9 +10,11 @@ class PostController extends Controller
     /**
      * Trang danh sách bài viết (Blog Listing)
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('Website::pages.blog.index'); // View này chứa @livewire('website.post.post-list')
+        return view('Website::pages.blog.index', [
+            'categorySlug' => $request->query('category'),
+        ]);
     }
 
     public function detail($slug)

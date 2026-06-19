@@ -4,11 +4,9 @@ namespace Modules\Website\Livewire\Products;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\URL;
 use Modules\Website\Models\WpProduct;
-use Modules\Website\Models\Cart;
-use Modules\Website\Models\CartItem;
 use Modules\Website\Models\Review;
+use Modules\Website\Services\CartService;
 use Illuminate\Http\Request;
 
 class ProductDetail extends Component
@@ -61,42 +59,20 @@ class ProductDetail extends Component
 
     public function addToCart()
     {
-        $sessionId = Session::getId();
-        $user = auth()->user();
+        try {
+            app(CartService::class)->addItem($this->product->id, $this->quantity);
 
-        $cart = Cart::firstOrCreate(
-            ['session_id' => $sessionId],
-            ['user_id' => $user ? $user->id : null]
-        );
-
-        $price = $this->product->sale_price > 0 ? $this->product->sale_price : $this->product->regular_price;
-
-        $cartItem = CartItem::where('cart_id', $cart->id)
-            ->where('product_id', $this->product->id)
-            ->first();
-
-        if ($cartItem) {
-            $cartItem->quantity += $this->quantity;
-            $cartItem->total = $cartItem->quantity * $price;
-            $cartItem->save();
-        } else {
-            CartItem::create([
-                'cart_id' => $cart->id,
-                'product_id' => $this->product->id,
-                'price' => $price,
-                'quantity' => $this->quantity,
-                'total' => $price * $this->quantity,
+            $this->dispatch('cart-updated');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Đã thêm ' . $this->product->title . ' vào giỏ hàng!'
+            ]);
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => $e->getMessage()
             ]);
         }
-
-        // Dispatch sự kiện cập nhật giỏ hàng trên Header
-        $this->dispatch('cart-updated');
-
-        // Thông báo đẹp dạng Toast
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => 'Đã thêm ' . $this->product->title . ' vào giỏ hàng!'
-        ]);
     }
 
     // Lấy sản phẩm liên quan (Computed Property để tối ưu)

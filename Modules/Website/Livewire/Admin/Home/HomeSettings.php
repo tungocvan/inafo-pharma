@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Website\Livewire\Home;
+namespace Modules\Website\Livewire\Admin\Home;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;

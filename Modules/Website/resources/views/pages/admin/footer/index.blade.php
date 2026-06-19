@@ -35,15 +35,15 @@
 
         {{-- Tab Contents --}}
         <div x-show="activeTab === 'info'" style="display: none;">
-            @livewire('admin.footer.footer-info')
+            @livewire('website.admin.footer.footer-info')
         </div>
 
         <div x-show="activeTab === 'columns'" style="display: none;">
-            @livewire('admin.footer.footer-columns')
+            @livewire('website.admin.footer.footer-columns')
         </div>
 
         <div x-show="activeTab === 'social'" style="display: none;">
-            @livewire('admin.footer.social-links')
+            @livewire('website.admin.footer.social-links')
         </div>
 
     </div>

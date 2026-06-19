@@ -6,11 +6,9 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
-use Illuminate\Support\Facades\Session;
 use Modules\Website\Models\WpProduct;
 use Modules\Website\Models\Category;
-use Modules\Website\Models\Cart;
-use Modules\Website\Models\CartItem;
+use Modules\Website\Services\CartService;
 
 class ProductList extends Component
 {
@@ -55,36 +53,15 @@ class ProductList extends Component
 
     public function addToCart($productId)
     {
-        $product = WpProduct::find($productId);
-        if (!$product) return;
-
-        $sessionId = Session::getId();
-        $cart = Cart::firstOrCreate(
-            ['session_id' => $sessionId],
-            ['user_id' => auth()->id()]
-        );
-
-        // final_price là accessor tính toán giá sau sale trong Model
-        $price = $product->sale_price > 0 ? $product->sale_price : $product->regular_price;
-
-        $cartItem = CartItem::where('cart_id', $cart->id)
-            ->where('product_id', $productId)
-            ->first();
-
-        if ($cartItem) {
-            $cartItem->increment('quantity');
-            $cartItem->update(['total' => $cartItem->quantity * $price]);
-        } else {
-            CartItem::create([
-                'cart_id' => $cart->id,
-                'product_id' => $productId,
-                'price' => $price,
-                'quantity' => 1,
-                'total' => $price,
+        try {
+            app(CartService::class)->addItem($productId);
+            $this->dispatch('cart-updated');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => $e->getMessage()
             ]);
         }
-
-        $this->dispatch('cart-updated');
     }
 
     public function render()

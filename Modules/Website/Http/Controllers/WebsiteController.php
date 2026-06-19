@@ -18,6 +18,7 @@ class WebsiteController extends Controller
     }
     public function home()
     {
+
         return view('Website::pages.home.index');
     }
     public function help()

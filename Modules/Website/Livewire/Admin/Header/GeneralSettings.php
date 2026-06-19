@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Website\Livewire\Header;
+namespace Modules\Website\Livewire\Admin\Header;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;

@@ -3,11 +3,12 @@
 return array (
   'name' => 'Website',
   'type' => 'shell',
-  'enabled' => false,
-  'permissions' => [
-        'view_website',
-        'create_website',
-        'edit_website',
-        'delete_website',
-    ],
+  'enabled' => true,
+  'permissions' => 
+  array (
+    0 => 'view_website',
+    1 => 'create_website',
+    2 => 'edit_website',
+    3 => 'delete_website',
+  ),
 );

@@ -33,7 +33,7 @@
             </div>
 
             {{-- Gọi Livewire Component --}}
-            @livewire('admin.affiliate.commission-matrix', ['productId' => $product->id])
+            @livewire('website.admin.affiliate.commission-matrix', ['productId' => $product->id])
         </div>
     </div>
 @endsection

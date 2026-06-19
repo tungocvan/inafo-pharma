@@ -1,4 +1,4 @@
 @extends('Admin::layouts.master')
 @section('content')
-    @livewire('admin.banner.banner-manager')
+    @livewire('website.admin.banner.banner-manager')
 @endsection

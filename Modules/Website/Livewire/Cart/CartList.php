@@ -5,7 +5,6 @@ namespace Modules\Website\Livewire\Cart;
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Modules\Website\Services\CartService;
-use Modules\Website\Models\CartItem;
 use Illuminate\Support\Facades\App;
 
 class CartList extends Component
@@ -26,50 +25,38 @@ class CartList extends Component
 
     public function increment($itemId)
     {
-        // 1. Query trực tiếp từ DB để lấy số lượng tươi mới nhất (Tránh lỗi cache Computed)
-        $item = CartItem::find($itemId);
+        try {
+            $this->getCartService()->incrementItem($itemId);
+            unset($this->cartData);
 
-        if ($item) {
-            try {
-                // 2. Gọi Service update
-                $this->getCartService()->updateQuantity($itemId, $item->quantity + 1);
-                
-                // 3. QUAN TRỌNG: Xóa cache computed để View render lại dữ liệu mới
-                unset($this->cartData); 
-
-                $this->dispatch('cart-updated');
-            } catch (\Exception $e) {
-                $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
-            }
+            $this->dispatch('cart-updated');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
     public function decrement($itemId)
     {
-        // Tương tự increment
-        $item = CartItem::find($itemId);
+        try {
+            $this->getCartService()->decrementItem($itemId);
+            unset($this->cartData);
 
-        if ($item && $item->quantity > 1) {
-            try {
-                $this->getCartService()->updateQuantity($itemId, $item->quantity - 1);
-                
-                // Xóa cache computed
-                unset($this->cartData);
-
-                $this->dispatch('cart-updated');
-            } catch (\Exception $e) {
-                $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
-            }
+            $this->dispatch('cart-updated');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
     public function remove($itemId)
     {
-        $this->getCartService()->removeItem($itemId);
-        // Xóa cache computed
-        unset($this->cartData);
-        $this->dispatch('cart-updated');
-        $this->dispatch('notify', ['type' => 'success', 'message' => 'Đã xóa sản phẩm']);
+        try {
+            $this->getCartService()->removeItem($itemId);
+            unset($this->cartData);
+            $this->dispatch('cart-updated');
+            $this->dispatch('notify', ['type' => 'success', 'message' => 'Đã xóa sản phẩm']);
+        } catch (\Exception $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     public function applyCoupon()

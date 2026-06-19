@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Website\Livewire\Footer;
+namespace Modules\Website\Livewire\Admin\Footer;
 
 use Livewire\Component;
 use Modules\Website\Models\SocialLink;

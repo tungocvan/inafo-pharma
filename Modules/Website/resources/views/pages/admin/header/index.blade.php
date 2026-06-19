@@ -27,11 +27,11 @@
 
         {{-- Tab Contents --}}
         <div x-show="activeTab === 'general'" style="display: none;">
-            @livewire('admin.header.general-settings')
+            @livewire('website.admin.header.general-settings')
         </div>
 
         <div x-show="activeTab === 'menu'" style="display: none;">
-            @livewire('admin.header.menu-manager')
+            @livewire('website.admin.header.menu-manager')
         </div>
 
     </div>

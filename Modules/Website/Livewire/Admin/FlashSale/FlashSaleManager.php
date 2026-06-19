@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Website\Livewire\FlashSale;
+namespace Modules\Website\Livewire\Admin\FlashSale;
 
 use Livewire\Component;
 use Livewire\WithPagination;

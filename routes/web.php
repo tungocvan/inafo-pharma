@@ -25,6 +25,6 @@ use Illuminate\Support\Facades\Route;
 //         return view('template');
 // })->name('template');
 
-Route::middleware(['web'])->get('/', function () {
-        return view('welcome');
-});
+// Route::middleware(['web'])->get('/', function () {
+//         return view('welcome');
+// });

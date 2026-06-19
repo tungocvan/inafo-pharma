@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 
 // =====================
 // Controllers Frontend
@@ -68,13 +67,7 @@ Route::middleware('web')->group(function () use ($websitePrefix) {
 
     // Blog
     Route::prefix('blog')->name('blog.')->group(function () {
-
-        Route::get('/', function (Request $request) {
-            return view('Website::pages.blog.index', [
-                'categorySlug' => $request->query('category')
-            ]);
-        })->name('index');
-
+        Route::get('/', [PostController::class, 'index'])->name('index');
         Route::get('/{slug}', [PostController::class, 'detail'])->name('detail');
     });
 
