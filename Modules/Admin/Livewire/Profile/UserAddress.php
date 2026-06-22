@@ -73,6 +73,8 @@ class UserAddress extends Component
     // --- CRUD ACTIONS ---
     public function save(AddressService $service)
     {
+        $this->authorizePermission('admin.profile.update');
+
         $this->validate();
 
         $data = [
@@ -96,6 +98,8 @@ class UserAddress extends Component
 
     public function delete($id, AddressService $service)
     {
+        $this->authorizePermission('admin.profile.update');
+
         $service->delete($id, Auth::id());
         $this->loadAddresses($service);
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Đã xóa địa chỉ.']);
@@ -103,6 +107,8 @@ class UserAddress extends Component
 
     public function setAsDefault($id, AddressService $service)
     {
+        $this->authorizePermission('admin.profile.update');
+
         $service->setDefault($id, Auth::id());
         $this->loadAddresses($service);
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Đã đặt làm địa chỉ mặc định.']);
@@ -111,5 +117,12 @@ class UserAddress extends Component
     public function render()
     {
         return view('Admin::livewire.profile.user-address');
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 }

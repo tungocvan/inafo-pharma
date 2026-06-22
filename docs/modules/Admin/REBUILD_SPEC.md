@@ -1,393 +1,341 @@
 # Admin Rebuild Specification
 
-This specification governs rebuilding/refactoring `Modules/Admin`. It resolves the copied “Category Rebuild Specification” wording in the prompt by targeting Admin, because `docs/modules/Admin/ANALYSIS.md` and `docs/modules/Admin/REFACTOR_PLAN.md` are the requested module documents.
+Generated: 2026-06-22
 
-Every design decision below references one or more issues from:
+## 1. Purpose
+
+This specification governs the safe rebuild of `Modules/Admin`.
+
+Admin is a `shell` module. Its rebuilt responsibility is the admin presentation shell only:
+
+- Admin dashboard entry point.
+- Admin layout, sidebar, header, and shell navigation.
+- Shell menu management.
+- Admin profile page composition.
+- Theme and header shell UI when ownership is confirmed.
+
+Admin must not be the canonical owner of product, order, post, category, coupon, customer, role, staff, affiliate, banner, flash sale, chat, footer, homepage, Website settings, database administration, or environment/system operations unless a later ownership decision explicitly says so.
+
+This spec is documentation only. It does not authorize implementation yet.
+
+## 2. Source Evidence
+
+Required project files reviewed:
+
+- `docs/CODEX_BOOTSTRAP.md`
+- `.codex/bootstrap/CODEX_BOOTSTRAP.md`
+- `docs/AI_PROJECT_CONTEXT.md`
+- `.codex/bootstrap/AI_PROJECT_CONTEXT.md`
+- `docs/PROJECT_BOOTSTRAP.md`
+- `.codex/bootstrap/PROJECT_BOOTSTRAP.md`
+- `ROADMAP.md`
+- `Modules/ModuleServiceProvider.php`
+- `composer.json`
+- `.codex/agents/architect.md`
+
+Admin documents reviewed:
 
 - `docs/modules/Admin/ANALYSIS.md`
 - `docs/modules/Admin/REFACTOR_PLAN.md`
+- `docs/modules/Admin/REBUILD_SPEC.md`
+- `docs/modules/Admin/INFORMATION.md`
+- `docs/modules/Admin/OVERVIEW.md`
+- `docs/modules/Admin/REBUILD_DECISION.md`
 
-## 1. Goal
+Admin source inspected:
 
-The rebuilt Admin module must be a shell module only: layout, navigation, dashboard entry, profile shell, theme/header/menu shell UI, and narrowly scoped shell settings.
+- `Modules/Admin/config/module.php`
+- `Modules/Admin/routes/web.php`
+- `Modules/Admin/routes/api.php`
+- `Modules/Admin/Http/Controllers`
+- `Modules/Admin/Livewire`
+- `Modules/Admin/resources/views`
+- `Modules/Admin/resources/views/components`
+- `Modules/Admin/Services`
+- `Modules/Admin/Imports`
+- `Modules/Admin/Exports`
+- `Modules/Admin/Models`
+- `Modules/Admin/database/migrations`
+- `Modules/Admin/database/seeders`
+- `Modules/Admin/data`
 
-Goals:
+When older documentation conflicts with source code, source code wins.
 
-- Keep Admin as a presentation shell, not a domain owner.
-  - Reference: `ANALYSIS.md` sections 1, 18; `REFACTOR_PLAN.md` P1-1.
-- Contain P0 risks before broad refactoring: unauthenticated API, database download/export/restore/drop/truncate, shell command strings, credential exposure, foreign-key restoration, and raw exception leakage.
-  - Reference: `ANALYSIS.md` sections 3, 4, 9, 12, 14; `REFACTOR_PLAN.md` P0-1 through P0-6.
-- Move Admin menu behavior out of Livewire and into a service-backed flow.
-  - Reference: `ANALYSIS.md` sections 2, 6, 13, 14, 15; `REFACTOR_PLAN.md` P1-3, P1-4, P1-10.
-- Stop Admin from owning product, order, post, category, coupon, role, staff, affiliate, banner, flash sale, chat, and domain settings behavior.
-  - Reference: `ANALYSIS.md` sections 16, 18; `REFACTOR_PLAN.md` P1-1, P1-7, P1-8.
-- Standardize import/export through `Modules/Shared/Services/ImportExport` and canonical domain modules.
-  - Reference: `ANALYSIS.md` sections 11, 13, 15; `REFACTOR_PLAN.md` P1-5, P1-6.
+## 3. Current Source Corrections
 
-Needs confirmation before coding:
+The rebuild must account for these current facts:
 
-- Whether the Admin API route should be removed or protected.
-- Whether database administration screens remain in Admin or move to `Modules/System`.
-- Whether Admin shell menu data should remain in the existing `categories` table or move to a dedicated admin menu table.
-- Which module canonically owns settings, user addresses, banners, flash sales, affiliate schemes, and chat.
+- `Modules/Admin/routes/web copy.php` is absent in the current source. Older cleanup tasks for this file are obsolete.
+- `Modules/Admin/routes/api.php` still registers an unauthenticated `/api/admin` endpoint through the module provider's `/api` wrapper.
+- `Modules/Admin/routes/web.php` uses `web` and `auth:admin`, but no named permission middleware.
+- `Modules/Admin/Services/ProfileService.php` is stored under Admin but declares namespace `Modules\Website\Services\Account`; `UserProfile` imports `Modules\Admin\Services\ProfileService`.
+- `Modules/Admin/Models/AffiliateLevel.php` is stored under Admin but declares namespace `Modules\Website\Models`.
+- `Modules/Admin/Livewire/Database/BackupManager.php` calls `DatabaseService::getBackupFiles()` and `DatabaseService::restore()`, but `DatabaseService` currently exposes `getAllBackupFiles()`, `restoreTable()`, and `restoreFromFile()`.
+- `Modules/Admin/Services/DatabaseService.php` still builds shell command strings containing DB credentials, accepts table/file inputs, exposes raw errors, and toggles foreign-key checks without guaranteed `finally` restoration.
 
-## 2. Target Architecture
+These corrections are part of the rebuild scope.
 
-Required flow:
+## 4. Final Rebuild Decision
+
+Decision: **Safe rebuild**
+
+Risk level: **High**
+
+Rationale:
+
+- Keep the stable shell concept and shell UI structure.
+- Rebuild unsafe security, database, menu, authorization, and ownership boundaries.
+- Move or retire domain behavior from Admin after canonical ownership is confirmed.
+- Do not rewrite the whole module from scratch because layout, route shape, thin shell controllers, partials, and some shell models can be preserved.
+
+## 5. Target Architecture
+
+Target flow:
 
 ```text
 Route
-→ Controller
-→ Page Blade
-→ Livewire PHP
-→ Livewire Blade
-→ Shared Components
-→ Service
-→ Import
-→ Export
-→ Model
-→ Migration
+Controller
+Page Blade
+Livewire PHP
+Livewire Blade
+Admin or Shared Blade Components
+Service
+Import or Export, if needed
+Model
+Migration
+Database
 ```
 
-Target Admin shell flow:
+Layer rules:
 
-```text
-Modules/Admin/routes/web.php
-→ Thin Admin controllers
-→ Admin page Blade shells
-→ Admin Livewire components for shell UI only
-→ Admin/Shared Blade components
-→ Admin shell services
-→ Shared import/export only for confirmed Admin-owned shell data
-→ Admin shell models
-→ Admin shell migrations
-```
-
-Design decisions:
-
-- Routes define URL, name, middleware, permission middleware, and controller actions only.
-  - Reference: `ANALYSIS.md` section 3; `REFACTOR_PLAN.md` P1-2.
+- Routes define URI, name, middleware, and controller action only.
 - Controllers return views or pass scalar IDs only.
-  - Reference: `ANALYSIS.md` section 4; `REFACTOR_PLAN.md` P1-7.
-- Page Blade files extend `Admin::layouts.master` and mount Livewire only.
-  - Reference: `ANALYSIS.md` section 5.
-- Livewire owns state, UI validation, events, and service calls only.
-  - Reference: `ANALYSIS.md` sections 6, 13; `REFACTOR_PLAN.md` P1-3, P1-4.
-- Services own queries, transactions, business rules, import/export orchestration, validation invariants, and cache invalidation.
-  - Reference: `ANALYSIS.md` sections 9, 14; `REFACTOR_PLAN.md` P1-3, P1-11.
-- Import/export must use `Modules/Shared/Services/ImportExport` and only for confirmed Admin-owned data.
-  - Reference: `ANALYSIS.md` section 11; `REFACTOR_PLAN.md` P1-5.
-- Domain management routes currently stranded in `Modules/Admin/routes/web copy.php` must not be restored into Admin without canonical ownership confirmation.
-  - Reference: `ANALYSIS.md` sections 3, 17; `REFACTOR_PLAN.md` P2-1.
-
-## 3. Database Design
-
-### Tables
-
-Confirmed or candidate Admin-owned tables:
-
-- `header_menus`
-  - Reference: `ANALYSIS.md` section 10.
-- `header_menu_items`
-  - Reference: `ANALYSIS.md` section 10.
-- `settings`
-  - Needs confirmation before coding because `Modules/Admin/Models/Setting.php` duplicates settings also referenced by Website.
-  - Reference: `ANALYSIS.md` section 10; `REFACTOR_PLAN.md` P1-8.
-- Admin shell menu storage
-  - Needs confirmation before coding: current `Modules/Admin/Models/Category.php` uses the default `categories` table for menu data, which conflicts with Category/Website ownership.
-  - Reference: `ANALYSIS.md` sections 10, 18; `REFACTOR_PLAN.md` P1-8.
-
-Not Admin-owned unless confirmed:
-
-- Product, order, post, category domain, coupon, role, staff/user, affiliate, banner, flash sale, chat, footer, homepage, and Website settings tables.
-  - Reference: `ANALYSIS.md` sections 16, 18; `REFACTOR_PLAN.md` P1-1.
-
-### Columns
-
-`header_menus` target columns:
-
-- `id`
-- `name`
-- `location`
-- `is_active`
-- `created_at`
-- `updated_at`
-
-`header_menu_items` target columns:
-
-- `id`
-- `header_menu_id`
-- `parent_id`
-- `title`
-- `url`
-- `route_name`
-- `params`
-- `icon`
-- `target`
-- `sort_order`
-- `is_active`
-- `created_at`
-- `updated_at`
-
-`settings` target columns if Admin remains owner:
-
-- `id`
-- `key`
-- `value`
-- `group_name`
-- `type`
-- `label`
-- `created_at`
-- `updated_at`
-
-Admin shell menu target columns if a dedicated table is approved:
-
-- `id`
-- `name`
-- `slug`
-- `url`
-- `icon`
-- `permission_name`
-- `parent_id`
-- `is_active`
-- `sort_order`
-- `created_at`
-- `updated_at`
-
-Needs confirmation before coding:
-
-- Whether to add a new dedicated `admin_menu_items` table or keep using `categories` with `type = menu`.
-- Whether `permission_name` should reference `permissions.name` or store nullable strings for disabled/deleted permissions.
-
-### Indexes
-
-Required indexes:
-
-- `header_menus.location` unique.
-- `header_menu_items.header_menu_id`.
-- `header_menu_items.parent_id`.
-- `header_menu_items.sort_order`.
-- `header_menu_items.is_active`.
-- `settings.key` unique if Admin remains settings owner.
-- Admin shell menu table, if created:
-  - unique `slug`
-  - index `parent_id`
-  - index `permission_name`
-  - index `is_active`
-  - index `sort_order`
+- Page Blade files extend the Admin layout and mount Livewire components only.
+- Livewire owns UI state, validation entry points, authorization calls, service calls, and browser events.
+- Services own queries, transactions, invariants, cache invalidation, import/export orchestration, and storage decisions.
+- Models own ORM configuration, casts, scopes, and relationships only.
+- Migrations own schema, indexes, constraints, and deterministic ordering.
+
+Forbidden target behavior:
 
-References:
+- Admin Livewire classes must not own domain persistence.
+- Admin must not build shell commands from browser-provided values.
+- Admin must not expose raw exception text to users.
+- Admin must not hide UI controls as a substitute for server-side authorization.
+- Admin must not load unbounded domain datasets for export/listing.
 
-- `ANALYSIS.md` section 10 identifies current tables.
-- `ANALYSIS.md` section 15 identifies menu tree query risks.
-- `REFACTOR_PLAN.md` P1-8 and P1-10 require clear ownership and query optimization.
+## 6. Routes
 
-### Foreign Keys
+### Active Web Routes To Keep
 
-Required foreign keys:
-
-- `header_menu_items.header_menu_id` references `header_menus.id` with cascade delete.
-- `header_menu_items.parent_id` references `header_menu_items.id` with cascade delete.
-- Admin shell menu table, if created:
-  - `parent_id` references same table with null-on-delete or cascade behavior.
-  - Needs confirmation before coding: cascade delete may delete large menu subtrees; null-on-delete may preserve children.
+Current active web routes:
 
-Do not add foreign keys to Product/Website/Role/User tables from Admin unless the canonical ownership decision explicitly allows it.
+| Method | URI | Name | Controller |
+|---|---|---|---|
+| GET | `/admin` | `admin.dashboard` | `DashboardController@index` |
+| GET | `/admin/menus` | `admin.menus.index` | `MenuController@index` |
+| GET | `/admin/menus/create` | `admin.menus.create` | `MenuController@create` |
+| GET | `/admin/menus/{id}/edit` | `admin.menus.edit` | `MenuController@edit` |
+| GET | `/admin/profile` | `admin.profile` | `ProfileController@profile` |
+| GET | `/admin/themes` | `admin.themes` | `AdminController@themes` |
+| GET | `/admin/admin-header` | `admin.header` | `AdminController@adminHeader` |
 
-### Constraints
+Target middleware:
 
-Required constraints:
+- `web`
+- `auth:admin`
+- named permission middleware per route or route group
 
-- `header_menus.location` non-null and unique.
-- `header_menu_items.title` non-null.
-- `header_menu_items.target` constrained to `_self` or `_blank`.
-- Booleans use boolean casts and database defaults.
-- JSON columns such as `params` remain valid JSON.
+Target permission candidates:
 
-Needs confirmation before coding:
-
-- Whether `url` and `route_name` are mutually exclusive or can coexist.
-- Whether menu permission references are strict (`exists:permissions,name`) or soft strings for stale permission compatibility.
-
-### Migration Notes
-
-- Malformed negative-year migration filenames must be resolved with a compatibility plan before renaming.
-  - Files:
-    - `Modules/Admin/database/migrations/-0001_11_30_000024_create_settings_table.php`
-    - `Modules/Admin/database/migrations/-0001_11_30_000034_create_header_menus_table.php`
-    - `Modules/Admin/database/migrations/-0001_11_30_000035_create_header_menu_items_table.php`
-  - Reference: `ANALYSIS.md` section 10; `REFACTOR_PLAN.md` P1-9.
-- Do not change production migration filenames blindly.
-- If creating a dedicated Admin menu table, include a data migration plan from existing `categories` menu rows only after confirming ownership.
-  - Reference: `REFACTOR_PLAN.md` P1-8.
-
-## 4. Model Design
-
-### Model Classes
-
-Keep or rebuild as Admin-owned:
-
-- `Modules\Admin\Models\HeaderMenu`
-- `Modules\Admin\Models\HeaderMenuItem`
-- `Modules\Admin\Models\Setting`
-  - Needs confirmation before coding due to duplicate Website settings ownership.
-- `Modules\Admin\Models\Category`
-  - Needs confirmation before coding. Prefer replacing with `AdminMenuItem` if Admin owns shell menus.
-
-Move or migrate out of Admin:
-
-- `Modules\Admin\Models\AffiliateLevel`
-- `Modules\Admin\Models\AffiliateScheme`
-- `Modules\Admin\Models\Banner`
-- `Modules\Admin\Models\ChatMessage`
-- `Modules\Admin\Models\ChatSession`
-- `Modules\Admin\Models\FlashSale`
-- `Modules\Admin\Models\FlashSaleItem`
-- `Modules\Admin\Models\UserAddress`
-- `Modules\Admin\Models\Admin`
-
-Reference: `ANALYSIS.md` sections 10, 16, 18; `REFACTOR_PLAN.md` P1-1, P1-8, P2-4.
-
-### Fillable Fields
-
-`HeaderMenu`:
-
-- `name`
-- `location`
-- `is_active`
-
-`HeaderMenuItem`:
-
-- `header_menu_id`
-- `parent_id`
-- `title`
-- `url`
-- `route_name`
-- `params`
-- `icon`
-- `target`
-- `sort_order`
-- `is_active`
-
-`Setting`, if Admin remains owner:
-
-- `key`
-- `value`
-- `group_name`
-- `type`
-- `label`
-
-`AdminMenuItem`, if created:
-
-- `name`
-- `slug`
-- `url`
-- `icon`
-- `permission_name`
-- `parent_id`
-- `is_active`
-- `sort_order`
-
-### Casts
-
-Required casts:
-
-- `is_active`: boolean
-- `sort_order`: integer
-- `params`: array for `HeaderMenuItem`
-
-Recommended casts:
-
-- Date/time fields use default Eloquent datetime handling.
-
-### Relationships
-
-`HeaderMenu`:
-
-- `items()`: has many `HeaderMenuItem`
-- `rootItems()`: has many `HeaderMenuItem` where `parent_id` is null
-
-`HeaderMenuItem`:
-
-- `children()`: has many self, ordered by `sort_order`
-- `parent()`: belongs to self
-- `menu()`: belongs to `HeaderMenu`
-
-`AdminMenuItem`, if created:
-
-- `children()`: has many self
-- `parent()`: belongs to self
-
-Needs confirmation before coding:
-
-- Whether `HeaderMenuItem` should support route parameters as JSON array or normalized child table.
-
-### Scopes
-
-Recommended scopes:
-
-- `active()`
-- `root()`
-- `ordered()`
-- `location($location)` on `HeaderMenu`
-
-`Modules\Admin\Models\Category::menu()` should be retired or retained only if Admin menu ownership remains on `categories`.
-
-Reference: `ANALYSIS.md` section 10; `REFACTOR_PLAN.md` P1-8.
-
-### Accessors / Mutators
-
-Avoid business logic in models. Only simple presentation-safe accessors are allowed:
-
-- `resolved_url` accessor for `HeaderMenuItem` only if it avoids Blade route logic.
-
-Needs confirmation before coding:
-
-- Whether route URL resolution belongs in the service instead of a model accessor.
-
-## 5. Service Design
-
-### Service Classes
-
-Required Admin shell services:
-
-- `Modules\Admin\Services\MenuService`
-  - New service for sidebar/admin menu behavior.
-  - Reference: `REFACTOR_PLAN.md` P1-3.
-- `Modules\Admin\Services\HeaderMenuService`
-  - Keep and harden for header menu tree behavior.
-  - Reference: `ANALYSIS.md` section 9.
-- `Modules\Admin\Services\ProfileService`
-  - Keep for authenticated admin profile.
-  - Reference: `ANALYSIS.md` section 6.
-- `Modules\Admin\Services\AddressService`
-  - Keep only if user address ownership remains with Admin; otherwise migrate.
-  - Needs confirmation before coding.
-  - Reference: `REFACTOR_PLAN.md` P1-11.
-- `Modules\Admin\Services\DatabaseService`
-  - Either remove from Admin, move to System, or harden behind P0 controls.
-  - Needs confirmation before coding.
-  - Reference: `REFACTOR_PLAN.md` P0-2 through P0-6.
-- `Modules\Admin\Services\SettingsService`
-  - Keep only if Admin owns settings.
-  - Needs confirmation before coding.
-  - Reference: `REFACTOR_PLAN.md` P1-8.
-
-Services to migrate out of Admin unless ownership is confirmed:
-
-- `AdminAffiliateService`
-- `AffiliateRankService`
-- `BannerService`
-- `ChatService`
-- `FlashSaleService`
-- `HomeSettingService`
-- Env/System config services if they are System-owned
-
-Reference: `ANALYSIS.md` sections 9, 18; `REFACTOR_PLAN.md` P1-1.
-
-### Public Methods
-
-`MenuService`:
+- `admin.dashboard.view`
+- `admin.menu.view`
+- `admin.menu.create`
+- `admin.menu.update`
+- `admin.profile.view`
+- `admin.theme.view`
+- `admin.header.view`
+
+Needs verification:
+
+- Exact permission names and seeder location must align with the Role module and existing Spatie guard conventions.
+
+### API Route
+
+Current route:
+
+- `GET /api/admin` via `Modules/Admin/routes/api.php`
+
+Target decision:
+
+- Prefer remove unless a real API consumer is confirmed.
+- If retained, require explicit authentication and a named permission such as `admin.api.view`.
+
+Acceptance criteria:
+
+- Anonymous requests are denied or route is absent.
+- Authenticated users without permission are denied.
+- The API route does not become a generic future admin API surface without a contract.
+
+## 7. Controllers
+
+Keep and harden as thin shell controllers:
+
+- `DashboardController`
+- `MenuController`
+- `ProfileController`
+- `AdminController::themes`
+- `AdminController::adminHeader`
+
+Controller rules:
+
+- Return views only.
+- Pass scalar IDs only.
+- Do not query domain models.
+- Do not perform business writes.
+- Do not authorize only in the controller when Livewire methods also mutate data; mutating Livewire methods must authorize too.
+
+Migrate, disable, or remove after ownership confirmation:
+
+- `AffiliateController`
+- `BannerController`
+- `CategoryController`
+- `ChatController`
+- `CouponController`
+- `CustomerController`
+- `DatabaseController`
+- `EnvConfigController`
+- `FlashSaleController`
+- `FooterController`
+- `HeaderController`
+- `HomeSettingsController`
+- `OrderController`
+- `PostController`
+- `ProductCommissionController`
+- `ProductController`
+- `RoleController`
+- `SettingController`
+- `StaffController`
+
+High-risk controller concern:
+
+- `DatabaseController::download($filename)` must not remain available without named permission, opaque server-owned backup identifiers, path validation, safe 404/403 behavior, and audit logging.
+
+## 8. Page Blade Design
+
+Keep/refactor active shell pages:
+
+- `Modules/Admin/resources/views/pages/dashboard.blade.php`
+- `Modules/Admin/resources/views/pages/menus/index.blade.php`
+- `Modules/Admin/resources/views/pages/menus/create.blade.php`
+- `Modules/Admin/resources/views/pages/menus/edit.blade.php`
+- `Modules/Admin/resources/views/pages/profiles/profile.blade.php`
+- `Modules/Admin/resources/views/pages/admin/themes.blade.php`
+- `Modules/Admin/resources/views/pages/admin/header/index.blade.php`
+
+Page Blade rules:
+
+- Extend `Admin::layouts.master`.
+- Mount Livewire components.
+- Do not query models.
+- Do not perform authorization-sensitive branching as the only protection.
+
+Do not restore or expand these Admin page groups until canonical ownership is confirmed:
+
+- affiliate
+- banner
+- categories
+- chat
+- coupons
+- customers
+- database
+- flash-sale
+- footer
+- header legacy page
+- home
+- orders
+- posts
+- products
+- roles
+- settings
+- staff
+
+## 9. Livewire Design
+
+### Keep As Admin Shell, Refactor
+
+- `Modules/Admin/Livewire/Menus/MenuTable.php`
+- `Modules/Admin/Livewire/Menus/MenuForm.php`
+- `Modules/Admin/Livewire/Profile/UserProfile.php`
+- `Modules/Admin/Livewire/Profile/UserAddress.php`, only if address ownership remains Admin.
+- `Modules/Admin/Livewire/ThemeSwitcher.php`
+- `Modules/Admin/Livewire/Header/GeneralSettings.php`, only if header settings remain Admin-owned.
+- `Modules/Admin/Livewire/Header/MenuManager.php`, only if header menus remain Admin-owned.
+- `Modules/Admin/Livewire/Partials/Header.php`
+- `Modules/Admin/Livewire/Partials/HeaderNotifications.php`
+- `Modules/Admin/Livewire/Partials/HeaderSearch.php`
+- `Modules/Admin/Livewire/Partials/HeaderUser.php`
+- `Modules/Admin/Livewire/Partials/Sidebar.php`
+
+### Disable, Migrate, Or Remove
+
+These are not target Admin shell components unless ownership is explicitly confirmed:
+
+- Affiliate components.
+- Banner components.
+- Category components.
+- Chat components.
+- Customer components.
+- Dashboard domain metric components.
+- Database components.
+- FlashSale components.
+- Footer components.
+- Home settings components.
+- Marketing/coupon components.
+- Order components.
+- Post components.
+- Product components.
+- Settings/env/config components.
+- System role/staff components.
+
+### Livewire Rules
+
+Every mutating action must:
+
+- Authorize before service execution.
+- Validate browser input.
+- Call a service.
+- Avoid direct model writes.
+- Avoid direct filesystem writes unless the service owns storage policy.
+- Return safe user-facing errors.
+
+Events may include:
+
+- `notify`
+- `menu-saved`
+- `menu-deleted`
+- `menu-reordered`
+- `import-completed`
+- `restore-completed`
+- `permission-denied`
+
+Events must not be trusted for authorization-sensitive IDs.
+
+## 10. Menu Rebuild
+
+Current menu implementation:
+
+- Uses `Modules\Admin\Models\Category` with `type = menu`.
+- `MenuTable` directly performs queries, transactions, filesystem reads/writes, JSON import/export, recursive persistence, bulk updates, deletes, and cache invalidation.
+- `MenuForm` directly queries categories and permissions, generates slugs, silently nulls invalid parents, and persists records.
+
+Target design:
+
+- Create a shell-owned menu service, for example `Modules\Admin\Services\MenuService`.
+- Keep Livewire focused on state, UI validation, authorization, and service calls.
+- Keep query, tree building, transactions, slug generation, cache invalidation, and import/export in the service.
+
+Target `MenuService` responsibilities:
 
 - `paginate(array $filters, int|string $perPage)`
 - `tree(array $filters = [])`
@@ -405,269 +353,357 @@ Reference: `ANALYSIS.md` sections 9, 18; `REFACTOR_PLAN.md` P1-1.
 - `export(array $filters = []): array`
 - `restoreDefault(array $options): array`
 
-`HeaderMenuService`:
+Menu data rules:
 
-- Keep existing public methods:
-  - `getMenuTreeByLocation`
-  - `createItem`
-  - `updateItem`
-  - `deleteItem`
-  - `reorderItems`
-- Add explicit validation and authorization integration at caller boundary.
+- `name` is required.
+- `slug` is unique.
+- Parent must exist and must not create a cycle.
+- Permission name must follow the confirmed permission policy.
+- Restore default menu must validate all rows before deleting or replacing existing data.
+- Bulk operations require explicit permissions and UI confirmation.
+- Import must support dry-run or validation-only mode before destructive changes.
 
-`DatabaseService`, if retained:
+Needs verification:
 
-- Replace raw table/file methods with server-owned identifiers.
-- Methods should return safe result arrays or domain result objects already established by the project; no DTOs.
+- Whether Admin shell menus remain in `categories` with `type = menu`.
+- Whether a dedicated `admin_menu_items` table should replace the current `categories` usage.
+- Whether permission names should be strict `exists:permissions,name` or soft strings for stale permission compatibility.
 
-### Responsibilities
+## 11. Header, Theme, Profile
 
-Services own:
+### Header
 
-- Database queries.
-- Search/filter/sort/pagination.
-- Transactions.
-- Slug generation.
-- Tree validation and cycle prevention.
-- Cache invalidation.
-- Import/export orchestration.
-- Domain invariants.
+Candidate Admin-owned models:
 
-Livewire must not:
+- `Modules\Admin\Models\HeaderMenu`
+- `Modules\Admin\Models\HeaderMenuItem`
 
-- Call models directly.
-- Open transactions.
-- Read/write files directly.
-- Implement recursive persistence.
+Candidate Admin-owned tables:
 
-Reference: `ANALYSIS.md` sections 2, 6, 9; `REFACTOR_PLAN.md` P1-3.
+- `header_menus`
+- `header_menu_items`
 
-### Transaction Boundaries
+Target rules:
 
-Transactions required:
+- `HeaderMenuService` owns header menu queries, item creation, updates, deletes, reorder, and cache invalidation.
+- `Header/MenuManager` should not directly create/query models except through the service after rebuild.
+- `Header/GeneralSettings` must use a confirmed settings owner.
 
-- Menu create/update if related writes are introduced.
-- Menu delete with children.
-- Bulk delete.
+Needs verification:
+
+- Whether header settings are Admin shell settings, Website settings, or Shared/System settings.
+
+### Theme
+
+Keep concept:
+
+- `Modules\Admin\Support\ThemeManager`
+- `Modules\Admin\Livewire\ThemeSwitcher`
+
+Target rules:
+
+- Theme changes require a named permission.
+- Theme persistence must be server-controlled.
+- Theme values must be allowlisted.
+
+### Profile
+
+Current issue:
+
+- `Modules/Admin/Services/ProfileService.php` declares namespace `Modules\Website\Services\Account`.
+- `UserProfile` imports `Modules\Admin\Services\ProfileService`.
+
+Target rules:
+
+- Fix by ownership decision, not a casual namespace patch.
+- If Admin owns admin profile behavior, service namespace must be `Modules\Admin\Services`.
+- If Account/User owns profile behavior, Livewire should depend on that canonical service.
+- Avatar upload must validate image type/size and use Laravel Storage.
+- Password update must return safe validation errors only.
+
+### User Address
+
+Current issue:
+
+- `AddressService` performs multi-write default-address changes without explicit transactions.
+
+Target rules:
+
+- Keep only if Admin is confirmed as address owner.
+- Otherwise move to Account/User canonical owner.
+- Default-address create/update/delete/set-default must be transactional.
+
+## 12. Database And System Operations
+
+Current source risk:
+
+- `DatabaseService::backupTable()`, `backupFullDatabase()`, and `restoreTable()` use shell command strings and command-line DB passwords.
+- `truncateTable()`, `dropTable()`, and `restoreFromFile()` toggle foreign-key checks without guaranteed `finally` restoration.
+- `restoreFromFile()` can drop all tables from a selected file path.
+- `TableList` exposes export, backup, restore, truncate, drop, and full restore actions.
+- `BackupManager` calls service methods that do not exist.
+
+Target decision:
+
+- Database administration should be disabled in Admin until P0 controls exist.
+- Prefer moving production-control database administration to `Modules/System`.
+- If retained temporarily in Admin, it must be treated as a hardened infrastructure surface, not normal shell UI.
+
+Required controls if retained:
+
+- Named permissions:
+  - `database.view`
+  - `database.backup`
+  - `database.download`
+  - `database.restore`
+  - `database.destroy`
+- Server-owned table identifiers.
+- Server-owned opaque backup identifiers.
+- No browser-provided paths.
+- No browser-provided table names without schema allowlist resolution.
+- No shell command strings.
+- No command-line DB passwords.
+- Process argument arrays or controlled process input/output.
+- `try/finally` restoration for foreign-key toggles.
+- Explicit destructive confirmation.
+- Audit logs for allowed and denied destructive actions.
+- Redacted logs and safe user-facing messages.
+- Security regression tests before exposure.
+
+Rewrite from scratch:
+
+- Current backup/restore/truncate/drop implementation.
+- Full database restore implementation.
+
+## 13. Services
+
+Keep/refactor as Admin shell services:
+
+- `SidebarService`
+- `HeaderMenuService`
+- `SettingsService`, only if settings ownership is confirmed.
+- `AddressService`, only if address ownership is confirmed.
+- `ProfileService`, only after namespace/ownership decision.
+- `MenuService`, to be created during implementation.
+
+Move or migrate out of Admin unless ownership is confirmed:
+
+- `AdminAffiliateService`
+- `AffiliateRankService`
+- `AuthService`
+- `BannerService`
+- `ChatService`
+- `DatabaseService`
+- `FlashSaleService`
+- `HomeSettingService`
+- `Services/Env/*`
+- `Services/Database/DbConnectionService`
+
+Service rules:
+
+- Use constructor injection where practical.
+- Document return shapes.
+- Keep multi-record writes transactional.
+- Do not return raw exception text to users.
+- Do not hide validation errors inside generic exceptions.
+
+## 14. Models And Tables
+
+### Keep Or Rebuild As Admin-Owned
+
+Confirmed/candidate shell models:
+
+- `HeaderMenu`
+- `HeaderMenuItem`
+- `Setting`, only if Admin owns shell settings.
+- `Category`, only if Admin shell menu remains in `categories`.
+
+Candidate shell tables:
+
+- `header_menus`
+- `header_menu_items`
+- `settings`, needs ownership confirmation.
+- `categories` rows with `type = menu`, needs ownership confirmation.
+- `admin_menu_items`, only if approved as replacement.
+
+### Move Or Retire From Admin
+
+Move/retire unless ownership is confirmed:
+
+- `Admin`
+- `AffiliateLevel`
+- `AffiliateScheme`
+- `Banner`
+- `ChatMessage`
+- `ChatSession`
+- `FlashSale`
+- `FlashSaleItem`
+- `UserAddress`
+
+Current namespace mismatch:
+
+- `AffiliateLevel.php` is under `Modules/Admin/Models` but declares `Modules\Website\Models`.
+
+### Migration Notes
+
+Current Admin migrations:
+
+- `-0001_11_30_000024_create_settings_table.php`
+- `-0001_11_30_000034_create_header_menus_table.php`
+- `-0001_11_30_000035_create_header_menu_items_table.php`
+
+Rules:
+
+- Do not rename migration files blindly.
+- Check production migration history before any filename change.
+- If old filenames have run in production, use a compatibility strategy.
+- Fresh-install ordering must be deterministic after migration repair.
+
+## 15. Import Design
+
+Admin-owned import scope:
+
+- Only shell menu/header/settings imports if ownership is confirmed.
+
+Not Admin-owned:
+
+- Product import.
+- Post import.
+- Coupon import.
+- Role import.
+- Staff import.
+- Domain data imports.
+
+Target menu import behavior:
+
+- Prefer service-owned JSON restore/import if keeping the current JSON format.
+- Use shared import/export foundation if spreadsheet import is approved.
+- Validate entire payload before changing data.
+- Support dry-run.
+- Detect duplicate keys.
+- Reject cycles and invalid parents.
+- Report row/item-level errors.
+- Never truncate/replace before successful validation.
+
+Needs verification:
+
+- Menu import format: JSON, spreadsheet, or both.
+- Sample files.
+- Unique key: slug, path, name+parent, or another confirmed key.
+- Null overwrite policy.
+- Duplicate handling policy.
+
+## 16. Export Design
+
+Admin-owned export scope:
+
+- Only shell menu/header/settings exports if ownership is confirmed.
+
+Not Admin-owned:
+
+- Product export must move to the canonical product owner.
+- Domain exports must move to canonical modules.
+
+Target behavior:
+
+- Export through services.
+- Use private storage for generated files unless public output is explicitly required.
+- Keep export row counts bounded or chunked.
+- Avoid unbounded `get()` on domain data.
+- Do not leak internal permission/menu data without permission.
+
+Current rewrite target:
+
+- `Modules/Admin/Exports/ProductsExport.php` should not remain as Admin-owned export logic.
+
+## 17. Authorization
+
+Required pattern:
+
+- Route middleware for page access.
+- Livewire action authorization for all mutating actions.
+- Service invariant checks for sensitive operations.
+- `Gate::before` Super Admin behavior remains project-level.
+
+Mutating actions requiring checks:
+
+- menu save
+- menu delete
+- menu bulk delete
+- menu bulk status update
+- menu bulk permission assignment
+- menu import
+- menu export
+- menu restore default
+- menu reorder
+- menu duplicate
+- theme update
+- header update
+- profile update
+- password update
+- address create/update/delete/set-default if retained
+- database actions if retained
+- env/system/module configuration actions if retained
+
+UI menu filtering may remain as convenience only. It must never be treated as authorization.
+
+## 18. Transactions And Integrity
+
+Transactions required for:
+
+- Menu create/update when related writes are introduced.
+- Menu delete with descendants.
+- Bulk menu delete.
+- Bulk status update.
 - Bulk permission assignment.
-- Reorder tree.
-- Duplicate tree.
-- Import.
-- Restore default menu.
-- Address default change if `AddressService` remains in Admin.
-- Any database destructive operation if retained, plus `try/finally` for FK checks.
-
-References:
-
-- `ANALYSIS.md` section 14.
-- `REFACTOR_PLAN.md` P0-5, P1-4, P1-11.
-
-### Business Rules
-
-Menu rules:
-
-- `name` required, max 255.
-- `slug` unique.
-- `parent_id` must exist and cannot create a cycle.
-- `permission_name` must be valid or explicitly allowed as stale text.
-  - Needs confirmation before coding.
-- Restore default menu must validate all data before replacing anything.
-- Bulk operations require permission and explicit UI confirmation.
-
-Database admin rules:
-
-- No browser-provided table names, paths, shell commands, or executable paths.
-- Use server-controlled metadata and named permissions.
-- Fail closed when permissions or required secrets are absent.
-
-References:
-
-- `ANALYSIS.md` sections 12, 13, 14.
-- `REFACTOR_PLAN.md` P0-1 through P0-6, P1-4.
-
-## 6. Livewire Design
-
-### Component List
-
-Active shell components to keep/refactor:
-
-- `Modules/Admin/Livewire/Menus/MenuTable.php`
-- `Modules/Admin/Livewire/Menus/MenuForm.php`
-- `Modules/Admin/Livewire/Profile/UserProfile.php`
-- `Modules/Admin/Livewire/Profile/UserAddress.php`
-  - Needs confirmation before coding: user address ownership.
-- `Modules/Admin/Livewire/ThemeSwitcher.php`
-- `Modules/Admin/Livewire/Header/GeneralSettings.php`
-- `Modules/Admin/Livewire/Header/MenuManager.php`
-- `Modules/Admin/Livewire/Partials/Header.php`
-- `Modules/Admin/Livewire/Partials/HeaderNotifications.php`
-- `Modules/Admin/Livewire/Partials/HeaderSearch.php`
-- `Modules/Admin/Livewire/Partials/HeaderUser.php`
-- `Modules/Admin/Livewire/Partials/Sidebar.php`
-
-Disable, migrate, or remove after ownership confirmation:
-
-- Product, Post, Category, Coupon, Order, Role, Staff, Affiliate, Banner, Chat, FlashSale, Footer, Home, and Database Livewire classes.
-
-References:
-
-- `ANALYSIS.md` sections 6, 16, 18.
-- `REFACTOR_PLAN.md` P1-1, P1-7.
-
-### State Properties
-
-`MenuTable` target state:
-
-- `search`
-- `status`
-- `selectedIds`
-- `selectAll`
-- `perPage`
-- `sortField`
-- `sortDirection`
-- `showImportModal`
-- `importFile`
-- `showRestoreConfirm`
-- `showBulkPermissionModal`
-- `bulkPermission`
-- `confirmingDeleteId`
-
-`MenuForm` target state:
-
-- `id`
-- `name`
-- `url`
-- `icon`
-- `permissionName`
-- `parentId`
-- `isActive`
-- `isSection`
-
-Use `wire:model.live` by default.
-
-Reference: `CODEX_BOOTSTRAP.md`; `ANALYSIS.md` sections 6, 13.
-
-### Validation Rules
-
-Livewire UI validation:
-
-- `name`: required string max 255.
-- `url`: nullable string max 500.
-- `icon`: nullable string max 100.
-- `permissionName`: nullable string max 255; service validates existence or stale permission policy.
-- `parentId`: nullable integer; service validates ownership and cycle rules.
-- `isActive`: boolean.
-- `isSection`: boolean.
-- `importFile`: required only for import, file size/type controlled by shared import panel if used.
-
-Service validation:
-
-- Parent exists and belongs to menu set.
-- No parent cycle.
-- Permission policy.
-- Slug uniqueness.
-- Import tree schema and duplicate behavior.
-
-References:
-
-- `ANALYSIS.md` section 13.
-- `REFACTOR_PLAN.md` P1-4.
-
-### Events
-
-Allowed Livewire/browser events:
-
-- `notify`
-- `menu-saved`
-- `menu-deleted`
-- `menu-reordered`
-- `import-completed`
-- `restore-completed`
-- `permission-denied`
-
-Events must not carry trusted IDs for authorization decisions; services re-check IDs.
-
-Reference: `ANALYSIS.md` section 12; `REFACTOR_PLAN.md` P2-5.
-
-### Pagination
-
-Menu list pagination:
-
-- Default `10`.
-- Options: `10`, `25`, `50`, `100`, guarded `All`.
-- `All` must be capped or disabled when row count exceeds a safe threshold.
-- Changing filters, search, sort, or `perPage` resets to page one.
-
-Reference: `ANALYSIS.md` section 15; `REFACTOR_PLAN.md` P1-10.
-
-### Search / Filter / Sort Behavior
-
-Menu search:
-
-- Search by `name`, `slug`, `url`, and `permission_name`.
-
-Filters:
-
-- `active`
-- `inactive`
-- `all`
-- parent/root only if useful.
-
-Sort:
-
-- Default `sort_order`.
-- Optional `name`, `created_at`, `updated_at`.
-
-All search/filter/sort queries belong in `MenuService`.
-
-Reference: `REFACTOR_PLAN.md` P1-3, P1-10.
-
-## 7. Blade/UI Design
-
-### Page Blade Files
-
-Keep/refactor active shell pages:
-
-- `Modules/Admin/resources/views/pages/dashboard.blade.php`
-- `Modules/Admin/resources/views/pages/menus/index.blade.php`
-- `Modules/Admin/resources/views/pages/menus/create.blade.php`
-- `Modules/Admin/resources/views/pages/menus/edit.blade.php`
-- `Modules/Admin/resources/views/pages/profiles/profile.blade.php`
-- `Modules/Admin/resources/views/pages/admin/themes.blade.php`
-- `Modules/Admin/resources/views/pages/admin/header/index.blade.php`
-
-Do not restore domain page blades into Admin without ownership confirmation:
-
-- Product, post, order, category, coupon, customer, role, staff, database, settings, footer, home, banner, affiliate, flash-sale, and chat page blades.
-
-Reference: `ANALYSIS.md` section 5; `REFACTOR_PLAN.md` P1-1, P2-1.
-
-### Livewire Blade Files
-
-Keep/refactor active shell views:
-
-- `Modules/Admin/resources/views/livewire/menus/menu-table.blade.php`
-- `Modules/Admin/resources/views/livewire/menus/menu-form.blade.php`
-- `Modules/Admin/resources/views/livewire/profile/user-profile.blade.php`
-- `Modules/Admin/resources/views/livewire/profile/user-address.blade.php`
-- `Modules/Admin/resources/views/livewire/theme-switcher.blade.php`
-- `Modules/Admin/resources/views/livewire/header/general-settings.blade.php`
-- `Modules/Admin/resources/views/livewire/header/menu-manager.blade.php`
-- `Modules/Admin/resources/views/livewire/partials/*.blade.php`
-
-Duplicate views under `Modules/Admin/resources/views/livewire/admin/*` must be removed only after render-path verification.
-
-Reference: `ANALYSIS.md` section 7; `REFACTOR_PLAN.md` P2-3.
-
-### Shared Components
-
-Admin-only components:
-
-- `Modules/Admin/resources/views/components/menu-item.blade.php`
-- `Modules/Admin/resources/views/components/icon.blade.php` if only used by Admin shell.
-- `Modules/Admin/resources/views/components/toast.blade.php` if layout-specific.
-
-Move candidates to `Modules/Shared` after usage audit:
+- Menu reorder.
+- Menu duplicate.
+- Menu import.
+- Menu restore default.
+- Header menu reorder.
+- Address default changes if retained.
+- Any retained destructive database action.
+
+Rollback conditions:
+
+- Failed validation.
+- Duplicate key conflict.
+- Parent cycle detection.
+- Invalid permission reference when strict mode is enabled.
+- File parse failure.
+- Failed row in all-or-nothing import.
+- Unauthorized action.
+- Failed process execution.
+- Storage failure.
+
+## 19. Performance
+
+Target rules:
+
+- Use server-side pagination for lists.
+- Avoid `paginate(999999)`.
+- Avoid unbounded `get()` for exports.
+- Load menu trees with bounded eager loading or a service-built tree from bounded queries.
+- Cache only stable menu/header trees and invalidate after successful writes.
+- Queue or chunk large domain imports/exports in canonical modules.
+
+Known current risks:
+
+- `MenuTable` loads root menu trees with `get()`.
+- Recursive menu children can N+1 at deeper levels.
+- `ProductsExport` loads all products.
+- `ProductTable` supports `paginate(999999)`.
+- Several domain import/export components build whole arrays in memory.
+
+## 20. Shared UI Components
+
+Admin-only candidates:
+
+- `menu-item.blade.php`
+- `icon.blade.php`, if only used by Admin shell.
+- `toast.blade.php`, if layout-specific.
+
+Move candidates after usage audit:
 
 - `category-select.blade.php`
 - `currency-input.blade.php`
@@ -675,540 +711,132 @@ Move candidates to `Modules/Shared` after usage audit:
 - `gallery.blade.php`
 - `image-upload.blade.php`
 
-Reference: `ANALYSIS.md` section 8; `REFACTOR_PLAN.md` P1-12.
+Rules:
 
-### AdminLTE / Bootstrap Layout Rules
+- Move to `Modules/Shared` only when at least two modules need the component and the contract is stable.
+- Do not make other modules depend on Admin only for generic UI primitives.
 
-Target standard:
+## 21. Test Strategy
 
-- Use Laravel Blade, Livewire 3.1, Tailwind CSS 4, and `Admin::layouts.master`.
-- Do not add Bootstrap, jQuery, inline CSS, or a second UI pattern in new/refactored Admin shell work.
+Minimum P0 tests before exposure:
 
-Needs confirmation before coding:
+- Anonymous `/api/admin` denied or route absent.
+- Authenticated user without permission denied for Admin shell routes.
+- Authorized admin can access shell routes.
+- Mutating menu actions deny unauthorized users.
+- Database export/truncate/drop/restore/download deny unauthorized users.
+- Invalid table identifiers and backup identifiers are rejected.
+- Raw process output and credentials are not returned to users.
 
-- Existing layout may contain AdminLTE/Bootstrap assets from the current repository. New refactor work must not expand those dependencies unless compatibility is explicitly required.
+P1 tests:
 
-Reference:
-
-- `CODEX_BOOTSTRAP.md` Admin UI rules.
-- `ROADMAP.md` P1-03 notes frontend stack mismatch.
-
-### Table Design
-
-Menu table must include:
-
-- Search input.
-- Status filter.
-- Per-page selector.
-- Responsive `overflow-x-auto`.
-- Empty state.
-- Loading state.
-- Row actions with disabled/loading states.
-- Bulk action confirmation.
-- Server-side pagination.
-- No direct permission reliance for action protection.
-
-Reference: `ANALYSIS.md` sections 6, 12, 15; `REFACTOR_PLAN.md` P1-2, P1-10, P2-5.
-
-### Form Design
-
-Menu form must include:
-
-- Field-level errors.
-- Parent menu selector.
-- Permission selector or permission text policy.
-- URL/section behavior.
-- Save loading state.
-- Cancel/back link.
-
-Use `x-select-search` for long parent/permission lists if available.
-
-Reference: `ANALYSIS.md` section 13; `REFACTOR_PLAN.md` P1-4.
-
-## 8. Import Design
-
-Admin-owned import scope:
-
-- Only Admin shell menus may be imported by Admin.
-- Product, post, coupon, role, and other imports must move to canonical modules.
-
-References:
-
-- `ANALYSIS.md` section 11.
-- `REFACTOR_PLAN.md` P1-5, P1-6.
-
-### Import Classes
-
-Preferred design:
-
-- `Modules/Admin/Services/ImportExport.php` only if Admin shell menu import/export is kept.
-- Optional split classes if complexity requires:
-  - `Modules/Admin/Import/MenuImport.php`
-  - `Modules/Admin/Import/MenuRowMapper.php`
-  - `Modules/Admin/Import/MenuRowValidator.php`
-
-Needs confirmation before coding:
-
-- Whether JSON menu import should use shared import/export foundation or remain a menu-service JSON restore tool. If it remains JSON, it still needs service-owned validation, dry-run, and reporting.
-
-### Header Mapping
-
-For spreadsheet-style menu import, canonical headers:
-
-- `name`
-- `slug`
-- `url`
-- `icon`
-- `permission_name`
-- `parent_slug`
-- `is_active`
-- `sort_order`
-
-Aliases:
-
-- `name`: `name`, `ten`, `tên`
-- `url`: `url`, `link`, `duong_dan`, `đường dẫn`
-- `permission_name`: `permission`, `can`, `quyen`, `quyền`
-
-Needs confirmation before coding:
-
-- Current menu import is JSON, not spreadsheet. Header mapping applies only if spreadsheet import is approved.
-
-### Column Mapping
-
-Positional mapping is not approved.
-
-Needs confirmation before coding:
-
-- If menu import files lack stable headers, define A/B/C mapping explicitly before implementation.
-
-### Row Normalization
-
-Normalize:
-
-- Trim strings.
-- Empty strings to null for optional fields.
-- Boolean values from `1/0`, `true/false`, `yes/no`, `active/inactive`, `có/không`.
-- Slug generated by service only if blank.
-- `parent_slug` resolved after all rows validate.
-
-### Row Validation
-
-Validate:
-
-- Required `name`.
-- Unique slug after normalization.
-- Valid parent reference.
-- No cycles.
-- Valid permission policy.
-- Valid boolean.
-- URL max length and route/URL policy.
-
-### Duplicate Handling
-
-Default mode:
-
-- `skip_duplicate` for dry-run and safe imports.
-
-Allowed modes after confirmation:
-
-- `create_only`
-- `update_or_create`
-- `skip_duplicate`
-
-Forbidden without explicit confirmation:
-
-- `replace`
-- truncate-before-import
-- null overwrite of important fields
-
-Reference: `ANALYSIS.md` sections 13, 14; `REFACTOR_PLAN.md` P1-4.
-
-### Error Reporting
-
-Report format:
-
-- `success`
-- `total_rows`
-- `success_rows`
-- `error_rows`
-- `skipped_rows`
-- `errors[]`: row, field, value, reason
-- `debug`: mode, dry_run, detected format, headers, duplicate keys
-
-Do not expose stack traces or raw exception text.
-
-Reference: `ANALYSIS.md` sections 12, 13; `REFACTOR_PLAN.md` P0-6, P1-5.
-
-## 9. Export Design
-
-Admin-owned export scope:
-
-- Only Admin shell menu export is allowed in Admin unless another Admin-owned table is confirmed.
-- Product export must move to the canonical Product owner.
-
-Reference: `ANALYSIS.md` section 11; `REFACTOR_PLAN.md` P1-5, P1-6.
-
-### Export Classes
-
-Preferred design:
-
-- `Modules/Admin/Services/ImportExport.php` for menu export if spreadsheet export is approved.
-- Optional:
-  - `Modules/Admin/Export/MenuExport.php`
-  - `Modules/Admin/Export/MenuExportQuery.php`
-  - `Modules/Admin/Export/MenuExportMapper.php`
-  - `Modules/Admin/Export/MenuTemplateBuilder.php`
-
-Needs confirmation before coding:
-
-- Whether menu export remains JSON download or becomes shared spreadsheet export.
-
-### Query Design
-
-Menu export query:
-
-- Runs in `MenuService`.
-- Filters by current search/status if requested.
-- Eager loads children to a bounded depth or uses a service-built tree from one bounded query.
-- Does not call unbounded `get()` for large data without a safe cap.
-
-Reference: `ANALYSIS.md` section 15; `REFACTOR_PLAN.md` P1-10.
-
-### Export Mapping
-
-Spreadsheet mapping:
-
-- `name`
-- `slug`
-- `url`
-- `icon`
-- `permission_name`
-- `parent_slug`
-- `is_active`
-- `sort_order`
-
-JSON mapping:
-
-- Nested tree with name, slug, url, icon, permission, active flag, sort order, and children.
-
-### Template Generation
-
-If spreadsheet import/export is approved:
-
-- Generate a professional template with headers, sample rows, required/optional notes, and valid boolean examples.
-
-Needs confirmation before coding:
-
-- Template format and Vietnamese header aliases.
-
-### Large Export Strategy
-
-- Use chunking/lazy iteration for domain exports.
-- Menu export can be synchronous only if bounded by safe row count.
-- For large domain exports, queue in canonical module, not Admin.
-
-Reference: `ANALYSIS.md` section 15; `REFACTOR_PLAN.md` P1-6, P1-10.
-
-## 10. Permissions and Authorization
-
-### Required Permissions
-
-Admin shell permissions:
-
-- `admin.dashboard.view`
-- `admin.menu.view`
-- `admin.menu.create`
-- `admin.menu.update`
-- `admin.menu.delete`
-- `admin.menu.restore`
-- `admin.menu.import`
-- `admin.menu.export`
-- `admin.header.view`
-- `admin.header.update`
-- `admin.theme.view`
-- `admin.theme.update`
-- `admin.profile.view`
-- `admin.profile.update`
-
-Database/system permissions if retained:
-
-- `database.view`
-- `database.backup`
-- `database.download`
-- `database.restore`
-- `database.destroy`
-
-Needs confirmation before coding:
-
-- Exact permission names must align with Role module seeders and existing Spatie Permission conventions.
-
-References:
-
-- `ANALYSIS.md` sections 3, 12.
-- `REFACTOR_PLAN.md` P0-1, P0-2, P0-3, P1-2.
-
-### Policy / Gate Checks
-
-Required checks:
-
-- Route middleware for page access.
-- Livewire action-level checks for mutating operations.
-- Service-level invariant checks for destructive or sensitive operations.
-- `Gate::before` Super Admin behavior remains project-level behavior.
-
-Reference: `CODEX_BOOTSTRAP.md` security rules; `ANALYSIS.md` section 12.
-
-### Livewire Action Protection
-
-Every mutating Livewire action must call authorization before service execution:
-
-- save
-- delete
-- bulk delete
-- bulk status update
-- import
-- export
-- restore default
-- reorder
-- duplicate
-- theme update
-- header update
-- database actions if retained
-
-Do not trust hidden buttons or UI menu visibility.
-
-Reference: `ANALYSIS.md` section 12; `REFACTOR_PLAN.md` P2-5.
-
-### Route Middleware
-
-Active web routes:
-
-- `web`
-- `auth:admin`
-- named permission middleware per route/group
-
-API route:
-
-- Remove or protect with explicit authentication and permission.
-
-Reference: `ANALYSIS.md` section 3; `REFACTOR_PLAN.md` P0-1, P1-2.
-
-## 11. Transactions and Data Integrity
-
-### Actions Requiring DB Transactions
-
-- Menu create/update when writing related data.
-- Menu delete and subtree delete.
-- Bulk delete.
-- Bulk status update.
-- Bulk permission assignment.
-- Menu reorder.
-- Menu duplicate.
-- Menu import.
-- Menu restore default.
-- Address create/update/delete/set default if retained in Admin.
-- Database destructive operations if retained, with additional safeguards.
-
-References:
-
-- `ANALYSIS.md` section 14.
-- `REFACTOR_PLAN.md` P0-5, P1-4, P1-11.
-
-### Rollback Conditions
-
-Rollback on:
-
-- Failed validation after normalization.
-- Duplicate slug conflict.
-- Parent cycle detection.
-- Invalid permission reference when strict permission mode is enabled.
-- File parse failure.
-- Any failed row in all-or-nothing import.
-- Any service exception during multi-write operations.
-- Unauthorized action.
-- Failed database process execution.
-
-### Idempotency Concerns
-
-Menu import:
-
-- Use stable unique slug or confirmed unique key.
-- Re-running `skip_duplicate` import should not create duplicates.
-- Re-running `update_or_create` should be deterministic.
-
-Restore default:
-
-- Must be explicit, dry-run first, and all-or-nothing.
-
-Database restore:
-
-- Needs confirmation before coding.
-- If retained, restore operations require opaque backup IDs, audit logs, and failure recovery behavior.
-
-Reference: `REFACTOR_PLAN.md` P1-4, P0-3.
-
-## 12. Performance Strategy
-
-### Eager Loading
-
-- Menu tree should be loaded using a bounded tree strategy.
-- Avoid recursive lazy loading of `children`.
-- Header menus should eager load required nested items in service code only.
-
-Reference: `ANALYSIS.md` section 15; `REFACTOR_PLAN.md` P1-10.
-
-### Query Optimization
-
-- All queries belong in services.
-- Search/filter/sort should use indexed columns.
-- Avoid `get()` on unbounded domain datasets.
-- Avoid `paginate(999999)`.
-
-References:
-
-- `ANALYSIS.md` sections 6, 15.
-- `REFACTOR_PLAN.md` P1-3, P1-6, P1-10.
-
-### Pagination
-
-- Server-side pagination for list pages.
-- Default 10 rows.
-- Options: 10, 25, 50, 100, guarded `All`.
-- `All` capped/disabled if row count exceeds threshold.
-
-### Caching If Needed
-
-Cache only:
-
-- Menu tree.
-- Header menu tree.
-
-Requirements:
-
-- Explicit cache keys.
-- Invalidate after create/update/delete/reorder/import/restore.
-- Do not cache admin search/filter results.
-
-Reference: `ANALYSIS.md` sections 6, 15; `REFACTOR_PLAN.md` P1-3, P2-5.
-
-## 13. Test Strategy
-
-### Route Tests
-
-Test:
-
-- Active Admin routes boot.
-- Guest is redirected/denied.
-- Authenticated admin without permission is denied.
-- Authorized admin can view route.
-- API route removed or protected.
-
-References:
-
-- `ANALYSIS.md` section 3.
-- `REFACTOR_PLAN.md` P0-1, P1-2.
-
-### Livewire Tests
-
-Test:
-
-- Menu list renders.
-- Search/filter/sort pagination calls service behavior.
-- Create/update validation.
-- Delete confirmation.
-- Bulk actions deny without permission.
-- Reorder denies invalid payload.
-- Import and restore actions require permission and confirmation.
-
-References:
-
-- `ANALYSIS.md` sections 6, 13.
-- `REFACTOR_PLAN.md` P1-3, P1-4.
-
-### Service Tests
-
-Test:
-
-- `MenuService` tree building.
+- Menu service tree building.
+- Menu create/update validation.
 - Slug uniqueness.
 - Parent cycle rejection.
-- Bulk operations transaction behavior.
-- Cache invalidation after writes.
-- `AddressService` default address transaction if retained.
-- `DatabaseService` identifier validation and safe failure if retained.
+- Bulk operation transactions.
+- Import dry-run and all-or-nothing rollback.
+- Restore default validates before replacing.
+- Cache invalidation after successful writes.
+- Address default transactions if retained.
+- Migration smoke tests after migration strategy is approved.
 
-References:
+Performance tests:
 
-- `ANALYSIS.md` sections 9, 14, 15.
-- `REFACTOR_PLAN.md` P0-4, P0-5, P1-11.
+- Menu tree query-count budget.
+- No unbounded product export in Admin.
+- Guarded `All` pagination behavior.
 
-### Import Tests
+## 22. Implementation Phases
 
-Test:
+### Phase 0: Containment
 
-- Valid menu import dry-run.
-- Invalid JSON/spreadsheet structure.
-- Duplicate slug handling.
-- Parent missing or cyclic parent reference.
-- Null overwrite prevention.
-- All-or-nothing rollback.
-- Structured error reporting.
+1. Remove or protect `Modules/Admin/routes/api.php`.
+2. Disable database administration actions in Admin until P0 controls exist.
+3. Add named permissions to active Admin routes.
+4. Add Livewire action authorization to active mutating shell actions.
+5. Stop raw exception output from active shell/system flows.
+6. Add first security regression tests.
 
-Reference: `ANALYSIS.md` sections 11, 13, 14; `REFACTOR_PLAN.md` P1-4, P1-5.
+### Phase 1: Admin Shell Rebuild
 
-### Export Tests
+1. Confirm canonical ownership map.
+2. Create service-backed Admin menu workflow.
+3. Move menu query/persistence/import/export/restore logic out of Livewire.
+4. Harden header/theme/profile shell components.
+5. Resolve `ProfileService` namespace/ownership.
+6. Resolve `Category` and `Setting` ownership.
 
-Test:
+### Phase 2: Domain Migration
 
-- Menu export respects filters.
-- Export mapping contains expected fields.
-- Template generation if approved.
-- Large export uses bounded strategy.
-- Product export no longer lives in Admin after migration.
+1. Move product/post/order/category/coupon/customer/role/staff workflows to canonical modules.
+2. Move product import/export to canonical product owner.
+3. Move affiliate/banner/flash-sale/chat/footer/home/settings workflows to confirmed owners.
+4. Remove Admin domain components only after route, menu, and caller verification.
 
-Reference: `ANALYSIS.md` sections 11, 15; `REFACTOR_PLAN.md` P1-5, P1-6.
+### Phase 3: Migration And Performance
 
-### Authorization Tests
+1. Prepare migration compatibility plan for negative-year migration filenames.
+2. Add migration smoke tests.
+3. Bound menu and header tree queries.
+4. Remove unbounded Admin export/list patterns.
 
-Test:
+### Phase 4: Cleanup
 
-- All active routes require `auth:admin` and named permissions.
-- Mutating Livewire actions deny unauthorized users.
-- Database actions deny unauthorized users and invalid identifiers.
-- Menu visibility does not replace server-side authorization.
+1. Remove `Zone.Identifier` artifact after reference verification.
+2. Remove placeholder/scaffold files after reference verification.
+3. Prune duplicate Livewire views after render-path verification.
+4. Move confirmed shared UI components to `Modules/Shared`.
 
-Reference: `ANALYSIS.md` section 12; `REFACTOR_PLAN.md` P0-1 through P0-3, P2-5.
-
-## 14. Implementation Checklist
+## 23. Implementation Checklist
 
 ### P0
 
-- [ ] Decide whether `Modules/Admin/routes/api.php` is removed or permission-protected. Reference: `REFACTOR_PLAN.md` P0-1.
-- [ ] Disable or permission-gate database download/export/truncate/drop/restore flows. Reference: `REFACTOR_PLAN.md` P0-2, P0-3.
-- [ ] Replace database shell command strings with safe Process argument arrays and no command-line secrets. Reference: `REFACTOR_PLAN.md` P0-4.
-- [ ] Add `try/finally` restoration around foreign-key toggles if database destructive operations remain. Reference: `REFACTOR_PLAN.md` P0-5.
-- [ ] Redact raw exception output from database/system flows. Reference: `REFACTOR_PLAN.md` P0-6.
-- [ ] Add P0 security tests before exposing database/system UI. Reference: `ROADMAP.md` P0-06.
+- [ ] Decide remove vs protect for `Modules/Admin/routes/api.php`.
+- [ ] Disable or harden database actions before production exposure.
+- [ ] Replace shell command strings and command-line secrets if database operations remain.
+- [ ] Replace browser table/file inputs with server-owned identifiers if database operations remain.
+- [ ] Add `try/finally` around FK toggles if destructive DB operations remain.
+- [ ] Redact user-facing errors.
+- [ ] Add named permissions to active Admin routes.
+- [ ] Add authorization to active mutating Livewire methods.
+- [ ] Add P0 security tests.
 
 ### P1
 
-- [ ] Confirm canonical ownership for Admin, Product, Order, Post, Category, Role, User/Account, Website, System, and Shared. Reference: `REFACTOR_PLAN.md` P1-1.
-- [ ] Add named permissions to active Admin web routes and Livewire actions. Reference: `REFACTOR_PLAN.md` P1-2.
-- [ ] Create `Modules/Admin/Services/MenuService.php` and move menu query/persistence/transaction logic out of Livewire. Reference: `REFACTOR_PLAN.md` P1-3.
-- [ ] Rebuild menu validation and restore/import behavior as dry-run, validated, all-or-nothing service logic. Reference: `REFACTOR_PLAN.md` P1-4.
-- [ ] Move product/post/coupon/role import/export out of Admin or rebuild through canonical module shared import/export services. Reference: `REFACTOR_PLAN.md` P1-5, P1-6.
-- [ ] Remove direct model queries from Admin controllers and Livewire. Reference: `REFACTOR_PLAN.md` P1-7.
-- [ ] Resolve `Category` and `Setting` ownership before model/schema changes. Reference: `REFACTOR_PLAN.md` P1-8.
-- [ ] Prepare migration compatibility plan for malformed Admin migration filenames. Reference: `REFACTOR_PLAN.md` P1-9.
-- [ ] Bound menu/product export and unsafe `All` pagination behavior. Reference: `REFACTOR_PLAN.md` P1-10.
-- [ ] Add transactions to `AddressService` if it remains Admin-owned. Reference: `REFACTOR_PLAN.md` P1-11.
-- [ ] Audit reusable Admin components before moving to `Modules/Shared`. Reference: `REFACTOR_PLAN.md` P1-12.
+- [ ] Confirm canonical owner for Admin shell menus.
+- [ ] Confirm canonical owner for settings.
+- [ ] Confirm canonical owner for user addresses.
+- [ ] Confirm canonical owner for database administration.
+- [ ] Confirm canonical owner for product import/export.
+- [ ] Resolve `ProfileService` namespace/ownership mismatch.
+- [ ] Resolve `AffiliateLevel` namespace/ownership mismatch.
+- [ ] Resolve `BackupManager` and `DatabaseService` method-contract mismatch.
+- [ ] Create service-backed menu workflow.
+- [ ] Make menu import/restore validated and all-or-nothing.
+- [ ] Prepare migration compatibility plan.
+- [ ] Audit reusable UI components.
 
 ### P2
 
-- [ ] Verify and remove `Modules/Admin/routes/web copy.php`. Reference: `REFACTOR_PLAN.md` P2-1.
-- [ ] Remove `Modules/Admin/Livewire/Affiliate/commission-list.blade.php:Zone.Identifier`. Reference: `REFACTOR_PLAN.md` P2-2.
-- [ ] Verify and prune duplicate views under `Modules/Admin/resources/views/livewire/admin/*`. Reference: `REFACTOR_PLAN.md` P2-3.
-- [ ] Clean scaffold and placeholder files after reference checks. Reference: `REFACTOR_PLAN.md` P2-4.
-- [ ] Document that menu visibility is UI-only and cannot replace authorization. Reference: `REFACTOR_PLAN.md` P2-5.
+- [ ] Remove `Modules/Admin/Livewire/Affiliate/commission-list.blade.php:Zone.Identifier` after verification.
+- [ ] Remove placeholder/scaffold files after verification.
+- [ ] Prune duplicate `resources/views/livewire/admin/*` views after verification.
+- [ ] Document menu visibility as UI-only.
+- [ ] Add architecture checks to prevent new Admin domain ownership.
+
+## 24. Open Decisions
+
+Needs verification before coding:
+
+- Should `/api/admin` be removed or protected?
+- Should database administration move to `Modules/System`?
+- Should Admin shell menus remain in `categories` or move to a dedicated table?
+- Who owns `settings`?
+- Who owns `user_addresses`?
+- Who owns banners, flash sales, affiliate schemes, chat, footer, and home settings?
+- Exact permission names and seed location.
+- Production migration history for negative-year migrations.
+- Menu import/export format and sample files.
+- Test directory conventions for module/security tests.
+

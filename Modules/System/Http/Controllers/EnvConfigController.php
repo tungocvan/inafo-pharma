@@ -10,6 +10,8 @@ class EnvConfigController extends Controller
 {
     public function index()
     {
+        $this->authorizePermission('system.env.view');
+
         $registry = app(ComponentRegistry::class); 
 
         // Danh sách các tab dự kiến
@@ -29,6 +31,13 @@ class EnvConfigController extends Controller
         });
 
         return view('System::pages.settings.env', compact('tabs'));
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 
 }

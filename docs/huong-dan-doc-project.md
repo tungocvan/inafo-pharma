@@ -23,7 +23,7 @@ Generate implementation order.
 
 Step 02:
 
-<Module_Name>="Website"
+<Module_Name>="System"
 You are a Senior Laravel 12 Architect.
 
 Read ROADMAP.md first.
@@ -156,7 +156,7 @@ Important rules:
 
 Step 04:
 
-<Module_Name>="Website"
+<Module_Name>="System"
 ROADMAP.md
 docs/AI_PROJECT_CONTEXT.md if exists
 docs/CODEX_BOOTSTRAP.md if exists
@@ -595,3 +595,86 @@ Final output after implementation:
 * Files changed
 * Tests run or recommended
 * Any remaining manual checks
+
+
+---------------
+
+<Module_Name>="System"
+
+@architect overview <Module_Name>
+
+Before doing anything, read these files in order:
+
+1. docs/CODEX_BOOTSTRAP.md
+2. docs/AI_PROJECT_CONTEXT.md
+3. docs/PROJECT_BOOTSTRAP.md
+4. ROADMAP.md
+5. Modules/ModuleServiceProvider.php
+6. composer.json
+
+Then read existing module documents:
+
+7. docs/modules/<Module_Name>/ANALYSIS.md
+8. docs/modules/<Module_Name>/REFACTOR_PLAN.md
+9. docs/modules/<Module_Name>/REBUILD_SPEC.md
+10. docs/modules/<Module_Name>/INFORMATION.md if exists
+
+Then inspect the actual module source code:
+
+Modules/<Module_Name>
+
+Goal:
+
+Create a high-level overview and final decision for the <Module_Name> module.
+
+Do not change any code.
+
+Compare:
+
+- Existing ANALYSIS.md
+- Existing REFACTOR_PLAN.md
+- Existing REBUILD_SPEC.md
+- Existing INFORMATION.md if exists
+- Actual source code in Modules/<Module_Name>
+
+Generate:
+
+docs/modules/<Module_Name>/OVERVIEW.md
+docs/modules/<Module_Name>/REBUILD_DECISION.md
+
+The overview must answer:
+
+1. What is the <Module_Name> module responsible for?
+2. Is the current documentation still consistent with the actual source code?
+3. Are ANALYSIS.md, REFACTOR_PLAN.md and REBUILD_SPEC.md still valid?
+4. What parts of the module are stable and should be preserved?
+5. What parts should be refactored?
+6. What parts should be rebuilt?
+7. What parts should be rewritten from scratch?
+8. What are the security risks?
+9. What are the performance risks?
+10. What are the maintainability risks?
+11. Should this module be kept, refactored, safely rebuilt, or rewritten?
+
+Final decision format:
+
+## Final Recommendation
+
+Decision:
+- Keep as-is / Partial refactor / Safe rebuild / Rewrite from scratch
+
+Reason:
+
+Risk level:
+- Low / Medium / High
+
+Suggested next step:
+
+Strict rules:
+
+- Do not modify application code.
+- Do not delete files.
+- Do not generate implementation code.
+- Only generate markdown documentation.
+- If existing documentation conflicts with actual code, trust actual code.
+- If something is unclear, mark it as "Needs verification".

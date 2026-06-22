@@ -17,6 +17,8 @@ class DatabaseController extends Controller
 
     public function index()
     {
+        $this->authorizePermission('database.view');
+
         return view('System::pages.database');
     }
 
@@ -24,6 +26,8 @@ class DatabaseController extends Controller
     {
         // ACL Check (Ví dụ: chỉ Super Admin mới được tải)
         // $this->authorize('download_database');
+
+        $this->authorizePermission('database.download');
 
         $path = $this->dbService->getDownloadPath($filename);
 
@@ -33,5 +37,11 @@ class DatabaseController extends Controller
 
         return response()->download($path);
     }
-}
 
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
+    }
+}

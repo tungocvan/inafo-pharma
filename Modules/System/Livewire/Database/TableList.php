@@ -5,10 +5,13 @@ namespace Modules\System\Livewire\Database;
 use Livewire\Component;
 use Modules\System\Services\DatabaseService;
 use Livewire\Attributes\Title;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
 
 #[Title('Quản lý Cơ sở dữ liệu')]
 class TableList extends Component
 {
+    use AuthorizesSystemActions;
+
     // State
     public $search = '';
     public $selectedTables = [];

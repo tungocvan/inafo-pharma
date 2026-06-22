@@ -1,17 +1,4 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Modules\System\Http\Controllers\Api\SystemController;
-
-// Route::middleware('auth:sanctum')
-//     ->controller(SystemController::class)
-//     ->prefix('system')
-//     ->group(function () {
-//         Route::get('/', 'index');
-//     });
-
-Route::prefix('system')
-    ->controller(SystemController::class)
-    ->group(function () {
-        Route::get('/', 'index');
-    });
+// System API routes are intentionally disabled until a real authenticated API
+// contract exists. See docs/modules/System/REBUILD_SPEC.md P0-05.

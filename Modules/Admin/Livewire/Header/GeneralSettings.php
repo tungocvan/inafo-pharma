@@ -35,6 +35,8 @@ class GeneralSettings extends Component
 
     public function save(SettingsService $settingsService)
     {
+        $this->authorizePermission('admin.header.update');
+
         $this->validate();
 
         $settingsService->updateMany([
@@ -55,5 +57,12 @@ class GeneralSettings extends Component
     public function render()
     {
         return view('Admin::livewire.header.general-settings');
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 }

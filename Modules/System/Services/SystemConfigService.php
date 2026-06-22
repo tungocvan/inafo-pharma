@@ -8,6 +8,11 @@ use Modules\System\Support\IconParser;
 
 class SystemConfigService
 {
+    private const DISABLED_PRODUCTION_COMPONENTS = [
+        'system.settings.artisan-list',
+        'system.settings.sh-script',
+    ];
+
     protected string $corePath;
     protected string $overridePath;
 
@@ -130,6 +135,10 @@ class SystemConfigService
 
             $tab['icon'] = IconParser::parse($tab['icon'] ?? null)
                 ?? 'M4 6h16M4 12h16M4 18h16'; // default
+
+            if (in_array($tab['component'] ?? null, self::DISABLED_PRODUCTION_COMPONENTS, true)) {
+                $tab['enabled'] = false;
+            }
 
             return $tab;
         })->toArray();

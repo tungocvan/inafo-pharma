@@ -5,7 +5,7 @@ Before analysis, read these files in order:
 3. docs/PROJECT_BOOTSTRAP.md if exists
 4. ROADMAP.md
 
-<Module_Name>=Admin
+<Module_Name>=System
 
 You are a Senior Laravel 12 Architect.
 

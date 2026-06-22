@@ -71,6 +71,8 @@ class MenuTable extends Component
 
     public function restoreDefaultMenu()
     {
+        $this->authorizePermission('admin.menu.restore');
+
         try {
 
 
@@ -115,6 +117,8 @@ class MenuTable extends Component
 
     public function delete($id)
     {
+        $this->authorizePermission('admin.menu.delete');
+
         if (!$menu = Category::find($id)) return;
 
         $menu->delete();
@@ -125,6 +129,8 @@ class MenuTable extends Component
 
     public function toggleStatus($id)
     {
+        $this->authorizePermission('admin.menu.update');
+
         
         if ($menu = Category::find($id)) {
             $menu->update(['is_active' => !$menu->is_active]);
@@ -134,6 +140,8 @@ class MenuTable extends Component
 
     public function duplicate($id)
     {
+        $this->authorizePermission('admin.menu.create');
+
         $original = Category::with('children')->find($id);
 
         if (!$original) {
@@ -186,6 +194,8 @@ class MenuTable extends Component
 
     public function bulkDelete()
     {
+        $this->authorizePermission('admin.menu.delete');
+
         if (empty($this->selectedMenus)) {
             $this->dispatch('notify', content: 'Vui lòng chọn menu cần xóa.', type: 'warning');
             return;
@@ -206,6 +216,8 @@ class MenuTable extends Component
 
     public function bulkToggleStatus($status)
     {
+        $this->authorizePermission('admin.menu.update');
+
         if (empty($this->selectedMenus)) {
             return $this->notify('Vui lòng chọn menu.', 'warning');
         }
@@ -234,6 +246,8 @@ class MenuTable extends Component
 
     public function bulkAssignPermissions()
     {
+        $this->authorizePermission('admin.menu.update');
+
         if (empty($this->selectedMenus)) {
             $this->dispatch('notify', content: 'Vui lòng chọn menu cần cập nhật.', type: 'warning');
             return;
@@ -271,6 +285,8 @@ class MenuTable extends Component
 
     public function updateMenuOrder($list)
     {
+        $this->authorizePermission('admin.menu.update');
+
         DB::transaction(fn() => $this->updateRecursive($list, null));
 
         //$this->notify('Đã cập nhật thứ tự menu.'); 
@@ -300,6 +316,8 @@ class MenuTable extends Component
 
     public function export()
     {
+        $this->authorizePermission('admin.menu.export');
+
         
         try {
             $menus = $this->baseQuery()
@@ -382,6 +400,8 @@ class MenuTable extends Component
 
     public function import()
     {
+        $this->authorizePermission('admin.menu.import');
+
         $this->validate();
 
         try {
@@ -512,5 +532,12 @@ class MenuTable extends Component
     {
 
         $this->dispatch('notify', content: $message, type: $type);
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 }

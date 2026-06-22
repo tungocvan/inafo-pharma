@@ -36,6 +36,8 @@ class UserProfile extends Component
     // --- ACTION: CẬP NHẬT THÔNG TIN ---
     public function updateProfile(ProfileService $service)
     {
+        $this->authorizePermission('admin.profile.update');
+
         $user = Auth::user();
 
         $this->validate([
@@ -66,6 +68,8 @@ class UserProfile extends Component
     // --- ACTION: ĐỔI MẬT KHẨU ---
     public function changePassword(ProfileService $service)
     {
+        $this->authorizePermission('admin.profile.update');
+
         $this->validate([
             'current_password' => 'required',
             'password'         => 'required|min:8|confirmed|different:current_password',
@@ -88,5 +92,12 @@ class UserProfile extends Component
     public function render()
     {
         return view('Admin::livewire.profile.user-profile');
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 }

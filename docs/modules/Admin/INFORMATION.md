@@ -1,5 +1,41 @@
 # Admin Architecture Review Report
 
+## 0. Implementation Update - 2026-06-22
+
+Status: **P0 containment slice implemented**
+
+This update does not complete the full Admin rebuild. It applies the first safe containment step from the rebuild decision: close unauthenticated/over-broad surfaces, add explicit authorization to active shell routes and mutating Livewire actions, and make browser-triggered database administration fail closed until a hardened ownership decision is made.
+
+Changed scope:
+
+- `Modules/Admin/routes/api.php`: removed the unauthenticated `GET /api/admin` stub by leaving the Admin API route file intentionally empty.
+- `Modules/Admin/routes/web.php`: added named permission middleware to active Admin shell routes.
+- `Modules/Admin/config/module.php`: added explicit Admin shell permissions for dashboard, menu, profile, theme, and header workflows.
+- `Modules/Admin/Livewire/Menus/MenuTable.php`: added permission checks to mutating menu actions, including restore, delete, status changes, duplicate, bulk actions, ordering, import, and export.
+- `Modules/Admin/Livewire/Menus/MenuForm.php`: added create/update permission checks before saving menus.
+- `Modules/Admin/Livewire/ThemeSwitcher.php`: added theme update permission checks.
+- `Modules/Admin/Livewire/Header/GeneralSettings.php`: added header update permission checks.
+- `Modules/Admin/Livewire/Header/MenuManager.php`: added header update permission checks for save/delete actions.
+- `Modules/Admin/Livewire/Profile/UserProfile.php`: added profile update permission checks before profile/password updates.
+- `Modules/Admin/Livewire/Profile/UserAddress.php`: added profile update permission checks before address mutations.
+- `Modules/Admin/Livewire/Database/TableList.php`: disabled backup/export/restore/truncate/drop actions from the Livewire browser surface by failing closed with HTTP 403.
+- `Modules/Admin/resources/views/livewire/database/table-list.blade.php`: replaced the interactive database administration UI with a disabled safety notice.
+- `Modules/Admin/Services/ProfileService.php`: corrected the namespace to `Modules\Admin\Services` to match Admin PSR-4 ownership.
+- `tests/Feature/Admin/AdminRouteConfigurationTest.php`: added route tests for removed API exposure and named permission middleware.
+
+Remaining Admin rebuild work:
+
+- Database administration is still not rebuilt. `DatabaseService` remains unsafe and should either move to a hardened System module or be redesigned with strict permission, audit, allowlist, process, and secret-handling controls before any UI is re-enabled.
+- Menu behavior still needs service extraction, transactional restore/import, structured validation, and cache invalidation tests.
+- Profile address behavior still needs canonical ownership verification and transaction review.
+- Domain pages, controllers, models, imports, and exports still need ownership migration to canonical modules.
+- Existing environments must seed or otherwise create the new Admin permissions before non-super-admin users can access the protected routes/actions.
+
+Verification:
+
+- Added focused route configuration coverage for the P0 route containment slice.
+- Full verification commands and results should be recorded in the implementation handoff after test execution.
+
 ## 1. Executive Summary
 
 Current maturity scores:

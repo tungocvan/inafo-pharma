@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Website\Services\Account;
+namespace Modules\Admin\Services;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;

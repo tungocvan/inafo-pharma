@@ -2,147 +2,90 @@
 
 namespace Modules\Admin\Livewire\Database;
 
-use Livewire\Component;
-use Modules\Admin\Services\DatabaseService;
 use Livewire\Attributes\Title;
+use Livewire\Component;
 
-#[Title('Quản lý Cơ sở dữ liệu')]
+#[Title('Quan ly co so du lieu')]
 class TableList extends Component
 {
-    // State
-    public $search = '';
-    public $selectedTables = [];
-    public $selectAll = false;
+    public bool $databaseActionsDisabled = true;
 
-    // UI Feedback
-    public $loadingAction = null; // Lưu tên bảng đang được xử lý
+    public string $search = '';
 
-    public $backupFiles = [];
-    public $selectedBackupFile = null;
-    public $showRestoreModal = false;
-    public $isRestoring = false;
+    public array $selectedTables = [];
 
-    public function boot(DatabaseService $service)
+    public bool $selectAll = false;
+
+    public ?string $loadingAction = null;
+
+    public array $backupFiles = [];
+
+    public ?string $selectedBackupFile = null;
+
+    public bool $showRestoreModal = false;
+
+    public bool $isRestoring = false;
+
+    public function updatedSearch(): void
     {
-        // Inject Service
-        $this->service = $service;
+        $this->resetSelection();
     }
 
-    // --- Actions ---
-
-    public function updatedSearch()
+    public function updatedSelectAll(): void
     {
-        //$this->resetPage(); // Nếu có phân trang
+        $this->resetSelection();
     }
 
-    public function updatedSelectAll($value)
+    public function backupFull(): void
     {
-        if ($value) {
-            $tables = $this->service->getAllTables($this->search);
-            $this->selectedTables = array_column($tables, 'name');
-        } else {
-            $this->selectedTables = [];
-        }
+        $this->denyDatabaseAction();
     }
 
-    public function backupFull()
+    public function exportTable($tableName): void
     {
-        try {
-            // Gọi service đã fix ở trên
-            $this->service->backupFullDatabase();
-
-            // Thành công -> Thông báo xanh
-            $this->dispatch('notify', type: 'success', content: 'Backup toàn bộ dữ liệu thành công!');
-
-        } catch (\Exception $e) {
-            // Thất bại -> Thông báo đỏ & Hiện lỗi chi tiết
-            $this->dispatch('notify', type: 'error', content: 'Thất bại: ' . $e->getMessage());
-        }
+        $this->denyDatabaseAction();
     }
 
-    public function exportTable($tableName)
+    public function restoreTable($tableName): void
     {
-        try {
-            $this->service->backupTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Export bảng {$tableName} thành công!");
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: 'Lỗi export: ' . $e->getMessage());
-        }
+        $this->denyDatabaseAction();
     }
 
-    public function restoreTable($tableName)
+    public function truncateTable($tableName): void
     {
-        try {
-            $this->service->restoreTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Restore bảng {$tableName} thành công!");
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: 'Lỗi restore: ' . $e->getMessage());
-        }
+        $this->denyDatabaseAction();
     }
 
-    public function truncateTable($tableName)
+    public function dropTable($tableName): void
     {
-        try {
-            $this->service->truncateTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Đã làm sạch dữ liệu bảng {$tableName}");
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: $e->getMessage());
-        }
+        $this->denyDatabaseAction();
     }
 
-    public function dropTable($tableName)
+    public function openRestoreModal(): void
     {
-        try {
-            $this->service->dropTable($tableName);
-            $this->dispatch('notify', type: 'success', content: "Đã xóa bảng {$tableName}");
-            // Reset selection nếu bảng bị xóa đang được chọn
-            if (($key = array_search($tableName, $this->selectedTables)) !== false) {
-                unset($this->selectedTables[$key]);
-            }
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', content: $e->getMessage());
-        }
+        $this->denyDatabaseAction();
     }
 
-    public function render(DatabaseService $service)
+    public function restoreDatabase(): void
     {
-        // Lấy dữ liệu fresh mỗi lần render để update trạng thái file/rows
-        $tables = $service->getAllTables($this->search);
+        $this->denyDatabaseAction();
+    }
 
+    public function render()
+    {
         return view('Admin::livewire.database.table-list', [
-            'tables' => $tables
+            'tables' => [],
         ]);
     }
 
-    public function openRestoreModal()
+    private function resetSelection(): void
     {
-        $this->backupFiles = app(DatabaseService::class)->getAllBackupFiles();
-        $this->showRestoreModal = true;
+        $this->selectedTables = [];
+        $this->selectAll = false;
     }
 
-    public function restoreDatabase()
+    private function denyDatabaseAction(): void
     {
-        if ($this->isRestoring) return;
-
-        if (!$this->selectedBackupFile) {
-            $this->dispatch('notify', type: 'error', message: 'Vui lòng chọn file backup');
-            return;
-        }
-
-        $this->isRestoring = true;
-
-        try {
-            app(\Modules\Admin\Services\DatabaseService::class)
-                ->restoreFromFile($this->selectedBackupFile);
-
-            $this->dispatch('notify', type: 'success', message: 'Restore database thành công');
-
-            $this->showRestoreModal = false;
-
-        } catch (\Throwable $e) {
-            $this->dispatch('notify', type: 'error', message: 'Restore thất bại: ' . $e->getMessage());
-        } finally {
-            $this->isRestoring = false;
-        }
+        abort(403, 'Database administration is disabled until P0 controls are implemented.');
     }
 }

@@ -20,6 +20,8 @@ class SystemController extends Controller
 
     public function index(SystemConfigService $configService)
     {
+        $this->authorizePermission('system.manage');
+
         $registry = app(ComponentRegistry::class);
 
         $tabs = collect($configService->getTabs())
@@ -32,5 +34,12 @@ class SystemController extends Controller
             });
 
         return view('System::system', compact('tabs'));
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 }

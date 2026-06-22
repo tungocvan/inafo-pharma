@@ -16,6 +16,8 @@ class ThemeSwitcher extends Component
 
     public function change($theme, ThemeManager $manager)
     {
+        $this->authorizePermission('admin.theme.update');
+
         $manager->set($theme);
         $this->current = $theme;
 
@@ -28,5 +30,12 @@ class ThemeSwitcher extends Component
         return view('Admin::livewire.theme-switcher', [
             'themes' => $theme->all()
         ]);
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 }

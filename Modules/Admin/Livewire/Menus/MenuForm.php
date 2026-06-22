@@ -97,6 +97,8 @@ class MenuForm extends Component
 
     public function save()
     {
+        $this->authorizePermission($this->isEdit ? 'admin.menu.update' : 'admin.menu.create');
+
         $this->validate();
 
         // Log::info('MenuForm save validation passed', [
@@ -198,5 +200,12 @@ class MenuForm extends Component
         return view('Admin::livewire.menus.menu-form', [
             'permissions' => Permission::query()->orderBy('name')->get(),
         ]);
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        $user = auth('admin')->user() ?: auth()->user();
+
+        abort_unless($user?->can($permission), 403);
     }
 }
