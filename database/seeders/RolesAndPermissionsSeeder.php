@@ -42,9 +42,12 @@ class RolesAndPermissionsSeeder extends Seeder
         $permissions = [];
 
         foreach (File::directories(base_path('Modules')) as $modulePath) {
-            $moduleConfigFile = $modulePath . '/Config/module.php';
+            $moduleConfigFile = collect([
+                $modulePath . '/config/module.php',
+                $modulePath . '/Config/module.php',
+            ])->first(fn (string $path): bool => File::exists($path));
 
-            if (! File::exists($moduleConfigFile)) {
+            if ($moduleConfigFile === null) {
                 continue;
             }
 

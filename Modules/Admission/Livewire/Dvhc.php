@@ -57,6 +57,8 @@ class Dvhc extends Component
     // =========================
     public function updateProvinceName()
     {
+        $this->authorizeAdmin('manage_admission_locations');
+
         if (!$this->selectedProvince || !$this->editingProvinceName) return;
 
         AdmissionLocation::where('province_name', $this->selectedProvince)
@@ -75,6 +77,8 @@ class Dvhc extends Component
     // =========================
     public function updateRow($index)
     {
+        $this->authorizeAdmin('manage_admission_locations');
+
         $row = $this->rows[$index] ?? null;
 
         if (!$row) return;
@@ -113,5 +117,10 @@ class Dvhc extends Component
     public function render()
     {
         return view('Admission::livewire.dvhc');
+    }
+
+    private function authorizeAdmin(string $permission): void
+    {
+        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }

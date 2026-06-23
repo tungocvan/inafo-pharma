@@ -90,7 +90,11 @@ class AdmissionApplication extends Model
         'gvcn',
         'bao_mau',
         'pdf_path',
-        'word_path'
+        'word_path',
+        'approved_at',
+        'approved_by',
+        'rejected_at',
+        'rejected_by',
     ];
 
     protected $casts = [
@@ -99,6 +103,8 @@ class AdmissionApplication extends Model
         'ck_goc_hoc_tap' => 'boolean',
         'kha_nang_hoc_sinh' => 'array',
         'suc_khoe_can_luu_y' => 'array',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     protected static function booted()

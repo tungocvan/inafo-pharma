@@ -26,3 +26,4 @@ Route -> Controller -> Page Blade -> Livewire PHP -> Livewire Blade -> Shared UI
 - Do not modify unrelated module docs.
 - Be idempotent.
 - Mark unknowns explicitly and explain how to verify them.
+ 
