@@ -57,7 +57,7 @@ This is the compact context pack for AI agents working in the INAFO Pharma Larav
   - `<ModuleName>::...`
   - `<lower-module>::...`
 - Livewire aliases:
-  - `<lower-module>.<kebab.path>`
+  - `<lower-module>.<kebab.path>` 
 
 ## Reusable Traits And Concerns
 
