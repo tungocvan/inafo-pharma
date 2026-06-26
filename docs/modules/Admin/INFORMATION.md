@@ -1,5 +1,54 @@
 # Admin Architecture Review Report
 
+## 0.1 Implementation Update - 2026-06-26
+
+Status: **Menu import/export service extraction implemented**
+
+This update rewrites the import/export surface used by `Modules\Admin\Livewire\Menus\MenuTable`. It keeps the current JSON tree menu format because no Excel sample, Excel mapping, or confirmed A/B/C mapping was provided for menu data. The shared import/export panel currently supports flat `.xlsx/.csv` rows, while Admin menus are recursive JSON trees, so this slice intentionally uses a dedicated Admin menu service instead of forcing the tree format into the shared Excel panel.
+
+Changed scope:
+
+- `Modules/Admin/Services/MenuImportExportService.php`: added a dedicated service for menu JSON tree import, export, restore-default orchestration, validation, report generation, transactions, cache clearing, and logging.
+- `Modules/Admin/Livewire/Menus/MenuTable.php`: removed JSON parsing, recursive persistence, export tree building, config-file writing, and restore import logic from Livewire; Livewire now authorizes, validates upload input, calls the service, dispatches UI notifications, and returns the download response.
+- `Modules/Admin/resources/views/livewire/menus/menu-table.blade.php`: added an import report panel for total/success/skipped/error counts and row-level validation errors.
+- `tests/Feature/Admin/MenuImportExportServiceTest.php`: added focused validation tests for invalid JSON and invalid menu tree payloads.
+
+Important behavior decisions:
+
+- Upload import mode remains `skip_duplicate` to avoid accidental overwrite or delete.
+- Restore default menu uses `replace` internally, matching the existing restore intent, but now validates the full JSON tree before persistence and runs through a service transaction.
+- Export no longer writes to `Modules/Admin/data/menus.json`; it only streams the downloaded JSON response. This avoids mutating source/config data during an export action.
+- Excel import/export for menus remains **Needs verification** until a menu Excel template and mapping mode are confirmed.
+
+Verification:
+
+- PHP lint passed for the new service, rewritten Livewire component, and new test.
+- `php artisan test --filter=MenuImportExportServiceTest` passed.
+- `php artisan test --filter=Admin` passed.
+
+## 0.2 Implementation Update - 2026-06-26
+
+Status: **Menu Livewire service-boundary refactor implemented**
+
+This update makes `Modules\Admin\Livewire\Menus\MenuTable` thinner and moves menu business workflows into a dedicated service.
+
+Changed scope:
+
+- `Modules/Admin/Services/MenuService.php`: added service-owned menu query, stats, delete, toggle, duplicate, bulk delete, bulk status, bulk permission, and drag/drop ordering workflows.
+- `Modules/Admin/Livewire/Menus/MenuTable.php`: removed direct menu model queries, direct transactions, duplicate recursion, slug generation, and order recursion from the Livewire component.
+- Mutating menu workflows now scope records through `Category::menu()` inside `MenuService`, reducing the risk that crafted Livewire payloads affect non-menu category records.
+- Drag/drop order payloads are validated for structure, duplicate IDs, and invalid/non-menu IDs before persistence.
+
+Remaining menu improvement opportunities:
+
+- Split `MenuImportExportService` further into import/export/restore collaborators if the Excel workflow grows.
+- Add database-backed feature tests for `MenuService` when the test environment has a working database driver.
+
+Verification:
+
+- PHP lint passed for `MenuService`, `MenuImportExportService`, and `MenuTable`.
+- `php artisan test --filter=Admin` passed.
+
 ## 0. Implementation Update - 2026-06-22
 
 Status: **P0 containment slice implemented**

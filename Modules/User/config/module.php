@@ -1,13 +1,15 @@
 <?php
 
-return array (
-  'name' => 'User',
-  'type' => 'shell',
-  'enabled' => true,
-  'permissions' => [
-            'view_user',
-            'create_user',
-            'edit_user',
-            'delete_user',
-   ],
-);
+return [
+    'name' => 'User',
+    'type' => 'shell',
+    'enabled' => true,
+    'permissions' => [
+        'view_user',
+        'create_user',
+        'edit_user',
+        'delete_user',
+        'import_user',
+        'export_user',
+    ],
+];

@@ -241,7 +241,7 @@ Description
 
 ## Output Files
 
-Generate:
+Generate or update:
 
 ```text
 docs/modules/<ModuleName>/ANALYSIS.md

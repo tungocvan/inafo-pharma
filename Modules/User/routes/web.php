@@ -3,13 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use Modules\User\Http\Controllers\UserController;
 
-// Route::middleware(['web','auth'])->prefix('/users')->name('users.')->group(function(){
-//     Route::get('/', [UsersController::class,'index'])->name('index');
-// });
-Route::middleware(['web','auth:admin'])->prefix('admin')->name('admin.')->group(function () {
-  Route::prefix('/user')->name('user.')->group(function() {
-            Route::get('/', [UserController::class, 'index'])->name('index');
+Route::middleware(['web', 'auth:admin', 'permission:view_user,admin'])
+    ->prefix('admin/user')
+    ->name('admin.user.')
+    ->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+
+        Route::middleware('permission:create_user,admin')->group(function () {
             Route::get('/create', [UserController::class, 'create'])->name('create');
-            Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit');
+        });
+
+        Route::middleware('permission:edit_user,admin')->group(function () {
+            Route::get('/{id}/edit', [UserController::class, 'edit'])
+                ->whereNumber('id')
+                ->name('edit');
         });
 });

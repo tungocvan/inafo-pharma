@@ -2,245 +2,130 @@
 
 namespace Modules\User\Livewire;
 
+use App\Models\User;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Livewire\WithFileUploads;
-use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
+use Modules\User\Services\UserService;
 
 class UserTable extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination;
 
     protected $paginationTheme = 'tailwind';
 
-    // ========================
-    // FILTER
-    // ========================
-    public $search = '';
-    public $perPage = 10;
-    public $filterRole = '';
+    public string $search = '';
 
-    // ========================
-    // SELECT
-    // ========================
-    public $selected = [];
-    public $selectAll = false;
+    public int $perPage = 10;
 
-    // ========================
-    // IMPORT
-    // ========================
-    public $showImportModal = false;
-    public $importFile;
+    public string $filterRole = '';
 
-    // ========================
-    // RESET LOGIC
-    // ========================
-    public function updatedSearch()
+    public array $selected = [];
+
+    public bool $selectAll = false;
+
+    private UserService $users;
+
+    public function boot(UserService $users): void
+    {
+        $this->users = $users;
+    }
+
+    public function updatedSearch(): void
     {
         $this->resetPage();
         $this->resetSelection();
     }
 
-    public function updatedFilterRole()
+    public function updatedFilterRole(): void
     {
         $this->resetPage();
         $this->resetSelection();
     }
 
-    public function updatedPerPage()
+    public function updatedPerPage(): void
     {
+        $this->perPage = min(max((int) $this->perPage, 1), 100);
         $this->resetPage();
         $this->resetSelection();
     }
 
-    public function resetSelection()
+    public function resetSelection(): void
     {
         $this->selected = [];
         $this->selectAll = false;
     }
 
-    // ========================
-    // SELECT ALL (ONLY CURRENT PAGE)
-    // ========================
-    public function updatedSelectAll($value)
+    public function updatedSelectAll(bool $value): void
     {
-        if ($value) {
-            $this->selected = $this->getQuery()
-                ->paginate($this->perPage)
-                ->pluck('id')
-                ->map(fn($id) => (string) $id)
-                ->toArray();
-        } else {
-            $this->selected = [];
-        }
+        $this->selected = $value
+            ? $this->users->selectedPageIds($this->filters(), $this->actor())
+            : [];
     }
 
-    // ========================
-    // DELETE MULTIPLE
-    // ========================
-    public function deleteSelected()
+    public function deleteSelected(): void
     {
-        if (in_array(auth()->id(), $this->selected)) {
-            $this->dispatch('notify', content: 'Bảo mật: Không thể xóa tài khoản đang đăng nhập!', type: 'error');
-            return;
-        }
-
-        User::whereIn('id', $this->selected)->delete();
-
-        $this->resetSelection();
-
-        $this->dispatch('notify', content: 'Đã xóa các nhân viên đã chọn.', type: 'success');
-    }
-
-    // ========================
-    // DELETE SINGLE
-    // ========================
-    public function delete($id)
-    {
-        if ($id == auth()->id()) {
-            $this->dispatch('notify', content: 'Không thể xóa chính mình!', type: 'error');
-            return;
-        }
-
-        User::whereKey($id)->delete();
-
-        $this->dispatch('notify', content: 'Đã xóa nhân viên.', type: 'success');
-    }
-
-    // ========================
-    // EXPORT JSON
-    // ========================
-    public function export()
-    {
-        $users = $this->getQuery()->get()->map(function ($user) {
-            return [
-                'name'       => $user->name,
-                'email'      => $user->email,
-                'phone'      => $user->phone,
-                'is_active'  => (bool) $user->is_active,
-                'roles'      => $user->roles->pluck('name')->toArray(),
-                'created_at' => $user->created_at->toDateTimeString(),
-            ];
-        });
-
-        $fileName = 'staff_export_' . now()->format('Y_m_d_His') . '.json';
-
-        return response()->streamDownload(function () use ($users) {
-            echo $users->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        }, $fileName);
-    }
-
-    // ========================
-    // IMPORT JSON
-    // ========================
-    public function import()
-    {
-        $this->validate([
-            'importFile' => 'required|mimes:json,txt|max:2048'
-        ]);
+        $this->authorizePermission('delete_user');
 
         try {
-            $content = file_get_contents($this->importFile->getRealPath());
-            $json = json_decode($content, true);
+            $count = $this->users->deleteMany($this->selected, $this->actor());
+        } catch (\RuntimeException $exception) {
+            $this->dispatch('notify', content: $exception->getMessage(), type: 'error');
 
-            if (!is_array($json)) {
-                throw new \Exception("File không đúng định dạng JSON.");
-            }
-
-            $countSuccess = 0;
-            $countSkip = 0;
-
-            DB::transaction(function () use ($json, &$countSuccess, &$countSkip) {
-
-                foreach ($json as $item) {
-
-                    // Skip nếu email đã tồn tại
-                    if (User::where('email', $item['email'])->exists()) {
-                        $countSkip++;
-                        continue;
-                    }
-
-                    $user = User::create([
-                        'name'      => $item['name'],
-                        'email'     => $item['email'],
-                        'password'  => Hash::make('12345678'),
-                        'phone'     => $item['phone'] ?? null,
-                        'is_active' => $item['is_active'] ?? true,
-                    ]);
-
-                    // Assign roles
-                    if (!empty($item['roles'])) {
-                        $roles = Role::whereIn('name', $item['roles'])
-                            ->where('guard_name', 'admin')
-                            ->pluck('name')
-                            ->toArray();
-
-                        if (!empty($roles)) {
-                            $user->assignRole($roles);
-                        }
-                    }
-
-                    $countSuccess++;
-                }
-            });
-
-            $this->reset(['importFile', 'showImportModal']);
-
-            $this->dispatch(
-                'notify',
-                content: "Import xong: {$countSuccess} thành công, {$countSkip} bỏ qua.",
-                type: 'success'
-            );
-        } catch (\Exception $e) {
-            $this->addError('importFile', 'Lỗi: ' . $e->getMessage());
+            return;
         }
+
+        $this->resetSelection();
+        $this->dispatch('notify', content: "Đã xoá {$count} nhân viên đã chọn.", type: 'success');
     }
 
-    // ========================
-    // QUERY CORE (IMPORTANT)
-    // ========================
-    private function getQuery()
+    public function delete(int $id): void
+    {
+        $this->authorizePermission('delete_user');
+
+        try {
+            $this->users->deleteStaff($id, $this->actor());
+        } catch (\RuntimeException $exception) {
+            $this->dispatch('notify', content: $exception->getMessage(), type: 'error');
+
+            return;
+        }
+
+        $this->dispatch('notify', content: 'Đã xoá nhân viên.', type: 'success');
+    }
+
+    public function render(): View
+    {
+        $this->authorizePermission('view_user');
+
+        return view('User::livewire.user-table', [
+            'users' => $this->users->paginateStaff($this->filters(), $this->actor()),
+            'roles' => $this->users->availableRoles($this->actor()),
+        ]);
+    }
+
+    private function filters(): array
+    {
+        return [
+            'search' => $this->search,
+            'role' => $this->filterRole,
+            'per_page' => $this->perPage,
+        ];
+    }
+
+    private function actor(): User
     {
         $user = Auth::guard('admin')->user();
 
-        return User::query()
-            ->select('id', 'name', 'email', 'phone', 'is_active', 'created_at')
-            ->with('roles:id,name,guard_name')
-            ->whereHas('roles')
+        abort_unless($user instanceof User, 403);
 
-            // 🔥 FIX CHUẨN
-            ->when(!$user->hasRole('Super Admin'), function ($q) {
-                $q->whereDoesntHave('roles', function ($q) {
-                    $q->whereRaw('LOWER(name) = ?', ['super admin']);
-                });
-            })
-
-            ->when($this->search, function ($q) {
-                $q->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('email', 'like', '%' . $this->search . '%');
-                });
-            })
-
-            ->when($this->filterRole, function ($q) {
-                $q->whereHas('roles', fn($r) => $r->where('id', $this->filterRole));
-            })
-
-            ->latest();
+        return $user;
     }
 
-    // ========================
-    // RENDER
-    // ========================
-    public function render()
+    private function authorizePermission(string $permission): void
     {
-        return view('User::livewire.user-table', [
-            'users' => $this->getQuery()->paginate($this->perPage),
-            'roles' => Role::select('id', 'name')->get(),
-        ]);
+        Gate::forUser($this->actor())->authorize($permission);
     }
 }

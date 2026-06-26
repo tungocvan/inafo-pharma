@@ -9,6 +9,8 @@ Read before writing code:
 - `.codex/bootstrap/CODEX_BOOTSTRAP.md`
 - `.codex/bootstrap/AI_PROJECT_CONTEXT.md`
 - `.codex/bootstrap/PROJECT_BOOTSTRAP.md`
+- `.codex\prompts\laravel-admin-ui.md`
+- `.codex\prompts\import-export.md`
 - `ROADMAP.md`
 
 If present, read:
@@ -17,6 +19,7 @@ If present, read:
 - `docs/modules/<ModuleName>/REFACTOR_PLAN.md`
 - `docs/modules/<ModuleName>/REBUILD_SPEC.md`
 - `docs/modules/<ModuleName>/INFORMATION.md`
+
 
 ## Steps
 

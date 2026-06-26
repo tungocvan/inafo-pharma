@@ -9,5 +9,7 @@ return [
         'create_role',
         'edit_role',
         'delete_role',
+        'import_role',
+        'export_role',
     ],
 ];

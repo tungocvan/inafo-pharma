@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Category;
 
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class CategoryRouteConfigurationTest extends TestCase
@@ -27,5 +28,14 @@ class CategoryRouteConfigurationTest extends TestCase
         $this->assertContains('permission:create_category,admin', $create->gatherMiddleware());
         $this->assertContains('permission:edit_category,admin', $edit->gatherMiddleware());
         $this->assertSame('[0-9]+', $edit->wheres['id'] ?? null);
+    }
+
+    public function test_category_api_route_is_not_registered_without_contract(): void
+    {
+        $categoryApiRoute = collect(Route::getRoutes())->first(
+            fn ($route) => $route->uri() === 'api/category'
+        );
+
+        $this->assertNull($categoryApiRoute);
     }
 }

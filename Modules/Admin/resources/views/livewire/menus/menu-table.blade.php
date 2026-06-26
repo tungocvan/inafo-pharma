@@ -6,13 +6,22 @@
             <p class="mt-1 text-sm text-gray-500">Kéo thả để sắp xếp vị trí và phân cấp menu.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <button wire:click="export" wire:loading.attr="disabled"
+            <button wire:click="exportTemplate" wire:loading.attr="disabled" wire:target="exportTemplate"
+                class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-bold uppercase rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
+                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z" />
+                </svg>
+                Template Excel
+            </button>
+
+            <button wire:click="export" wire:loading.attr="disabled" wire:target="export"
                 class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-bold uppercase rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
                 <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Export JSON
+                Export Excel
             </button>
 
             <button wire:click="$set('showImportModal', true)"
@@ -193,20 +202,24 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
-                            Import Menu (JSON)
+                            Import Menu (Excel)
                         </h3>
                         <div class="space-y-4">
                             <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800">
-                                Menu mới sẽ được <strong>thêm vào cuối</strong> danh sách hiện tại. Cấu trúc cha con sẽ
-                                được giữ nguyên.
+                                Upload file .xlsx hoac .csv voi cac cot:
+                                <strong>key, parent_key, name, url, icon, can, is_active, sort_order</strong>.
+                                Neu key da ton tai, he thong se bo qua dong trung.
                             </div>
                             <label x-data="{ fileName: null }"
                                 class="block w-full rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:bg-gray-50 hover:border-indigo-400 cursor-pointer transition">
                                 <span class="text-sm text-gray-600 font-medium"
-                                    x-text="fileName ? 'Đã chọn: ' + fileName : 'Click để chọn file .json'"></span>
-                                <input type="file" wire:model="importFile" class="hidden" accept=".json"
+                                    x-text="fileName ? 'Da chon: ' + fileName : 'Click de chon file .xlsx hoac .csv'"></span>
+                                <input type="file" wire:model.live="importFile" class="hidden" accept=".xlsx,.csv"
                                     @change="fileName = $event.target.files[0] ? $event.target.files[0].name : null">
                             </label>
+                            <div wire:loading wire:target="importFile" class="text-xs font-semibold text-indigo-600">
+                                Dang upload file, vui long cho...
+                            </div>
                             @error('importFile')
                                 <p class="text-red-500 text-xs font-semibold">{{ $message }}</p>
                             @enderror
@@ -216,16 +229,65 @@
                         <button type="button" @click="$wire.closeImportModal(); fileName = null"
                             wire:click="closeImportModal"
                             class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
-                        <button type="button" wire:click="import" wire:loading.attr="disabled"
-                            class="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-70">
-                            <span wire:loading.remove wire:target="import">Tiến hành Import</span>
-                            <span wire:loading wire:target="import">Đang tải...</span>
+                        <button type="button" wire:click="import" wire:loading.attr="disabled" wire:target="import,importFile"
+                            @disabled(!$importFile)
+                            class="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70">
+                            <span wire:loading.remove wire:target="import,importFile">Tien hanh Import</span>
+                            <span wire:loading wire:target="importFile">Dang upload...</span>
+                            <span wire:loading wire:target="import">Dang import...</span>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    @if ($importReport)
+        <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Import report</h3>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Total: {{ $importReport['total_rows'] ?? 0 }},
+                        success: {{ $importReport['success_rows'] ?? 0 }},
+                        skipped: {{ $importReport['skipped_rows'] ?? 0 }},
+                        errors: {{ $importReport['error_rows'] ?? 0 }}
+                    </p>
+                </div>
+                <button type="button" wire:click="$set('importReport', null)"
+                    class="text-xs font-semibold text-gray-500 hover:text-gray-900">
+                    Close report
+                </button>
+            </div>
+
+            @if (!empty($importReport['errors']))
+                <div class="mt-4 overflow-hidden rounded-lg border border-red-100">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-red-100 text-xs">
+                            <thead class="bg-red-50 text-red-700">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-semibold">Row</th>
+                                    <th class="px-3 py-2 text-left font-semibold">Column</th>
+                                    <th class="px-3 py-2 text-left font-semibold">Value</th>
+                                    <th class="px-3 py-2 text-left font-semibold">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-red-100 bg-white">
+                                @foreach ($importReport['errors'] as $error)
+                                    <tr>
+                                        <td class="px-3 py-2 text-gray-700">{{ $error['row'] ?? '-' }}</td>
+                                        <td class="px-3 py-2 text-gray-700">{{ $error['column'] ?? '-' }}</td>
+                                        <td class="px-3 py-2 text-gray-700">{{ $error['value'] ?? '-' }}</td>
+                                        <td class="px-3 py-2 text-red-700">{{ $error['reason'] ?? '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
     
     <!-- Bulk Permissions Modal -->
     <div x-data="{ show: @entangle('showBulkPermissionsModal') }" x-show="show" style="display: none;" class="relative z-50">
@@ -245,8 +307,8 @@
                         </h3>
                         <div class="space-y-4">
                             <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800">
-                                Áp dụng quyền cho <strong>{{ count($selectedMenus) }} menu</strong> đã chọn. Để bỏ
-                                quyền, chọn "Không có".
+                                Ap dung quyen cho <strong>{{ count($selectedMenus) }} menu</strong> da chon.
+                                De bo quyen, chon "Khong co".
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Chọn quyền</label>

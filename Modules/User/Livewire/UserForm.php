@@ -2,121 +2,76 @@
 
 namespace Modules\User\Livewire;
 
-use Livewire\Component;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use Livewire\Component;
+use Modules\User\Services\UserService;
 
 class UserForm extends Component
 {
-    // ========================
-    // CONST (tránh hardcode)
-    // ========================
-    const ROLE_SUPER_ADMIN = 'Super Admin';
+    public ?int $userId = null;
 
-    // ========================
-    // STATE
-    // ========================
-    public $userId;
-    public $isEdit = false;
+    public bool $isEdit = false;
 
-    public $name, $email, $password, $is_active = true;
-    public $selectedRoles = [];
+    public string $name = '';
 
-    // ========================
-    // MOUNT
-    // ========================
-    public function mount($id = null)
+    public string $email = '';
+
+    public string $password = '';
+
+    public bool $is_active = true;
+
+    public array $selectedRoles = [];
+
+    private UserService $users;
+
+    public function boot(UserService $users): void
     {
+        $this->users = $users;
+    }
 
+    public function mount(?int $id = null): void
+    {
         if ($id) {
+            $this->authorizePermission('edit_user');
             $this->isEdit = true;
             $this->userId = $id;
 
-            $user = User::with('roles')->findOrFail($id);
+            $user = $this->users->findStaff($id, $this->actor());
 
-            $this->name = $user->name;
-            $this->email = $user->email;
+            $this->name = (string) $user->name;
+            $this->email = (string) $user->email;
             $this->is_active = (bool) $user->is_active;
+            $this->selectedRoles = $user->roles->pluck('name')->all();
 
-            // 👉 dùng name (đúng với syncRoles)
-            $this->selectedRoles = $user->roles->pluck('name')->toArray();
+            return;
         }
+
+        $this->authorizePermission('create_user');
     }
 
-    // ========================
-    // SAVE
-    // ========================
     public function save()
     {
-        // ---------- VALIDATE ----------
-        $rules = [
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $this->userId,
-            'selectedRoles' => 'required|array|min:1',
-        ];
+        $this->authorizePermission($this->isEdit ? 'edit_user' : 'create_user');
+        $data = $this->validate();
 
-        if (!$this->isEdit) {
-            $rules['password'] = 'required|min:6';
+        try {
+            $this->users->saveStaff([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => $data['password'] ?? null,
+                'is_active' => $data['is_active'],
+                'roles' => $data['selectedRoles'],
+            ], $this->userId, $this->actor());
+        } catch (\RuntimeException $exception) {
+            $this->addError('selectedRoles', $exception->getMessage());
+
+            return null;
         }
 
-        $this->validate($rules);
-
-        $currentUser = Auth::guard('admin')->user();
-
-        // ---------- LẤY ROLE CŨ (nếu edit) ----------
-        $existingRoles = [];
-
-        if ($this->isEdit) {
-            $existingRoles = User::find($this->userId)
-                ->roles
-                ->pluck('name')
-                ->toArray();
-        }
-
-        // ---------- SECURITY: CHẶN GÁN SUPER ADMIN ----------
-        if (!$currentUser->hasRole(self::ROLE_SUPER_ADMIN)) {
-
-            $isTryingAssignSuperAdmin =
-                in_array(self::ROLE_SUPER_ADMIN, $this->selectedRoles) &&
-                !in_array(self::ROLE_SUPER_ADMIN, $existingRoles);
-
-            if ($isTryingAssignSuperAdmin) {
-                $this->addError('selectedRoles', 'Bạn không có quyền gán vai trò Super Admin.');
-                return;
-            }
-        }
-
-        // ---------- SAVE USER ----------
-        $data = [
-            'name' => $this->name,
-            'email' => $this->email,
-            'is_active' => $this->is_active,
-        ];
-
-        if (!empty($this->password)) {
-            $data['password'] = Hash::make($this->password);
-        }
-
-        $user = User::updateOrCreate(
-            ['id' => $this->userId],
-            $data
-        );
-
-        // ---------- SAFE ROLE SYNC ----------
-        $rolesToSync = $this->selectedRoles;
-
-        if (!$currentUser->hasRole(self::ROLE_SUPER_ADMIN)) {
-            $rolesToSync = array_filter(
-                $rolesToSync,
-                fn($r) => $r !== self::ROLE_SUPER_ADMIN
-            );
-        }
-
-        $user->syncRoles($rolesToSync);
-
-        // ---------- RESPONSE ----------
         session()->flash(
             'success',
             $this->isEdit
@@ -127,26 +82,38 @@ class UserForm extends Component
         return redirect()->route('admin.user.index');
     }
 
-    // ========================
-    // RENDER
-    // ========================
-    public function render()
+    public function render(): View
     {
-        $currentUser = Auth::guard('admin')->user();
-
-        $roles = Role::query()
-            ->select('id', 'name', 'guard_name')
-
-            // 🔥 Admin không thấy Super Admin
-            ->when(!$currentUser->hasRole(self::ROLE_SUPER_ADMIN), function ($q) {
-                $q->where('name', '!=', self::ROLE_SUPER_ADMIN);
-            })
-
-            ->orderBy('name')
-            ->get();
+        $this->authorizePermission($this->isEdit ? 'edit_user' : 'create_user');
 
         return view('User::livewire.user-form', [
-            'roles' => $roles
+            'roles' => $this->users->availableRoles($this->actor()),
         ]);
+    }
+
+    protected function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->userId)],
+            'password' => [$this->isEdit ? 'nullable' : 'required', 'string', 'min:8'],
+            'is_active' => ['boolean'],
+            'selectedRoles' => ['required', 'array', 'min:1'],
+            'selectedRoles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'admin')],
+        ];
+    }
+
+    private function actor(): User
+    {
+        $user = Auth::guard('admin')->user();
+
+        abort_unless($user instanceof User, 403);
+
+        return $user;
+    }
+
+    private function authorizePermission(string $permission): void
+    {
+        Gate::forUser($this->actor())->authorize($permission);
     }
 }

@@ -222,11 +222,25 @@ class CategoryService
         return [
             'name' => trim((string) $data['name']),
             'slug' => $this->normalizeSlug($data['slug'] ?? null, (string) $data['name']),
+            'url' => $this->nullableString($data['url'] ?? null),
+            'icon' => $this->nullableString($data['icon'] ?? null),
+            'can' => $this->nullableString($data['can'] ?? null),
             'type' => (string) $data['type'],
+            'type_title' => $this->nullableString($data['type_title'] ?? null),
             'parent_id' => $data['parent_id'] ?: null,
+            'description' => $this->nullableString($data['description'] ?? null),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_active' => (bool) ($data['is_active'] ?? false),
+            'meta_title' => $this->nullableString($data['meta_title'] ?? null),
+            'meta_description' => $this->nullableString($data['meta_description'] ?? null),
         ];
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     private function validateInvariants(array $data, ?int $categoryId = null): void

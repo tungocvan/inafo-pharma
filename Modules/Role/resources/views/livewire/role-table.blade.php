@@ -7,16 +7,6 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <button wire:click="export" wire:loading.attr="disabled" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
-                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Export
-            </button>
-
-            <button wire:click="$set('showImportModal', true)" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
-                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                Import
-            </button>
-
             <a href="{{ route('admin.role.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition">
                 <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Tạo vai trò mới
@@ -45,7 +35,7 @@
                             Đã chọn <span class="font-bold text-indigo-700 text-base mx-1">{{ count($selected) }}</span> vai trò
                         </span>
                     </div>
-                    <button wire:click="deleteSelected" wire:confirm="Bạn có chắc muốn xóa các vai trò đã chọn? (Super Admin sẽ không bị xóa)" class="flex items-center px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-bold shadow-sm hover:bg-red-50 transition">
+                    <button wire:click="deleteSelected" wire:confirm="Bạn có chắc muốn xóa các vai trò đã chọn? Vai trò Super Admin hoặc đang có tài khoản sử dụng sẽ không bị xóa." class="flex items-center px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-bold shadow-sm hover:bg-red-50 transition">
                         <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         Xóa
                     </button>
@@ -132,7 +122,7 @@
                                 <a href="{{ route('admin.role.edit', $role->id) }}" class="text-indigo-600 hover:text-indigo-900 font-bold transition">Sửa</a>
 
                                 @if($role->name !== 'Super Admin')
-                                    <button wire:confirm="Bạn có chắc muốn xóa vai trò này? Các user thuộc vai trò này sẽ mất quyền." wire:click="delete({{ $role->id }})" class="text-red-600 hover:text-red-900 transition font-bold">
+                                    <button wire:confirm="Bạn có chắc muốn xóa vai trò này? Hệ thống sẽ chặn nếu vai trò đang có tài khoản sử dụng." wire:click="delete({{ $role->id }})" class="text-red-600 hover:text-red-900 transition font-bold">
                                         Xóa
                                     </button>
                                 @else
@@ -154,37 +144,6 @@
 
     <div class="bg-gray-50 border-t border-gray-200 px-4 py-3 sm:px-6">
         {{ $roles->links() }}
-    </div>
-
-    <div x-data="{ show: @entangle('showImportModal') }" x-show="show" style="display: none;" class="relative z-50">
-        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" @click="show = false"></div>
-        <div class="fixed inset-0 z-10 overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative transform overflow-hidden rounded-xl bg-white shadow-xl transition-all w-full max-w-lg">
-                    <div class="px-6 py-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                            <svg class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                            Import Cấu hình Vai trò (JSON)
-                        </h3>
-                        <div class="space-y-4">
-                            <p class="text-sm text-gray-500">File JSON cần chứa danh sách Roles và Permissions tương ứng.</p>
-                            <label class="block w-full rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:bg-gray-50 hover:border-indigo-400 cursor-pointer transition">
-                                <span class="text-sm text-gray-600 font-medium" x-text="$wire.importFile ? 'Đã chọn: ' + $wire.importFile.name : 'Click để chọn file .json'"></span>
-                                <input type="file" wire:model="importFile" class="hidden" accept=".json">
-                            </label>
-                            @error('importFile') <p class="text-red-500 text-xs font-semibold">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 px-6 py-3 flex justify-end gap-3">
-                        <button type="button" @click="show = false" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy bỏ</button>
-                        <button type="button" wire:click="import" wire:loading.attr="disabled" class="px-4 py-2 bg-indigo-600 rounded-lg text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-70">
-                            <span wire:loading.remove wire:target="import">Tiến hành Import</span>
-                            <span wire:loading wire:target="import">Đang tải...</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div x-data="{ show: @entangle('showPermissionModal') }" x-show="show" style="display: none;" class="relative z-50">
