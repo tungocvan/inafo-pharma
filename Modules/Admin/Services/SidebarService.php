@@ -4,6 +4,7 @@ namespace Modules\Admin\Services;
 
 use Modules\Admin\Models\Category;
 use Illuminate\Support\Facades\Cache;
+use Modules\Admin\Support\AdminLayoutManager;
 
 class SidebarService
 {
@@ -14,7 +15,9 @@ class SidebarService
     // ======================
     public function getMenus()
     {
-        return Cache::remember($this->cacheKey, 3600, function () {
+        $ttl = app(AdminLayoutManager::class)->config()['navigation']['cache_ttl'] ?? 3600;
+
+        return Cache::remember($this->cacheKey, (int) $ttl, function () {
 
             $menus = Category::query()
                 ->select([
@@ -51,6 +54,33 @@ class SidebarService
         });
     }
 
+    public function getMenusForUser($user, ?string $currentPath = null): array
+    {
+        $currentPath = trim($currentPath ?? request()->path(), '/');
+
+        return collect($this->getMenus())
+            ->map(function (array $menu) use ($user, $currentPath) {
+                $children = collect($menu['children'] ?? [])
+                    ->filter(fn(array $child) => $this->canAccess($child, $user))
+                    ->map(fn(array $child) => $this->withActiveState($child, $currentPath))
+                    ->values()
+                    ->all();
+
+                $menu = $this->withActiveState($menu, $currentPath, $children);
+                $menu['children'] = $children;
+                $menu['has_children'] = ! empty($children);
+
+                if (! $this->canAccess($menu, $user) && ! $menu['has_children']) {
+                    return null;
+                }
+
+                return $menu;
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     // ======================
     // SAFE URL NORMALIZER
     // ======================
@@ -72,7 +102,7 @@ class SidebarService
     // ======================
     // BUILD PRE-PROCESSED TREE (ULTRA SAFE)
     // ======================
-    protected function buildTree($menus)
+    protected function buildTree($menus): array
     {
         return $menus->map(function ($menu) {
 
@@ -101,9 +131,41 @@ class SidebarService
                         'icon' => $child->icon,
                         'can'  => $child->can,
                     ];
-                })->values(),
+                })->values()->all(),
             ];
-        })->values();
+        })->values()->all();
+    }
+
+    protected function canAccess(array $item, $user): bool
+    {
+        if (empty($item['can'])) {
+            return true;
+        }
+
+        return $user && method_exists($user, 'can') && $user->can($item['can']);
+    }
+
+    protected function withActiveState(array $item, string $currentPath, array $children = []): array
+    {
+        $pattern = trim($item['url'] ?? '', '/');
+
+        $active = false;
+
+        if ($pattern !== '') {
+            $active = $currentPath === $pattern;
+
+            if (! $active && $pattern !== 'admin') {
+                $active = str_starts_with($currentPath, $pattern . '/');
+            }
+        }
+
+        if (! $active && $children !== []) {
+            $active = collect($children)->contains(fn(array $child) => (bool) ($child['active'] ?? false));
+        }
+
+        $item['active'] = $active;
+
+        return $item;
     }
 
     // ======================

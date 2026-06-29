@@ -33,6 +33,10 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
         ->middleware('permission:admin.theme.view,admin')
         ->name('themes');
 
+    Route::get('/layout', [AdminController::class, 'layout'])
+        ->middleware('permission:admin.layout.view,admin')
+        ->name('layout');
+
     Route::get('/admin-header', [AdminController::class, 'adminHeader'])
         ->middleware('permission:admin.header.view,admin')
         ->name('header');

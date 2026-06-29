@@ -4,8 +4,6 @@ namespace Modules\Admin\Livewire\Partials;
 
 use Livewire\Component;
 use Modules\Admin\Services\SidebarService;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Cache;
 use Modules\Admin\Models\Setting;
 use Modules\Admin\Support\ThemeManager;
 
@@ -67,7 +65,7 @@ class Sidebar extends Component
     // ======================
     public function mount(SidebarService $service, ThemeManager $themeManager)
     {
-        $this->menus = $service->getMenus();
+        $this->menus = $service->getMenusForUser(auth()->user(), request()->path());
 
         $this->titleSidebar = Setting::getValue('title_sidebar') ?? 'Admin';
         // $config = File::getRequire(

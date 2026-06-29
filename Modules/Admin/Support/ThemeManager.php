@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Support;
 use Illuminate\Support\Facades\File;
+use Modules\Admin\Models\Setting;
 
 class ThemeManager
 {
@@ -53,6 +54,7 @@ class ThemeManager
     public function getThemeName(): string
     {
         return session('admin_theme')
+            ?? Setting::getValue('admin_sidebar_theme')
             ?? $this->config['theme']
             ?? 'soft-light';
     }
@@ -62,7 +64,12 @@ class ThemeManager
     // ======================
     public function set(string $theme): void
     {
+        if (! in_array($theme, $this->all(), true)) {
+            return;
+        }
+
         session(['admin_theme' => $theme]);
+        Setting::setValue('admin_sidebar_theme', $theme, 'admin_layout', 'text');
     }
 
     // ======================

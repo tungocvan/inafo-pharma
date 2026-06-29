@@ -21,6 +21,8 @@ return [
         'admin.profile.update',
         'admin.theme.view',
         'admin.theme.update',
+        'admin.layout.view',
+        'admin.layout.update',
         'admin.header.view',
         'admin.header.update',
     ],

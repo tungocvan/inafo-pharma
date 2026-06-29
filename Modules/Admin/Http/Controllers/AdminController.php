@@ -29,6 +29,11 @@ class AdminController extends Controller
         return view('Admin::pages.admin.themes');
     }
 
+    public function layout()
+    {
+        return view('Admin::pages.admin.layout');
+    }
+
     /**
      * Show the form for creating a new resource.
      */

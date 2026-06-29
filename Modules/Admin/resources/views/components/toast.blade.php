@@ -4,6 +4,10 @@
         x-data="toastManager()"
         x-init="init()"
         class="fixed top-4 right-4 z-[9999] flex flex-col gap-3 w-full max-w-sm pointer-events-none"
+        role="region"
+        aria-label="Thong bao"
+        aria-live="polite"
+        aria-relevant="additions text"
     >
 
         <template x-for="item in items" :key="item.id">
@@ -22,6 +26,7 @@
                 class="relative overflow-hidden rounded-2xl border border-gray-200
                        bg-white shadow-2xl shadow-gray-200/50 backdrop-blur-xl
                        pointer-events-auto"
+                :role="item.type === 'error' ? 'alert' : 'status'"
             >
 
                 <!-- GLOW -->
@@ -125,6 +130,8 @@
                             <!-- CLOSE -->
                             <button
                                 @click="remove(item.id)"
+                                type="button"
+                                aria-label="Dong thong bao"
                                 class="flex-shrink-0 rounded-lg p-1 text-gray-400
                                        transition hover:bg-gray-100 hover:text-gray-600"
                             >
@@ -149,6 +156,7 @@
 
                             <button
                                 @click="handleCancel(item)"
+                                type="button"
                                 class="rounded-xl border border-gray-200 px-4 py-2
                                        text-xs font-semibold text-gray-600
                                        hover:bg-gray-50 transition"
@@ -158,6 +166,7 @@
 
                             <button
                                 @click="handleConfirm(item)"
+                                type="button"
                                 class="rounded-xl bg-indigo-600 px-4 py-2
                                        text-xs font-semibold text-white
                                        hover:bg-indigo-700 transition"

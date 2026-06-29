@@ -2,7 +2,7 @@
     x-data="{
         focus: false
     }"
-    class="relative hidden sm:block w-full max-w-md"
+    class="relative w-full max-w-md"
 >
 
     {{-- Icon --}}
@@ -32,28 +32,14 @@
                transition-all duration-200"
 
         placeholder="Tìm kiếm nhanh (Ctrl + K)..."
+        aria-label="Tim kiem nhanh"
     >
 
-    {{-- Hint Ctrl + K --}}
     <div
-        class="absolute inset-y-0 right-3 flex items-center text-xs text-gray-400"
+        class="pointer-events-none absolute inset-y-0 right-3 hidden items-center text-xs text-gray-400 sm:flex"
         x-show="!focus"
+        aria-hidden="true"
     >
-        ⌘K
+        Ctrl K
     </div>
-
 </div>
-
-{{-- Global shortcut --}}
-<script>
-    document.addEventListener('keydown', function (e) {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-            e.preventDefault();
-
-            const input = document.querySelector('[wire\\:model\\.debounce\\.400ms="query"]');
-            if (input) {
-                input.focus();
-            }
-        }
-    });
-</script>

@@ -1,6 +1,13 @@
 <div class="relative" x-data="{ open: false }">
-    <button @click="open = !open" type="button" class="-m-1.5 flex items-center p-1.5 focus:outline-none"
-        id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+    <button
+        @click="open = !open"
+        @keydown.escape.window="open = false"
+        type="button"
+        class="flex items-center rounded-lg p-1.5 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        id="user-menu-button"
+        :aria-expanded="open.toString()"
+        aria-haspopup="menu"
+    >
         <span class="sr-only">Open user menu</span>
 
         <div
@@ -23,9 +30,15 @@
         </span>
     </button>
     {{-- Phần code hiển thị Menu cũ của bạn sẽ được thay thế --}}
-    <div x-show="open" @click.away="open = false" x-transition
+    <div
+        x-cloak
+        x-show="open"
+        @click.away="open = false"
+        x-transition
+        role="menu"
+        aria-labelledby="user-menu-button"
         class="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none"
-        style="display: none;">
+    >
 
         {{-- Thông tin User cho Mobile --}}
         <div class="px-3 py-2 border-b border-gray-100 lg:hidden">
@@ -46,7 +59,8 @@
         <form method="POST" action="{{ route('admin.logout') }}">
             @csrf
             <button type="submit"
-                class="block w-full text-left px-3 py-1 text-sm leading-6 text-red-600 hover:bg-red-50 font-medium">
+                class="block w-full px-3 py-1 text-left text-sm font-medium leading-6 text-red-600 hover:bg-red-50"
+                role="menuitem">
                 Đăng xuất
             </button>
         </form>
