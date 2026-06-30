@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Users\Http\Controllers\Api\UsersController;
+use Modules\User\Http\Controllers\Api\UsersController;
 
 
 // Route::middleware('auth:sanctum')->controller(UsersController::class)->prefix('users')->group(function(){
