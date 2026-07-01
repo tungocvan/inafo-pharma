@@ -64,9 +64,9 @@ class BannerManager extends Component
         $banner = Banner::find($id);
 
         $this->bannerId = $banner->id;
-        $this->title = $banner->title;
-        $this->sub_title = $banner->sub_title; // Mới
-        $this->btn_text = $banner->btn_text;   // Mới
+        $this->title = $banner->title ?? '';
+        $this->sub_title = $banner->sub_title ?? ''; // Mới
+        $this->btn_text = $banner->btn_text ;   // Mới
         $this->link = $banner->link;
         $this->position = $banner->position;
         $this->order = $banner->order;
@@ -81,7 +81,7 @@ class BannerManager extends Component
     public function save(BannerService $service)
     {
         $rules = [
-            'title' => 'required|string|max:255',
+            'title' => 'string|max:255',
             'position' => 'required',
             'order' => 'integer',
         ];
