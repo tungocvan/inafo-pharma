@@ -30,18 +30,7 @@
         </div>
     @endif
 
-    @if (session('import_errors'))
-        <div class="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-            <div class="font-semibold">Một số dòng import bị bỏ qua:</div>
-            <ul class="mt-2 list-inside list-disc space-y-1">
-                @foreach (array_slice(session('import_errors'), 0, 10) as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    {{-- FILTER + IMPORT EXPORT --}}
+    {{-- FILTER --}}
     <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="grid gap-4 lg:grid-cols-12">
 
@@ -81,29 +70,11 @@
                     Reset
                 </button>
 
-                <button type="button" wire:click="export"
-                    class="inline-flex h-[50px] items-center justify-center rounded-xl bg-emerald-600 px-4 font-semibold text-white shadow-sm hover:bg-emerald-500">
-                    Export Excel
-                </button>
             </div>
         </div>
 
         <div
-            class="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-5 lg:flex-row lg:items-center lg:justify-between">
-            <form wire:submit="import" class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input type="file" wire:model="importFile" accept=".xlsx,.xls,.csv"
-                    class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 sm:w-80">
-
-                <button type="submit"
-                    class="inline-flex h-[50px] items-center justify-center rounded-xl bg-indigo-600 px-5 font-semibold text-white shadow-sm hover:bg-indigo-500">
-                    Import
-                </button>
-            </form>
-
-            @error('importFile')
-                <p class="text-sm text-red-600">{{ $message }}</p>
-            @enderror
-
+            class="mt-5 flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
             <div class="flex items-center gap-3">
                 @if ($this->hasSelected)
                     <span class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
@@ -119,14 +90,14 @@
                 </button>
             </div>
         </div>
-         <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-                @livewire('shared.import-export.panel', [
-                    'serviceClass' => \Modules\Pharma\Services\ImportExport::class,
-                    'title' => 'Import / Export theo dõi nhà cung cấp',
-                    'description' => 'Nhập, xuất và tải file mẫu dữ liệu theo dõi nhà cung cấp thuốc. Các trường công thức sẽ được hệ thống tự tính lại.',
-                ])
-            </div>
     </div>
+
+    @livewire('shared.import-export.panel', [
+        'serviceClass' => \Modules\Pharma\Services\ImportExport::class,
+        'title' => 'Import / Export theo dõi nhà cung cấp',
+        'description' => 'File Excel chuẩn A–V; các cột công thức được hệ thống tự tính lại.',
+        'filters' => ['search' => $search, 'status' => $status],
+    ], key('supplier-tracking-import-export-' . md5(json_encode([$search, $status]))))
 
     {{-- TABLE --}}
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">

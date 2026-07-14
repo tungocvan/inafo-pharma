@@ -8,6 +8,7 @@ use Modules\Pharma\Services\SupplierTrackingService;
 class Form extends Component
 {
     public ?int $trackingId = null;
+
     public ?int $medicine_id = null;
 
     public array $form = [
@@ -99,8 +100,8 @@ class Form extends Component
 
             'form.start_date' => ['nullable', 'date'],
             'form.end_date' => ['nullable', 'date'],
-            'form.contract_url' => ['nullable', 'string'],
-            'form.status' => ['required', 'string', 'max:50'],
+            'form.contract_url' => ['nullable', 'url'],
+            'form.status' => ['required', 'in:active,completed,paused,cancelled'],
             'form.note' => ['nullable', 'string'],
         ])['form'];
 
@@ -130,7 +131,7 @@ class Form extends Component
             return '0%';
         }
 
-        return number_format((float) $value, 2, ',', '.') . '%';
+        return number_format((float) $value, 2, ',', '.').'%';
     }
 
     public function render(SupplierTrackingService $service)

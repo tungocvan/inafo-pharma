@@ -2,30 +2,27 @@
 
 namespace Modules\Pharma\Livewire\Medicine;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Modules\Pharma\Services\MedicineService;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Exception;
+use Livewire\Component;
+use Modules\Pharma\Services\MedicineService;
 
 class Index extends Component
 {
-    use WithFileUploads;
-
     public $search = '';
+
     public $page = 1;
+
     public $perPage = 10;
 
     // Các thuộc tính phục vụ bộ lọc mới
     public $filterCircularGroup = '';
+
     public $filterSpecialControl = '';
 
     // Trạng thái checkbox chọn hàng loạt
     public array $selectedIds = [];
-    public bool $selectAll = false;
 
-    // Quản lý file import
-    public $importFile;
+    public bool $selectAll = false;
 
     protected $listeners = ['refreshComponent' => '$refresh'];
 
@@ -59,12 +56,12 @@ class Index extends Component
             $medicineService = app(MedicineService::class);
             $currentItems = $medicineService->getPaginatedMedicines(
                 $this->search,
-                $this->perPage === 'All' ? 999999 : (int)$this->perPage,
+                $this->perPage === 'All' ? 999999 : (int) $this->perPage,
                 $this->page,
                 $this->filterCircularGroup,
                 $this->filterSpecialControl
             );
-            $this->selectedIds = collect($currentItems->items())->map(fn($item) => (string)$item->id)->toArray();
+            $this->selectedIds = collect($currentItems->items())->map(fn ($item) => (string) $item->id)->toArray();
         } else {
             $this->selectedIds = [];
         }
@@ -93,29 +90,6 @@ class Index extends Component
         $this->clearSelection();
     }
 
-    public function importData(MedicineService $medicineService)
-    {
-        $this->validate([
-            'importFile' => 'required|file|mimes:csv,txt,xlsx|max:10240',
-        ], [
-            'importFile.required' => 'Vui lòng chọn một file dữ liệu.',
-            'importFile.mimes'    => 'Hệ thống chỉ hỗ trợ định dạng file .csv, .txt hoặc .xlsx.',
-            'importFile.max'      => 'Dung lượng file không được vượt quá 10MB.',
-        ]);
-
-        try {
-            $path = $this->importFile->getRealPath();
-            $rowCount = $medicineService->importFromCsv($path);
-
-            $this->reset('importFile');
-            $this->page = 1;
-
-            session()->flash('success', "Nhập dữ liệu thành công! Đã thêm mới/cập nhật {$rowCount} hồ sơ thuốc.");
-        } catch (Exception $e) {
-            session()->flash('error', 'Có lỗi xảy ra trong quá trình xử lý dữ liệu: ' . $e->getMessage());
-        }
-    }
-
     public function deleteMedicine(MedicineService $medicineService, int $id)
     {
         try {
@@ -135,19 +109,13 @@ class Index extends Component
 
         try {
             foreach ($this->selectedIds as $id) {
-                $medicineService->delete((int)$id);
+                $medicineService->delete((int) $id);
             }
             $this->clearSelection();
             session()->flash('success', 'Đã xóa các bản ghi được chọn thành công.');
         } catch (Exception $e) {
             session()->flash('error', 'Có lỗi xảy ra khi xóa hàng loạt dữ liệu.');
         }
-    }
-
-    public function exportData(MedicineService $medicineService): BinaryFileResponse
-    {
-        $filePath = $medicineService->exportToCsv($this->search, $this->filterCircularGroup, $this->filterSpecialControl);
-        return response()->download($filePath)->deleteFileAfterSend(true);
     }
 
     public function render(MedicineService $medicineService)
@@ -157,15 +125,15 @@ class Index extends Component
 
         $medicines = $medicineService->getPaginatedMedicines(
             $this->search,
-            $this->perPage === 'All' ? 999999 : (int)$this->perPage,
+            $this->perPage === 'All' ? 999999 : (int) $this->perPage,
             $this->page,
             $this->filterCircularGroup,
             $this->filterSpecialControl
         );
 
         return view('Pharma::livewire.medicine.index', [
-            'medicines'      => $medicines,
-            'circularGroups' => $circularGroups
+            'medicines' => $medicines,
+            'circularGroups' => $circularGroups,
         ]);
     }
 }

@@ -43,7 +43,7 @@ class Panel extends Component
     {
         return [
             'file' => ['required', 'file', 'mimes:xlsx,csv', 'max:10240'],
-            'mode' => ['required', 'in:create_only,update_or_create,skip_duplicate,replace'],
+            'mode' => ['required', 'in:create_only,update_or_create,skip_duplicate'],
             'dryRun' => ['boolean'],
         ];
     }

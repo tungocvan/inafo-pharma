@@ -7,18 +7,18 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Rap2hpoutre\FastExcel\FastExcel;
 use Modules\Shared\Services\ImportExport\Concerns\HandlesExportStorage;
 use Modules\Shared\Services\ImportExport\Concerns\HandlesHeaderMapping;
 use Modules\Shared\Services\ImportExport\Concerns\HandlesImportReport;
 use Modules\Shared\Services\ImportExport\Concerns\NormalizesImportRows;
+use Rap2hpoutre\FastExcel\FastExcel;
 
 abstract class BaseImportExportService
 {
-    use HandlesImportReport;
-    use HandlesHeaderMapping;
-    use NormalizesImportRows;
     use HandlesExportStorage;
+    use HandlesHeaderMapping;
+    use HandlesImportReport;
+    use NormalizesImportRows;
 
     protected string $defaultSheetName = 'data';
 
@@ -29,6 +29,8 @@ abstract class BaseImportExportService
     protected array $uniqueBy = [];
 
     protected string $mode = 'update_or_create';
+
+    protected bool $ignoreNullValuesOnUpdate = false;
 
     abstract protected function modelClass(): string;
 
@@ -61,7 +63,13 @@ abstract class BaseImportExportService
         try {
             $this->validateImportFile($filePath);
 
-            $rows = (new FastExcel())->import($filePath);
+            $fastExcel = new FastExcel;
+
+            if (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'csv') {
+                $fastExcel->configureCsv($this->csvDelimiter());
+            }
+
+            $rows = $fastExcel->import($filePath);
 
             $this->addDebug('sheets', [$this->defaultSheetName]);
             $this->addDebug('sheet_counts', [
@@ -76,60 +84,78 @@ abstract class BaseImportExportService
                 $rowNumber = $index + 2;
                 $this->totalRows++;
 
-                $rawRowArray = (array) $rawRow;
+                try {
+                    $rawRowArray = (array) $rawRow;
 
-                if (method_exists($this, 'columnMapping') && ! empty($this->columnMapping())) {
-                    $row = $this->normalizeRowByColumnMapping($rawRowArray);
-                } else {
-                    $row = $this->normalizeRowHeaders($rawRowArray);
+                    if (method_exists($this, 'columnMapping') && ! empty($this->columnMapping())) {
+                        $row = $this->normalizeRowByColumnMapping($rawRowArray);
+                    } else {
+                        $row = $this->normalizeRowHeaders($rawRowArray);
 
-                    if (! $this->hasRequiredHeaders($row)) {
-                        $this->addError(
-                            $this->defaultSheetName,
-                            $rowNumber,
-                            null,
-                            'File thiếu cột bắt buộc.'
-                        );
-
-                        continue;
-                    }
-                }
-
-                $row = $this->normalizeRow($row);
-
-                $validator = Validator::make($row, $this->rules);
-
-                if ($validator->fails()) {
-                    foreach ($validator->errors()->messages() as $column => $messages) {
-                        foreach ($messages as $message) {
+                        if (! $this->hasRequiredHeaders($row)) {
                             $this->addError(
                                 $this->defaultSheetName,
                                 $rowNumber,
-                                $column,
-                                $message,
-                                $row[$column] ?? null
+                                null,
+                                'File thiếu cột bắt buộc.'
                             );
+
+                            continue;
                         }
                     }
 
-                    continue;
-                }
+                    $row = $this->normalizeRow($row);
 
-                if ($dryRun) {
+                    $validator = Validator::make($row, $this->rules);
+
+                    if ($validator->fails()) {
+                        foreach ($validator->errors()->messages() as $column => $messages) {
+                            foreach ($messages as $message) {
+                                $this->addError(
+                                    $this->defaultSheetName,
+                                    $rowNumber,
+                                    $column,
+                                    $message,
+                                    $row[$column] ?? null
+                                );
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    if ($dryRun) {
+                        $this->successRows++;
+
+                        continue;
+                    }
+
+                    $data = $this->beforePersist(
+                        $row,
+                        $row,
+                        $rowNumber,
+                        $this->defaultSheetName
+                    );
+
+                    $this->persistRow($data, $mode);
+
                     $this->successRows++;
-                    continue;
+                } catch (\Throwable $exception) {
+                    Log::warning('Import row failed', [
+                        'service' => static::class,
+                        'file' => $filePath,
+                        'sheet' => $this->defaultSheetName,
+                        'row' => $rowNumber,
+                        'message' => $exception->getMessage(),
+                    ]);
+
+                    $this->addError(
+                        $this->defaultSheetName,
+                        $rowNumber,
+                        null,
+                        'Không thể xử lý dòng dữ liệu này.'
+                    );
                 }
-
-                $data = $this->beforePersist(
-                    $row,
-                    $row,
-                    $rowNumber,
-                    $this->defaultSheetName
-                );
-
-                $this->persistRow($data, $mode);
-
-                $this->successRows++;
             }
 
             if (! $dryRun) {
@@ -160,6 +186,7 @@ abstract class BaseImportExportService
             return $this->report(false);
         }
     }
+
     protected function normalizeRowByColumnMapping(array $rawRow): array
     {
         $values = array_values($rawRow);
@@ -186,27 +213,28 @@ abstract class BaseImportExportService
 
         return $number - 1;
     }
+
     public function export(array $filters = []): string
     {
         $path = $this->makeExportPath(class_basename($this->modelClass()));
 
         $rows = $this->exportRows($filters)
-            ->map(fn($item) => $this->mapExportRow($item));
+            ->map(fn ($item) => $this->mapExportRow($item));
 
-        (new FastExcel($rows))->export(storage_path('app/public/' . $path));
+        (new FastExcel($rows))->export(storage_path('app/public/'.$path));
 
         return $path;
     }
 
     public function exportTemplate(): string
     {
-        $path = $this->makeExportPath(class_basename($this->modelClass()) . '-template');
+        $path = $this->makeExportPath(class_basename($this->modelClass()).'-template');
 
         $rows = collect([
             $this->templateSampleRow(),
         ]);
 
-        (new FastExcel($rows))->export(storage_path('app/public/' . $path));
+        (new FastExcel($rows))->export(storage_path('app/public/'.$path));
 
         return $path;
     }
@@ -226,6 +254,11 @@ abstract class BaseImportExportService
         if (! in_array($extension, ['xlsx', 'csv'], true)) {
             throw new \RuntimeException('Định dạng file không hợp lệ.');
         }
+    }
+
+    protected function csvDelimiter(): string
+    {
+        return ',';
     }
 
     protected function hasRequiredHeaders(array $row): bool
@@ -248,13 +281,25 @@ abstract class BaseImportExportService
 
             'skip_duplicate' => $this->persistSkipDuplicate($modelClass, $data),
 
-            'update_or_create' => $modelClass::query()->updateOrCreate(
-                $this->uniquePayload($data),
-                $data
-            ),
+            'update_or_create' => $this->persistUpdateOrCreate($modelClass, $data),
 
             default => throw new \InvalidArgumentException("Import mode không hợp lệ: {$mode}"),
         };
+    }
+
+    protected function persistUpdateOrCreate(string $modelClass, array $data): Model
+    {
+        $unique = $this->uniquePayload($data);
+        $values = $data;
+
+        if ($this->ignoreNullValuesOnUpdate) {
+            $values = array_filter(
+                $values,
+                static fn (mixed $value): bool => $value !== null
+            );
+        }
+
+        return $modelClass::query()->updateOrCreate($unique, $values);
     }
 
     protected function persistSkipDuplicate(string $modelClass, array $data): Model

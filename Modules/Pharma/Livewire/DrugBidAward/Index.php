@@ -2,29 +2,28 @@
 
 namespace Modules\Pharma\Livewire\DrugBidAward;
 
+use Exception;
 use Livewire\Component;
-use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Modules\Pharma\Services\DrugBidAwardService;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Exception;
 
 class Index extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination;
 
     // Bộ lọc và tìm kiếm
     public $search = '';
+
     public $filterInvestor = '';
+
     public $filterCompany = '';
+
     public $perPage = 10;
 
     // Quản lý Checkbox xóa hàng loạt
     public array $selectedIds = [];
-    public bool $selectAll = false;
 
-    // File import
-    public $importFile;
+    public bool $selectAll = false;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -37,14 +36,17 @@ class Index extends Component
     {
         $this->resetPage();
     }
+
     public function updatingFilterInvestor()
     {
         $this->resetPage();
     }
+
     public function updatingFilterCompany()
     {
         $this->resetPage();
     }
+
     public function updatingPerPage()
     {
         $this->resetPage();
@@ -53,7 +55,7 @@ class Index extends Component
     public function updatedSelectAll($value)
     {
         if ($value) {
-            $service =  app(DrugBidAwardService::class);
+            $service = app(DrugBidAwardService::class);
             $currentItems = $service->getPaginated(
                 $this->search,
                 $this->filterInvestor,
@@ -61,7 +63,7 @@ class Index extends Component
                 999999,
                 1
             );
-            $this->selectedIds = collect($currentItems->items())->map(fn($item) => (string)$item->id)->toArray();
+            $this->selectedIds = collect($currentItems->items())->map(fn ($item) => (string) $item->id)->toArray();
         } else {
             $this->selectedIds = [];
         }
@@ -82,32 +84,6 @@ class Index extends Component
         $this->dispatch('filters-reset');
     }
 
-    public function importData(DrugBidAwardService $service)
-    {
-        $this->validate([
-            'importFile' => 'required|file|mimes:csv,txt|max:10240',
-        ], [
-            'importFile.required' => 'Vui lòng chọn tệp tin dữ liệu.',
-            'importFile.mimes'    => 'Hệ thống chỉ hỗ trợ định dạng file .csv hoặc .txt',
-            'importFile.max'      => 'Dung lượng file không vượt quá 10MB.',
-        ]);
-
-        try {
-            $rowCount = $service->importFromCsv($this->importFile->getRealPath());
-            $this->reset('importFile');
-            $this->resetPage();
-            session()->flash('success', "Nhập dữ liệu thành công. Đã xử lý {$rowCount} dòng dữ liệu.");
-        } catch (Exception $e) {
-            session()->flash('error', 'Lỗi xử lý file: ' . $e->getMessage());
-        }
-    }
-
-    public function exportData(DrugBidAwardService $service): BinaryFileResponse
-    {
-        $filePath = $service->exportToCsv($this->search, $this->filterInvestor, $this->filterCompany);
-        return response()->download($filePath)->deleteFileAfterSend(true);
-    }
-
     public function deleteAward(DrugBidAwardService $service, int $id)
     {
         try {
@@ -121,11 +97,13 @@ class Index extends Component
 
     public function deleteSelected(DrugBidAwardService $service)
     {
-        if (empty($this->selectedIds)) return;
+        if (empty($this->selectedIds)) {
+            return;
+        }
 
         try {
             foreach ($this->selectedIds as $id) {
-                $service->delete((int)$id);
+                $service->delete((int) $id);
             }
             $this->reset(['selectedIds', 'selectAll']);
             session()->flash('success', 'Đã xóa hàng loạt bản ghi thành công.');
@@ -137,7 +115,7 @@ class Index extends Component
     public function render(DrugBidAwardService $service)
     {
         return view('Pharma::livewire.drug-bid-award.index', [
-            'awards'    => $service->getPaginated($this->search, $this->filterInvestor, $this->filterCompany, $this->perPage === 'All' ? 999999 : (int)$this->perPage),
+            'awards' => $service->getPaginated($this->search, $this->filterInvestor, $this->filterCompany, $this->perPage === 'All' ? 999999 : (int) $this->perPage),
             'investors' => $service->getUniqueInvestors(),
             'companies' => $service->getUniqueCompanies(),
         ]);

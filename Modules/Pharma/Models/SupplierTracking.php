@@ -33,11 +33,7 @@ class SupplierTracking extends Model
         'note',
     ];
 
-    public array $exceptExport = [
-        'contract_url',
-        'status',
-        'note',
-    ];
+    public array $exceptExport = [];
 
     protected $casts = [
         'working_date' => 'date',

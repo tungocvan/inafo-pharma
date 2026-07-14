@@ -2,69 +2,47 @@
 
 namespace Modules\Pharma\Services;
 
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Shared\Services\ImportExport\BaseImportExportService;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class ImportExport extends BaseImportExportService
 {
+    protected string $defaultSheetName = 'Theo_doi_nha_cung_cap';
+
     protected string $mode = 'update_or_create';
 
-    protected array $requiredHeaders = [];
+    protected bool $ignoreNullValuesOnUpdate = true;
 
-    protected array $uniqueBy = [
-        'medicine_id',
-        'supplier_name',
-        'working_date',
+    protected array $uniqueBy = ['medicine_id', 'supplier_name', 'working_date'];
+
+    protected array $rules = [
+        'medicine_id' => ['required', 'integer', 'exists:pharma_medicines,id'],
+        'working_date' => ['required', 'date'],
+        'supplier_name' => ['required', 'string', 'max:255'],
+        'supplier_representative' => ['nullable', 'string', 'max:255'],
+        'area' => ['nullable', 'string', 'max:255'],
+        'import_price' => ['required', 'numeric', 'min:0'],
+        'selling_price' => ['required', 'numeric', 'min:0'],
+        'invoice_price' => ['required', 'numeric', 'min:0'],
+        'invoice_difference_amount' => ['required', 'numeric'],
+        'invoice_difference_percent' => ['required', 'numeric', 'min:0'],
+        'invoice_difference_fee' => ['required', 'numeric'],
+        'cost_price' => ['required', 'numeric'],
+        'gross_profit_percent' => ['required', 'numeric'],
+        'committed_quantity' => ['nullable', 'numeric', 'min:0'],
+        'unit' => ['nullable', 'string', 'max:255'],
+        'deposit_amount' => ['nullable', 'numeric', 'min:0'],
+        'start_date' => ['nullable', 'date'],
+        'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        'contract_url' => ['nullable', 'url'],
+        'status' => ['required', 'in:active,completed,paused,cancelled'],
+        'note' => ['nullable', 'string'],
     ];
 
-    public function rules(): array
-    {
-        return [
-            'medicine_name' => ['nullable', 'string', 'max:255'],
-            'registration_number' => ['nullable', 'string', 'max:255'],
-            'medicine_id' => ['required', 'integer'],
-
-            'supplier_name' => ['required', 'string', 'max:255'],
-            'supplier_representative' => ['nullable', 'string', 'max:255'],
-            'area' => ['nullable', 'string', 'max:255'],
-
-            'working_date' => ['nullable', 'date'],
-
-            'import_price' => ['nullable', 'numeric'],
-            'selling_price' => ['nullable', 'numeric'],
-            'invoice_price' => ['nullable', 'numeric'],
-
-            'invoice_difference_percent' => ['nullable', 'numeric'],
-
-            'committed_quantity' => ['nullable', 'numeric'],
-            'deposit_amount' => ['nullable', 'numeric'],
-
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date'],
-
-            'contract_url' => ['nullable', 'string'],
-
-            'status' => [
-                'nullable',
-                Rule::in([
-                    'active',
-                    'inactive',
-                    'draft',
-                    'expired',
-                ]),
-            ],
-
-            'note' => ['nullable', 'string'],
-        ];
-    }
-
-    public function modelClass(): string
+    protected function modelClass(): string
     {
         return SupplierTracking::class;
     }
@@ -97,114 +75,104 @@ class ImportExport extends BaseImportExportService
         ];
     }
 
-    public function normalizeRow(array $row): array
+    protected function normalizeRow(array $row): array
     {
         $medicine = $this->findMedicine(
-            $row['registration_number'] ?? null,
-            $row['medicine_name'] ?? null
+            $this->cleanString($row['registration_number'] ?? null),
+            $this->cleanString($row['medicine_name'] ?? null)
         );
 
         if (! $medicine) {
-            throw new \RuntimeException(
-                'Không tìm thấy thuốc. Tên thuốc: '
-                    . ($row['medicine_name'] ?? 'NULL')
-                    . ' | Số đăng ký: '
-                    . ($row['registration_number'] ?? 'NULL')
-            );
+            throw new \RuntimeException('Không tìm thấy thuốc theo số đăng ký hoặc tên thuốc.');
         }
 
-        $importPrice = $this->toDecimal($row['import_price'] ?? 0);
-        $sellingPrice = $this->toDecimal($row['selling_price'] ?? 0);
-        $invoicePrice = $this->toDecimal($row['invoice_price'] ?? 0);
-        $invoiceDifferencePercent = $this->toDecimal($row['invoice_difference_percent'] ?? 0);
-
-        $invoiceDifferenceAmount = $invoicePrice - $importPrice;
-        $invoiceDifferenceFee = $invoiceDifferenceAmount * $invoiceDifferencePercent / 100;
-        $costPrice = $importPrice + $invoiceDifferenceFee;
-
-        $grossProfitPercent = $sellingPrice > 0
-            ? (($sellingPrice - $costPrice) / $sellingPrice) * 100
-            : 0;
-
-        return [
+        $data = [
             'medicine_id' => $medicine->id,
-            'medicine_name' => $this->cleanString($row['medicine_name'] ?? null),
-            'registration_number' => $this->cleanString($row['registration_number'] ?? null),
-
-            'working_date' => $this->toDate($row['working_date'] ?? null),
-
+            'working_date' => $this->cleanDate($row['working_date'] ?? null),
             'supplier_name' => $this->cleanString($row['supplier_name'] ?? null),
             'supplier_representative' => $this->cleanString($row['supplier_representative'] ?? null),
             'area' => $this->cleanString($row['area'] ?? null),
-
-            'import_price' => $importPrice,
-            'selling_price' => $sellingPrice,
-            'invoice_price' => $invoicePrice,
-
-            'invoice_difference_amount' => round($invoiceDifferenceAmount, 2),
-            'invoice_difference_percent' => round($invoiceDifferencePercent, 2),
-            'invoice_difference_fee' => round($invoiceDifferenceFee, 2),
-
-            'cost_price' => round($costPrice, 2),
-            'gross_profit_percent' => round($grossProfitPercent, 2),
-
-            'committed_quantity' => $this->toNullableDecimal($row['committed_quantity'] ?? null),
+            'import_price' => $this->vietnameseNumber($row['import_price'] ?? null),
+            'selling_price' => $this->vietnameseNumber($row['selling_price'] ?? null),
+            'invoice_price' => $this->vietnameseNumber($row['invoice_price'] ?? null),
+            'invoice_difference_percent' => $this->vietnameseNumber($row['invoice_difference_percent'] ?? null),
+            'committed_quantity' => $this->vietnameseNumber($row['committed_quantity'] ?? null),
             'unit' => $this->cleanString($row['unit'] ?? null),
-            'deposit_amount' => $this->toNullableDecimal($row['deposit_amount'] ?? null),
-
-            'start_date' => $this->toDate($row['start_date'] ?? null),
-            'end_date' => $this->toDate($row['end_date'] ?? null),
-
+            'deposit_amount' => $this->vietnameseNumber($row['deposit_amount'] ?? null),
+            'start_date' => $this->cleanDate($row['start_date'] ?? null),
+            'end_date' => $this->cleanDate($row['end_date'] ?? null),
             'contract_url' => $this->cleanString($row['contract_url'] ?? null),
             'status' => $this->normalizeStatus($row['status'] ?? null),
             'note' => $this->cleanString($row['note'] ?? null),
         ];
+
+        $existing = $this->existingRecord($data);
+        if ($existing) {
+            foreach ($data as $field => $value) {
+                if ($value === null) {
+                    $data[$field] = $existing->getAttribute($field);
+                }
+            }
+        } else {
+            $data['import_price'] ??= 0;
+            $data['selling_price'] ??= 0;
+            $data['invoice_price'] ??= 0;
+            $data['invoice_difference_percent'] ??= 0;
+            $data['unit'] ??= $medicine->unit;
+            $data['status'] ??= 'active';
+        }
+
+        return $this->calculate($data);
     }
 
-    public function exportRows(array $filters = []): Collection
+    protected function exportRows(array $filters = []): Collection
     {
         return SupplierTracking::query()
             ->with('medicine')
+            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where(fn ($nested) => $nested
+                ->where('supplier_name', 'like', "%{$search}%")
+                ->orWhere('supplier_representative', 'like', "%{$search}%")
+                ->orWhere('area', 'like', "%{$search}%")
+                ->orWhereHas('medicine', fn ($medicine) => $medicine
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('registration_number', 'like', "%{$search}%"))))
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->latest('id')
             ->get();
     }
 
-    public function mapExportRow($row): array
+    protected function mapExportRow(Model $model): array
     {
-        $data = [
-            'working_date' => optional($row->working_date)->format('d/m/Y'),
-            'supplier_name' => $row->supplier_name,
-            'supplier_representative' => $row->supplier_representative,
-            'area' => $row->area,
-            'import_price' => $row->import_price,
-            'selling_price' => $row->selling_price,
-            'invoice_price' => $row->invoice_price,
-            'invoice_difference_amount' => $row->invoice_difference_amount,
-            'invoice_difference_percent' => $row->invoice_difference_percent,
-            'invoice_difference_fee' => $row->invoice_difference_fee,
-            'cost_price' => $row->cost_price,
-            'gross_profit_percent' => $row->gross_profit_percent,
-            'committed_quantity' => $row->committed_quantity,
-            'unit' => $row->unit,
-            'deposit_amount' => $row->deposit_amount,
-            'start_date' => optional($row->start_date)->format('d/m/Y'),
-            'end_date' => optional($row->end_date)->format('d/m/Y'),
-            'contract_url' => $row->contract_url,
-            'status' => $row->status,
-            'note' => $row->note,
+        return [
+            'Ngày làm việc' => $model->working_date?->format('d/m/Y'),
+            'Tên thuốc' => $model->medicine?->name,
+            'Số đăng ký' => $model->medicine?->registration_number,
+            'Nhà cung cấp' => $model->supplier_name,
+            'Người đại diện' => $model->supplier_representative,
+            'Khu vực' => $model->area,
+            'Giá nhập' => $model->import_price,
+            'Giá bán' => $model->selling_price,
+            'Giá hóa đơn' => $model->invoice_price,
+            'Chênh lệch hóa đơn' => $model->invoice_difference_amount,
+            '% phí chênh lệch' => $model->invoice_difference_percent,
+            'Phí chênh lệch' => $model->invoice_difference_fee,
+            'Giá vốn' => $model->cost_price,
+            '% lợi nhuận thực tế' => $model->gross_profit_percent,
+            'Số lượng cam kết' => $model->committed_quantity,
+            'Đơn vị' => $model->unit,
+            'Tiền cọc' => $model->deposit_amount,
+            'Ngày bắt đầu' => $model->start_date?->format('d/m/Y'),
+            'Ngày kết thúc' => $model->end_date?->format('d/m/Y'),
+            'URL hợp đồng' => $model->contract_url,
+            'Trạng thái' => $model->status,
+            'Ghi chú' => $model->note,
         ];
-
-        $exceptExport = $row->exceptExport ?? [];
-
-        return collect($data)
-            ->except($exceptExport)
-            ->all();
     }
 
-    public function templateSampleRow(): array
+    protected function templateSampleRow(): array
     {
-        return [[
-            'Ngày làm việc' => now()->format('d/m/Y'),
+        return [
+            'Ngày làm việc' => '01/05/2026',
             'Tên thuốc' => 'Trosicam 15mg',
             'Số đăng ký' => 'VN-20104-16',
             'Nhà cung cấp' => 'Công ty TNHH Dược Phẩm ABC',
@@ -221,19 +189,29 @@ class ImportExport extends BaseImportExportService
             'Số lượng cam kết' => 500000,
             'Đơn vị' => 'Viên',
             'Tiền cọc' => 50000000,
-            'Ngày bắt đầu' => now()->format('d/m/Y'),
-            'Ngày kết thúc' => now()->addYear()->format('d/m/Y'),
-            'URL hợp đồng' => '',
+            'Ngày bắt đầu' => '01/06/2026',
+            'Ngày kết thúc' => '01/06/2027',
+            'URL hợp đồng' => null,
             'Trạng thái' => 'active',
-            'Ghi chú' => '',
-        ]];
+            'Ghi chú' => null,
+        ];
     }
 
-    protected function findMedicine(?string $registrationNumber, ?string $medicineName): ?Medicine
+    private function existingRecord(array $data): ?SupplierTracking
     {
-        $registrationNumber = $this->cleanString($registrationNumber);
-        $medicineName = $this->cleanString($medicineName);
+        if (! $data['medicine_id'] || ! $data['supplier_name'] || ! $data['working_date']) {
+            return null;
+        }
 
+        return SupplierTracking::query()->where([
+            'medicine_id' => $data['medicine_id'],
+            'supplier_name' => $data['supplier_name'],
+            'working_date' => $data['working_date'],
+        ])->first();
+    }
+
+    private function findMedicine(?string $registrationNumber, ?string $medicineName): ?Medicine
+    {
         if ($registrationNumber) {
             $medicine = Medicine::query()
                 ->whereRaw('LOWER(TRIM(registration_number)) = ?', [mb_strtolower($registrationNumber)])
@@ -244,90 +222,63 @@ class ImportExport extends BaseImportExportService
             }
         }
 
-        if ($medicineName) {
-            return Medicine::query()
-                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($medicineName)])
-                ->first();
-        }
-
-        return null;
+        return $medicineName
+            ? Medicine::query()->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($medicineName)])->first()
+            : null;
     }
 
-    protected function normalizeStatus(mixed $status): string
+    private function normalizeStatus(mixed $status): ?string
     {
         $status = mb_strtolower(trim((string) $status));
 
+        if ($status === '') {
+            return null;
+        }
+
         return match ($status) {
-            'inactive', 'ngưng', 'ngung', 'không hoạt động', 'khong hoat dong' => 'inactive',
-            'draft', 'nháp', 'nhap' => 'draft',
-            'expired', 'hết hạn', 'het han' => 'expired',
-            default => 'active',
+            'active', 'đang theo dõi', 'dang theo doi' => 'active',
+            'completed', 'hoàn tất', 'hoan tat' => 'completed',
+            'paused', 'tạm dừng', 'tam dung' => 'paused',
+            'cancelled', 'canceled', 'hủy', 'huy' => 'cancelled',
+            default => $status,
         };
     }
 
-    protected function cleanString(mixed $value): ?string
+    private function calculate(array $data): array
     {
-        $value = trim((string) $value);
+        $importPrice = (float) $data['import_price'];
+        $sellingPrice = (float) $data['selling_price'];
+        $invoicePrice = (float) $data['invoice_price'];
+        $differencePercent = (float) $data['invoice_difference_percent'];
+        $differenceAmount = $invoicePrice - $importPrice;
+        $differenceFee = $differenceAmount * $differencePercent / 100;
+        $costPrice = $importPrice + $differenceFee;
 
-        return $value === '' ? null : $value;
+        $data['invoice_difference_amount'] = round($differenceAmount, 2);
+        $data['invoice_difference_fee'] = round($differenceFee, 2);
+        $data['cost_price'] = round($costPrice, 2);
+        $data['gross_profit_percent'] = round(
+            $sellingPrice > 0 ? (($sellingPrice - $costPrice) / $sellingPrice) * 100 : 0,
+            2
+        );
+
+        return $data;
     }
 
-    protected function toDecimal(mixed $value): float
+    private function vietnameseNumber(mixed $value): ?float
     {
         if ($value === null || trim((string) $value) === '') {
-            return 0;
+            return null;
         }
 
         if (is_numeric($value)) {
             return (float) $value;
         }
 
-        $value = trim((string) $value);
-        $value = str_replace([' ', '₫', 'đ'], '', $value);
-        $value = str_replace('.', '', $value);
-        $value = str_replace(',', '.', $value);
+        $normalized = str_replace([' ', '₫', 'đ'], '', trim((string) $value));
+        $normalized = str_replace('.', '', $normalized);
+        $normalized = str_replace(',', '.', $normalized);
 
-        return is_numeric($value) ? (float) $value : 0;
-    }
-
-    protected function toNullableDecimal(mixed $value): ?float
-    {
-        if ($value === null || trim((string) $value) === '') {
-            return null;
-        }
-
-        return $this->toDecimal($value);
-    }
-
-    protected function toDate(mixed $value): ?string
-    {
-        if ($value === null || trim((string) $value) === '') {
-            return null;
-        }
-
-        try {
-            if (is_numeric($value)) {
-                return ExcelDate::excelToDateTimeObject($value)->format('Y-m-d');
-            }
-
-            $value = trim((string) $value);
-
-            foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'Y/m/d'] as $format) {
-                try {
-                    return Carbon::createFromFormat($format, $value)->format('Y-m-d');
-                } catch (\Throwable) {
-                    //
-                }
-            }
-
-            return Carbon::parse($value)->format('Y-m-d');
-        } catch (\Throwable $e) {
-            Log::warning('SupplierTracking import date parse failed', [
-                'value' => $value,
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
+        return is_numeric($normalized) ? (float) $normalized : null;
     }
 }

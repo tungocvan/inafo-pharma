@@ -2,13 +2,14 @@
 
 namespace Modules\Pharma\Services;
 
-use Modules\Pharma\Models\Medicine;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Exception;
+use Modules\Pharma\Models\Medicine;
 
 class MedicineService
 {
+    public function __construct(private readonly MedicineImportExport $importExport) {}
+
     public function getPaginatedMedicines(
         ?string $search = null,
         int $perPage = 10,
@@ -17,19 +18,11 @@ class MedicineService
         ?string $specialControl = null
     ): LengthAwarePaginator {
         return Medicine::query()
-            ->when($search, function ($query, $search) {
-                return $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', '%' . $search . '%')
-                      ->orWhere('active_ingredients', 'like', '%' . $search . '%');
-                });
-            })
-            ->when($circularGroup, function ($query, $circularGroup) {
-                return $query->where('circular_group', $circularGroup);
-            })
-            ->when($specialControl, function ($query, $specialControl) {
-                $isSpecial = $specialControl === 'yes';
-                return $query->where('is_special_control', $isSpecial);
-            })
+            ->when($search, fn ($query, $value) => $query->where(fn ($nested) => $nested
+                ->where('name', 'like', "%{$value}%")
+                ->orWhere('active_ingredients', 'like', "%{$value}%")))
+            ->when($circularGroup, fn ($query, $value) => $query->where('circular_group', $value))
+            ->when($specialControl, fn ($query, $value) => $query->where('is_special_control', $value === 'yes'))
             ->latest()
             ->paginate($perPage, ['*'], 'page', $page);
     }
@@ -41,19 +34,17 @@ class MedicineService
             ->where('circular_group', '!=', '')
             ->distinct()
             ->pluck('circular_group')
-            ->toArray();
+            ->all();
     }
 
     public function findOrFail(int $id): Medicine
     {
-        return Medicine::findOrFail($id);
+        return Medicine::query()->findOrFail($id);
     }
 
     public function store(array $data): Medicine
     {
-        return DB::transaction(function () use ($data) {
-            return Medicine::create($data);
-        });
+        return DB::transaction(fn () => Medicine::query()->create($data));
     }
 
     public function update(int $id, array $data): Medicine
@@ -61,118 +52,34 @@ class MedicineService
         return DB::transaction(function () use ($id, $data) {
             $medicine = $this->findOrFail($id);
             $medicine->update($data);
+
             return $medicine;
         });
     }
 
     public function delete(int $id): bool
     {
-        return DB::transaction(function () use ($id) {
-            $medicine = $this->findOrFail($id);
-            return $medicine->delete();
-        });
+        return DB::transaction(fn () => (bool) $this->findOrFail($id)->delete());
     }
 
     public function importFromCsv(string $filePath): int
     {
-        $rowCount = 0;
+        $report = $this->importExport->import($filePath, ['mode' => 'update_or_create']);
 
-        if (($handle = fopen($filePath, 'r')) !== false) {
-            fgetcsv($handle, 1000, ','); // Skip header
-
-            DB::beginTransaction();
-            try {
-                while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-                    if (empty($data[5])) {
-                        continue;
-                    }
-
-                    Medicine::updateOrCreate(
-                        ['registration_number' => trim($data[10])],
-                        [
-                            'circular_order_number'   => trim($data[1]) ?: null,
-                            'circular_group'          => trim($data[2]) ?: null,
-                            'active_ingredients'      => trim($data[3]),
-                            'concentration'           => trim($data[4]),
-                            'name'                    => trim($data[5]),
-                            'dosage_form'             => trim($data[6]),
-                            'route_of_administration' => trim($data[7]),
-                            'unit'                    => trim($data[8]),
-                            'packaging_specification' => trim($data[9]),
-                            'shelf_life'              => trim($data[11]),
-                            'registered_company'      => trim($data[12]),
-                            'manufacturing_company'   => trim($data[13]),
-                            'manufacturing_country'   => trim($data[14]),
-                            'visa_validity_date'      => !empty($data[15]) ? date('Y-m-d', strtotime(trim($data[15]))) : null,
-                            'gmp_certification_date'  => !empty($data[16]) ? date('Y-m-d', strtotime(trim($data[16]))) : null,
-                            'declared_price'          => !empty($data[17]) ? (float)str_replace([',', '.'], '', trim($data[17])) : null,
-                            'profile_link'            => trim($data[18]) ?: null,
-                            'is_special_control'      => filter_var(trim($data[19]), FILTER_VALIDATE_BOOLEAN),
-                            'notes'                   => trim($data[20]) ?: null,
-                        ]
-                    );
-                    $rowCount++;
-                }
-                DB::commit();
-            } catch (Exception $e) {
-                DB::rollBack();
-                fclose($handle);
-                throw $e;
-            }
-            fclose($handle);
-        }
-        return $rowCount;
+        return (int) ($report['success_rows'] ?? 0);
     }
 
-    public function exportToCsv(?string $search = null, ?string $circularGroup = null, ?string $specialControl = null): string
-    {
-        $query = Medicine::query()
-            ->when($search, function ($query, $search) {
-                return $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', '%' . $search . '%')
-                      ->orWhere('active_ingredients', 'like', '%' . $search . '%');
-                });
-            })
-            ->when($circularGroup, function ($query, $circularGroup) {
-                return $query->where('circular_group', $circularGroup);
-            })
-            ->when($specialControl, function ($query, $specialControl) {
-                $isSpecial = $specialControl === 'yes';
-                return $query->where('is_special_control', $isSpecial);
-            })
-            ->latest();
-
-        $filename = 'export_medicines_' . time() . '.csv';
-        $path = storage_path('app/public/' . $filename);
-
-        $file = fopen($path, 'w');
-        fputs($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-
-        fputcsv($file, [
-            'STT', 'Tên thuốc', 'Số đăng ký', 'Hoạt chất', 'Hàm lượng',
-            'Dạng bào chế', 'Đường dùng', 'Đơn vị tính', 'Quy cách', 'Phân nhóm', 'Nước sản xuất'
+    public function exportToCsv(
+        ?string $search = null,
+        ?string $circularGroup = null,
+        ?string $specialControl = null
+    ): string {
+        $path = $this->importExport->export([
+            'search' => $search,
+            'circular_group' => $circularGroup,
+            'is_special_control' => $specialControl === null ? null : $specialControl === 'yes',
         ]);
 
-        $stt = 1;
-        $query->chunk(100, function ($medicines) use ($file, &$stt) {
-            foreach ($medicines as $medicine) {
-                fputcsv($file, [
-                    $stt++,
-                    $medicine->name,
-                    $medicine->registration_number,
-                    $medicine->active_ingredients,
-                    $medicine->concentration,
-                    $medicine->dosage_form,
-                    $medicine->route_of_administration,
-                    $medicine->unit,
-                    $medicine->packaging_specification,
-                    $medicine->circular_group,
-                    $medicine->manufacturing_country
-                ]);
-            }
-        });
-
-        fclose($file);
-        return $path;
+        return storage_path('app/public/'.$path);
     }
 }

@@ -6,14 +6,6 @@
                 tại các cơ sở bệnh viện.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <button type="button" wire:click="exportData"
-                class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors gap-2">
-                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Xuất file CSV
-            </button>
             <a href="{{ route('admin.pharma.drug-bid-awards.create') }}"
                 class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-3 font-semibold text-sm text-white hover:bg-blue-700 transition-colors shadow-sm gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,39 +24,16 @@
         <div class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl text-sm">{{ session('error') }}</div>
     @endif
 
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-6">
-        <h3 class="text-sm font-semibold text-gray-800 mb-3 uppercase tracking-wider">Nhập dữ liệu kết quả thầu (.CSV)
-        </h3>
-        <form wire:submit="importData" class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div class="w-full sm:flex-1 relative">
-                <div
-                    class="flex items-center w-full rounded-xl border border-gray-300 px-4 py-3 mt-1 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group">
-                    <svg class="w-5 h-5 text-gray-400 mr-3 group-hover:text-gray-600" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <input type="file" wire:model="importFile"
-                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                    <span class="text-sm text-gray-600 truncate">
-                        @if ($importFile)
-                            <span class="text-blue-600 font-medium">📋 {{ $importFile->getClientOriginalName() }}</span>
-                        @else
-                            Kéo thả hoặc chọn tệp tin kết quả thầu của bạn tại đây
-                        @endif
-                    </span>
-                </div>
-                @error('importFile')
-                    <span class="text-xs text-rose-600 mt-1 block">{{ $message }}</span>
-                @enderror
-            </div>
-            <button type="submit" wire:loading.attr="disabled"
-                class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-gray-900 px-6 py-3 mt-1 font-semibold text-sm text-white hover:bg-gray-800 transition-colors shadow-sm">
-                <span wire:loading.remove>Xác nhận nhập tệp</span>
-                <span wire:loading>Đang xử lý dữ liệu...</span>
-            </button>
-        </form>
-    </div>
+    @livewire('shared.import-export.panel', [
+        'serviceClass' => \Modules\Pharma\Services\DrugBidAwardImportExport::class,
+        'title' => 'Import / Export thuốc trúng thầu',
+        'description' => 'Dùng file chuẩn A–L; dữ liệu rỗng không ghi đè giá trị hiện có.',
+        'filters' => [
+            'search' => $search,
+            'investor' => $filterInvestor,
+            'company' => $filterCompany,
+        ],
+    ], key('drug-bid-award-import-export-' . md5(json_encode([$search, $filterInvestor, $filterCompany]))))
 
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-6 space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
