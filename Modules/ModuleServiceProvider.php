@@ -125,6 +125,11 @@ class ModuleServiceProvider extends ServiceProvider
 
     private function registerModule(array $module): void
     {
+        $provider = 'Modules\\' . $module['name'] . '\\Providers\\' . $module['name'] . 'ServiceProvider';
+        if (class_exists($provider)) {
+            $this->app->register($provider);
+        }
+
         $this->registerConfig($module);
         $this->registerRoutes($module);
         $this->registerResources($module);
