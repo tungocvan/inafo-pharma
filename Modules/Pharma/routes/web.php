@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Pharma\Http\Controllers\PharmaController;
 use Modules\Pharma\Http\Controllers\DrugBidAwardController;
 use Modules\Pharma\Http\Controllers\SupplierTrackingController;
+use Modules\Pharma\Http\Controllers\PriceListController;
 
 Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:admin'])->group(function () {
 
@@ -29,5 +30,9 @@ Route::prefix('admin/pharma')->name('admin.pharma.')->middleware(['web', 'auth:a
         Route::get('/import-export', [SupplierTrackingController::class, 'importExport'])
             ->name('import-export');
     });
+
+    // Tạo bảng giá từ workbook tổng hợp trong private storage.
+    Route::get('/price-lists/create', [PriceListController::class, 'create'])
+        ->name('price-lists.create');
 
 });
