@@ -17,9 +17,8 @@ return [
     'queue' => env('FACEBOOK_QUEUE', 'facebook'),
     'media_disk' => env('FACEBOOK_MEDIA_DISK', 'local'),
     'duplicate_lock_seconds' => (int) env('FACEBOOK_DUPLICATE_LOCK_SECONDS', 300),
-    'scopes' => [
-        'pages_show_list',
-        'pages_read_engagement',
-        'pages_manage_posts',
-    ],
+    'scopes' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('FACEBOOK_SCOPES', 'pages_show_list,pages_read_engagement,pages_manage_posts'))
+    ))),
 ];

@@ -12,6 +12,7 @@ FACEBOOK_OAUTH_BASE_URL=https://www.facebook.com
 FACEBOOK_APP_ID=
 FACEBOOK_APP_SECRET=
 FACEBOOK_REDIRECT_URI=https://your-domain.test/admin/facebook/callback
+FACEBOOK_SCOPES=pages_show_list,pages_read_engagement,pages_manage_posts
 FACEBOOK_WEBHOOK_VERIFY_TOKEN=
 FACEBOOK_HTTP_TIMEOUT=30
 FACEBOOK_CONNECT_TIMEOUT=10
@@ -26,7 +27,7 @@ FACEBOOK_MEDIA_DISK=local
 
 ## Quyền Meta
 
-Scopes mặc định nằm trong config:
+Scopes mặc định nằm trong `.env` hoặc config:
 
 - `pages_show_list`
 - `pages_read_engagement`
