@@ -42,5 +42,9 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT'),
     ],
-
+    'facebook' => [
+        'graph_version' => env('FACEBOOK_GRAPH_VERSION', 'v25.0'),
+        'app_id' => env('FACEBOOK_APP_ID'),
+        'app_secret' => env('FACEBOOK_APP_SECRET'),
+    ],
 ];
