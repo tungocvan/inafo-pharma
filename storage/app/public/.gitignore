@@ -3,6 +3,12 @@
 
 !admission/
 !admission/**/**
- 
+
 !img/
 !img/**
+
+!settings/
+!settings/**
+
+!banners/
+!banners/**
