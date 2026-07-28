@@ -4,7 +4,7 @@ namespace Modules\System\Livewire\Settings\Partials;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\System\Models\Setting;
+use Modules\Website\Models\Setting;
 use Illuminate\Support\Facades\Storage;
 
 class Images extends Component
@@ -39,7 +39,7 @@ class Images extends Component
     {
         return [
             'new_logo'    => 'nullable|image|max:2048', // 2MB
-            'new_favicon' => 'nullable|image|max:1024', // 1MB
+            'new_favicon' => 'nullable|file|mimes:png,ico|max:1024', // 1MB
         ];
     }
 
@@ -66,6 +66,11 @@ class Images extends Component
 
             $this->site_logo = $path;
             $this->new_logo = null;
+
+            $this->dispatch(
+                'logo-updated',
+                url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)),
+            );
         }
 
         // ----------------------
@@ -83,6 +88,12 @@ class Images extends Component
 
             $this->site_favicon = $path;
             $this->new_favicon = null;
+
+            $this->dispatch(
+                'favicon-updated',
+                url: asset('storage/' . $path) . '?v=' . md5($path . microtime(true)),
+                type: strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'ico' ? 'image/x-icon' : 'image/png',
+            );
         }
 
         $this->dispatch('notify', type: 'success', message: 'Đã cập nhật hình ảnh');

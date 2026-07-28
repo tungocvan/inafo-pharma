@@ -7,28 +7,32 @@
         $adminSidebarConfig = app(\Modules\Admin\Support\AdminLayoutManager::class)->config()['sidebar'] ?? [];
     @endphp
 
-    <div class="flex h-16 items-center justify-between border-b px-4 {{ $theme['border'] }}">
+    <div class="relative flex h-16 items-center justify-center border-b px-4 {{ $theme['border'] }}">
         <div class="flex min-w-0 items-center gap-3">
-            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-sm font-bold text-white">
-                A
+            <div x-show="!sidebarOpen" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-xs font-bold text-white">
+                {{ $schoolAcronym }}
             </div>
 
-            <span x-cloak x-show="sidebarOpen" class="truncate whitespace-nowrap font-semibold">
-                {{ $titleSidebar }}
+            <span x-cloak x-show="sidebarOpen" class="text-center text-sm font-bold uppercase leading-tight">
+                @if($schoolPrefix)
+                    <span class="block tracking-wide">{{ $schoolPrefix }}</span>
+                @endif
+                <span class="block tracking-widest text-indigo-500">{{ $schoolDisplayName }}</span>
             </span>
         </div>
 
         <button
             type="button"
             @click="toggleSidebar($event.currentTarget)"
-            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            aria-label="Thu gon hoac mo rong menu"
+            class="absolute -right-4 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition hover:bg-slate-50 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            aria-label="Thu gọn hoặc mở rộng menu"
             aria-controls="admin-sidebar"
             :aria-expanded="sidebarOpen.toString()"
+            title="Thu gọn hoặc mở rộng menu"
         >
             <svg
                 :class="sidebarOpen ? 'rotate-180' : ''"
-                class="h-5 w-5 transition-transform motion-reduce:transition-none"
+                class="h-4 w-4 transition-transform duration-300 motion-reduce:transition-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

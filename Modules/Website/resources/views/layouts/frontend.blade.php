@@ -7,9 +7,12 @@
     @php
         use Modules\Website\Models\Setting;
         $favicon = Setting::getValue('site_favicon');
+        $faviconType = strtolower(pathinfo((string) $favicon, PATHINFO_EXTENSION)) === 'ico'
+            ? 'image/x-icon'
+            : 'image/png';
     @endphp
     @if ($favicon)
-        <link rel="icon" type="image/png" href="{{ asset('storage/' . $favicon) }}">
+        <link id="site-favicon" rel="icon" type="{{ $faviconType }}" href="{{ asset('storage/' . $favicon) }}?v={{ md5($favicon) }}">
     @endif
     <title>@yield('title', 'HOMEPAGE')</title>
     {!! Setting::getValue('header_script') !!}

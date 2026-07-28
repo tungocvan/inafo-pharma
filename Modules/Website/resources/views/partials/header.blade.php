@@ -49,10 +49,16 @@
 
                 {{-- LOGO (Dynamic Brand Name) --}}
                 <a href="/" class="flex-shrink-0 flex items-center gap-2 group">
-                    {{-- Logo Icon Placeholder --}}
-                    <div class="w-8 h-8 md:w-10 md:h-10 bg-black text-white rounded-lg flex items-center justify-center font-black text-lg md:text-xl group-hover:bg-blue-600 transition-colors">
-                        {{ substr($headerSettings['brand_name'] ?? 'F', 0, 1) }}
-                    </div>
+                    @if(!empty($headerSettings['logo']))
+                        <img
+                            src="{{ asset('storage/' . $headerSettings['logo']) }}?v={{ md5($headerSettings['logo']) }}"
+                            alt="{{ $headerSettings['brand_name'] ?? 'Logo website' }}"
+                            class="h-10 w-auto max-w-40 object-contain md:h-12">
+                    @else
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-black text-white rounded-lg flex items-center justify-center font-black text-lg md:text-xl group-hover:bg-blue-600 transition-colors">
+                            {{ substr($headerSettings['brand_name'] ?? 'F', 0, 1) }}
+                        </div>
+                    @endif
                     <span class="text-xl md:text-2xl font-bold text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors">
                         {{ $headerSettings['brand_name'] ?? 'FlexBiz' }}<span class="text-blue-600 group-hover:text-black">.</span>
                     </span>

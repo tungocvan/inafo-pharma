@@ -1,8 +1,11 @@
 @php
-    use Modules\Admin\Models\Setting;
+    use Modules\Website\Models\Setting;
 
     $favicon = Setting::getValue('site_favicon');
     $headerScript = Setting::getValue('header_script');
+    $faviconType = strtolower(pathinfo((string) $favicon, PATHINFO_EXTENSION)) === 'ico'
+        ? 'image/x-icon'
+        : 'image/png';
 @endphp
 
 <head>
@@ -11,10 +14,21 @@
     <meta name="color-scheme" content="light">
 
     @if ($favicon)
-        <link rel="icon" type="image/png" href="{{ asset('storage/' . $favicon) }}">
+        <link id="site-favicon" rel="icon" type="{{ $faviconType }}" href="{{ asset('storage/' . $favicon) }}?v={{ md5($favicon) }}">
     @else
-        <link rel="icon" href="/favicon.ico">
+        <link id="site-favicon" rel="icon" type="image/x-icon" href="/favicon.ico">
     @endif
+
+    <script>
+        window.addEventListener('favicon-updated', (event) => {
+            const favicon = document.getElementById('site-favicon');
+
+            if (favicon && event.detail?.url) {
+                favicon.type = event.detail.type || 'image/x-icon';
+                favicon.href = event.detail.url;
+            }
+        });
+    </script>
 
     <title>@yield('title', config('app.name', 'INAFO Admin'))</title>
 

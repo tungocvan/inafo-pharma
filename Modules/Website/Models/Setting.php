@@ -49,5 +49,6 @@ class Setting extends Model
             ['value' => $value, 'group_name' => $group]
         );
         Cache::forget('setting_' . $key);
+        Cache::forget('wp_opt_' . $key);
     }
 }

@@ -25,6 +25,7 @@ class WebsiteServiceProvider extends ServiceProvider
 
             // Lấy settings chung (Logo, Hotline...)
             'headerSettings' => [
+                'logo' => $settings->get('site_logo'),
                 'hotline' => $settings->get('header.topbar.hotline', '0903 971 949'),
                 'email' => $settings->get('header.topbar.email', 'contact@flexbiz.com'),
                 'brand_name' => $settings->get('header.brand_name', 'FlexBiz'),

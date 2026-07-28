@@ -4,7 +4,7 @@ namespace Modules\System\Livewire\Settings\Partials;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\System\Models\Setting;
+use Modules\Website\Models\Setting;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
@@ -55,7 +55,7 @@ class Custom extends Component
     {
         $this->validate([
             'newField.label' => 'required|string|max:255',
-            'newField.key'   => 'required|alpha_dash|unique:settings,key',
+            'newField.key'   => 'required|alpha_dash|unique:wp_settings,key',
             'newField.type'  => 'required|in:text,textarea,image,html,gallery',
         ]);
 

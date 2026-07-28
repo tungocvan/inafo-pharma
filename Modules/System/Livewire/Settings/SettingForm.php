@@ -6,27 +6,27 @@ use Livewire\Component;
 
 class SettingForm extends Component
 {
-    public $tabs = [
+    public array $tabs = [
         'theme' => 'Quản lý Themes',
-        'general' => 'Cấu hình chung',        
-        'menu' => 'Quản lý Menu',        
+        'general' => 'Cấu hình chung',
+        'menu' => 'Quản lý Menu',
         'images'  => 'Hình ảnh',
         'seo'     => 'SEO/Mạng xã hội',
         'custom'  => 'Cấu hình tùy chỉnh',
     ];
 
-    public $activeTab = 'theme';
+    public string $activeTab = 'theme';
 
-    public function setTab($tab)
-    { 
+    public function setTab(string $tab): void
+    {
         if (!array_key_exists($tab, $this->tabs)) {
-            $tab = 'general';
+            $tab = 'theme';
         }
 
-        $this->activeTab = $tab; 
+        $this->activeTab = $tab;
     }
 
-    public function getTabComponent()
+    public function getTabComponent(): string
     {
         return match ($this->activeTab) {
             'general' => 'system.settings.partials.general',
@@ -35,7 +35,7 @@ class SettingForm extends Component
             'images'  => 'system.settings.partials.images',
             'seo'     => 'system.settings.partials.seo',
             'custom'  => 'system.settings.partials.custom',
-            default   => 'system.settings.partials.theme',
+            default   => 'admin.theme-switcher',
         };
     }
 

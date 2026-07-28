@@ -48,6 +48,7 @@ class SettingsService
         );
 
         Cache::forget("wp_opt_{$key}");
+        Cache::forget("setting_{$key}");
       //  Cache::tags(['settings'])->flush(); // Nếu dùng Redis tags
     }
 

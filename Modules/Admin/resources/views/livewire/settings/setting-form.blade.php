@@ -79,6 +79,18 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="flex items-center justify-end border-t border-gray-900/10 pt-6">
+                            <button type="submit" wire:loading.attr="disabled" wire:target="save"
+                                class="inline-flex items-center rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
+                                <svg wire:loading wire:target="save" class="-ml-1 mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <span wire:loading.remove wire:target="save">Lưu cấu hình chung</span>
+                                <span wire:loading wire:target="save">Đang lưu...</span>
+                            </button>
+                        </div>
                     </div>
                 @endif
 
@@ -116,8 +128,10 @@
                             <label class="block text-sm font-medium leading-6 text-gray-900">Favicon (Icon trên tab trình duyệt)</label>
                             <div class="mt-2 flex items-center gap-x-8">
                                 <div class="shrink-0 relative">
-                                    @if($new_favicon)
-                                        <img src="{{ $new_favicon->temporaryUrl() }}" class="h-12 w-12 object-contain rounded border border-gray-200 p-1">
+                                    @if($new_favicon && !$errors->has('new_favicon'))
+                                        <div class="h-12 w-12 bg-indigo-50 rounded flex items-center justify-center text-xs font-medium text-indigo-600 border border-indigo-200">
+                                            Icon mới
+                                        </div>
                                     @elseif($site_favicon)
                                         <img src="{{ asset('storage/'.$site_favicon) }}" class="h-12 w-12 object-contain rounded border border-gray-200 p-1">
                                     @else
@@ -128,10 +142,13 @@
                                 <div>
                                     <label for="favicon-upload" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 cursor-pointer transition">
                                         <span>Chọn icon mới</span>
-                                        <input id="favicon-upload" type="file" wire:model="new_favicon" class="sr-only" accept="image/png, image/x-icon">
+                                        <input id="favicon-upload" type="file" wire:model="new_favicon" class="sr-only" accept=".png,.ico,image/png,image/x-icon,image/vnd.microsoft.icon">
                                     </label>
-                                    <p class="mt-2 text-xs leading-5 text-gray-500">Ảnh vuông. Kích thước 32x32 hoặc 64x64.</p>
+                                    <p class="mt-2 text-xs leading-5 text-gray-500">PNG hoặc ICO, ảnh vuông 32x32 hoặc 64x64, tối đa 512 KB.</p>
                                     <div wire:loading wire:target="new_favicon" class="text-xs text-indigo-600 mt-1">Đang tải ảnh lên...</div>
+                                    @error('new_favicon')
+                                        <p class="mt-2 text-xs font-medium text-red-600">{{ $message }}</p>
+                                    @enderror
                                 </div>
                             </div>
                         </div>
@@ -375,16 +392,18 @@
                     </div>
                 @endif
 
-                <div class="mt-8 flex items-center justify-end gap-x-6 border-t border-gray-900/10 pt-6">
-                    <button type="submit" wire:loading.attr="disabled" class="rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                        <svg wire:loading wire:target="save" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span wire:loading.remove wire:target="save">Lưu cấu hình</span>
-                        <span wire:loading wire:target="save">Đang lưu...</span>
-                    </button>
-                </div>
+                @if($activeTab !== 'general')
+                    <div class="mt-8 flex items-center justify-end gap-x-6 border-t border-gray-900/10 pt-6">
+                        <button type="submit" wire:loading.attr="disabled" wire:target="save" class="rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                            <svg wire:loading wire:target="save" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="save">Lưu cấu hình</span>
+                            <span wire:loading wire:target="save">Đang lưu...</span>
+                        </button>
+                    </div>
+                @endif
 
             </div>
         </form>

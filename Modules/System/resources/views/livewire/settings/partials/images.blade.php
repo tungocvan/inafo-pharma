@@ -80,8 +80,14 @@
             <!-- Preview -->
             <div>
                 @if($new_favicon)
-                    <img src="{{ $new_favicon->temporaryUrl() }}"
-                         class="h-14 w-14 object-contain rounded-lg border border-gray-200 p-1">
+                    @if(strtolower($new_favicon->getClientOriginalExtension()) === 'ico')
+                        <div class="h-14 w-14 flex items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-xs font-semibold text-indigo-600">
+                            ICO mới
+                        </div>
+                    @else
+                        <img src="{{ $new_favicon->temporaryUrl() }}"
+                             class="h-14 w-14 object-contain rounded-lg border border-gray-200 p-1">
+                    @endif
 
                 @elseif($site_favicon)
                     <img src="{{ asset('storage/'.$site_favicon) }}"
@@ -106,7 +112,7 @@
                     <input type="file"
                            wire:model="new_favicon"
                            class="hidden"
-                           accept="image/png,image/x-icon">
+                           accept=".png,.ico,image/png,image/x-icon,image/vnd.microsoft.icon">
                 </label>
 
                 <!-- Loading -->
@@ -114,6 +120,10 @@
                      class="text-xs text-indigo-600">
                     Đang tải icon...
                 </div>
+
+                @error('new_favicon')
+                    <p class="text-xs font-medium text-red-600">{{ $message }}</p>
+                @enderror
 
                 <!-- Remove -->
                 @if($site_favicon)
