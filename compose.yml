@@ -82,6 +82,8 @@ services:
       target: socket
     env_file: .env
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:6001:6001"
     logging: *json_logs
     mem_limit: 256m
     cpus: 0.25
