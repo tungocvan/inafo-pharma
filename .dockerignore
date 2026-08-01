@@ -11,6 +11,7 @@ public/storage
 storage/logs
 storage/framework
 storage/app
+bootstrap/cache/*.php
 deploy-reports
 deploy/deploy-reports
 *.log
