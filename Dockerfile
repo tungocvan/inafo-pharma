@@ -17,6 +17,7 @@ WORKDIR /var/www/html
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY resources ./resources
+COPY socket ./socket
 COPY public ./public
 COPY vite.config.js ./
 RUN npm run build
