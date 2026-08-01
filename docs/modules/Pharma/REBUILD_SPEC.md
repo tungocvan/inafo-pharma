@@ -1,288 +1,125 @@
 # Đặc tả xây dựng lại module Pharma
 
-Phiên bản: 2026-07-14  
-Trạng thái: **Import/export của cả ba feature Pharma đã triển khai theo mapping được duyệt**
+## 1. Goal
 
-## 1. Phạm vi
+Giữ Pharma là canonical owner của Medicine, DrugBidAward, SupplierTracking và PriceList; xây luồng an toàn theo findings `PH-P0-01..04`, correctness/performance trong `ANALYSIS.md` và thứ tự `REFACTOR_PLAN.md`.
 
-Pharma tiếp tục là module sở hữu:
-
-- Danh mục thuốc.
-- Kết quả thuốc trúng thầu.
-- Theo dõi nhà cung cấp, giá, chi phí, lợi nhuận và hợp đồng.
-- Import/export cho ba nhóm dữ liệu trên.
-
-Không tạo business code Pharma trong `app/Models`, `app/Http` hoặc `app/Services`.
-
-## 2. Kiến trúc bắt buộc
+## 2. Target Architecture
 
 ```text
-Route
-→ Controller
-→ Page Blade
-→ Livewire PHP
-→ Livewire Blade
-→ Shared UI
-→ Pharma Service
-→ Pharma Import/Export
-→ Shared Base Service
-→ Model
-→ Database
+Authorized Route -> Thin Controller -> Page -> Authorized Livewire/Form
+ -> Pharma Application Service -> Model/DB
+ -> Import/Export contract -> Shared private storage
+ -> PriceList service -> server-side analysis snapshot -> builder -> private download/audit
 ```
 
-Quy tắc:
+Shared panel nhận registry key server-owned, không nhận class tin cậy từ client. Major decision này dựa trên `PH-P0-03`.
 
-- Controller không query.
-- Blade không query.
-- Livewire không chứa business logic hoặc thao tác filesystem.
-- Service sở hữu query, transaction và invariant.
-- UI import/export dùng `shared.import-export.panel` với `serviceClass`.
-- Không copy logic normalize/report/storage từ `Modules/Shared`.
+## 3. Database Design
 
-## 3. Cấu trúc đích
+Giữ ba table hiện tại. Thêm forward unique Supplier sau khi chốt key/nullability (`PH-P1-COR-02`). Nếu quotation là chứng từ, thêm quotation header/version/items/file metadata/source hash/status/creator timestamps thay vì chỉ file tạm (Open Questions 2-5). Không lưu public path; lưu private storage key. Thêm audit actor và constraint/status theo quyết định nghiệp vụ.
 
-```text
-Modules/Pharma/
-├── Http/Controllers/
-├── Livewire/
-│   ├── Medicine/
-│   ├── DrugBidAward/
-│   └── SupplierTrackings/
-├── Models/
-├── Services/
-│   ├── MedicineService.php
-│   ├── DrugBidAwardService.php
-│   ├── SupplierTrackingService.php
-│   └── ImportExport.php
-├── Import/                  # tạo khi logic đủ lớn
-│   └── SupplierTrackingImport.php
-├── Export/                  # tạo khi logic đủ lớn
-│   └── SupplierTrackingExport.php
-├── database/migrations/
-├── resources/views/
-└── routes/
-```
+## 4. Model Design
 
-Khi bổ sung import/export cho thuốc và trúng thầu, ưu tiên service riêng theo feature hoặc một facade có cấu hình feature rõ ràng; không nhồi ba schema khác nhau vào một class dài.
+Giữ ba model, thêm inverse relations và enum/status cast. Derived Supplier fields chỉ được service/domain calculator quản lý. Nếu có Quote model, quan hệ items dùng snapshot giá/nội dung để lịch sử không đổi khi workbook cập nhật. Cơ sở: Model/Database Analysis.
 
-## 4. Hợp đồng dữ liệu
+## 5. Service Design
 
-### 4.1. Medicine
+CRUD/query/calculation thuộc service. Import/export mỗi aggregate triển khai interface shared. PriceList tách: source repository/versioning, analyzer, selection validator, builder, private artifact service, audit service. Web service không nhận arbitrary output path (`PH-P1-COR-03`); CLI override là trusted contract riêng.
 
-Table: `pharma_medicines`
+## 6. Livewire Design
 
-Unique key:
+Authorize trong mount/render và từng public mutation. Dùng typed form/state. PriceList public state chỉ có metadata/projection; full workbook ở server snapshot keyed theo user/source hash. Validate/cap search, rows, columns, text. Không trả exception thô. Cơ sở: `PH-P0-01/02`, `PH-P1-SEC-05`.
 
-```text
-registration_number + packaging_specification
-```
+## 7. Blade/UI Design
 
-Date fields: `visa_validity_date`, `gmp_certification_date`.  
-Money field: `declared_price`.  
-Boolean field: `is_special_control`.
+Button theo `@can`, nhưng server vẫn enforce. Hiển thị nguồn/version/time, selected count, progress, safe errors và audit ID. External links dùng noopener. Menu PriceList chỉ hiện với capability tương ứng.
 
-Yêu cầu trước khi code import:
+## 8. Import Design
 
-- Cung cấp Excel mẫu.
-- Chốt mapping.
-- Chuyển model sang `$fillable` rõ ràng để xác định export mặc định.
-- Chốt cách update khi ô Excel rỗng.
+XLSX/CSV private temp; fixed mode per aggregate; verified header mapping; normalization/validation/relationship resolution; preload lookup; explicit partial hoặc atomic strategy; dry-run side-effect free; bounded chunk/queue; row/sheet/column report; cleanup. Dựa trên Import Analysis và roadmap P1-05/06/09.
 
-### 4.2. DrugBidAward
+## 9. Export Design
 
-Table: `pharma_drug_bid_awards`
+Filter server-side, capped selected IDs, chunk/lazy, queue threshold, private artifact, authorized short-lived download, expiry/cleanup. PriceList source columns phải có allowlist/classification; user text explicit string. Dựa trên `PH-P0-04`, `PH-P1-PERF-01/02`.
 
-Unique key:
+## 10. Permissions And Authorization
 
-```text
-bidding_notice_code + medicine_name + winning_company_name
-```
+Capabilities tối thiểu: `view_pharma`, create/update/delete theo aggregate hoặc chung; `import_pharma`, `export_pharma`, `generate_price_list`, và nếu cần `approve/publish_price_list`. Route + policy/Livewire action + download đều kiểm tra. Record ownership/tenant scope phải được xác nhận. Dựa trên `PH-P0-01`.
 
-Relationship: `medicine_id` nullable, belongs to `Medicine`.  
-Date field: `decision_date`.  
-Money field: `unit_price`.  
-Integer fields: `quantity`, `contract_duration_months`.
+## 11. Transactions And Data Integrity
 
-Yêu cầu trước khi code import:
+CRUD/bulk/import obey explicit transaction contract. DB unique là hàng rào concurrency. Derived values tính server-side. File artifact chỉ được đánh dấu ready sau khi save thành công; DB record và file dùng compensation/outbox nếu cần. Không cascade-delete lịch sử thương mại nếu chưa được nghiệp vụ duyệt.
 
-- Cung cấp Excel mẫu.
-- Chốt có bắt buộc match thuốc hay không.
-- Chốt duplicate mode và null-overwrite.
+## 12. Performance Strategy
 
-### 4.3. SupplierTracking
+Cache analysis theo source hash/mtime và không chứa dữ liệu vượt quyền; load workbook tối đa cần thiết; set row/column/file thresholds; queue large generation; no All; chunk import/export; preload medicine keys. Dựa trên `PH-P1-PERF-01/02`.
 
-Table: `pharma_supplier_trackings`
+## 13. Shared Foundation Integration
 
-Unique key đã duyệt:
+Shared interface + registry định nghĩa service/modes/capabilities/storage/retention. Pharma cung cấp mapper/rules/query. Không copy normalization/report/storage. Shared changes bắt buộc có regression test cho mọi consumer. Dựa trên `PH-P0-03/04`.
 
-```text
-medicine_id + supplier_name + working_date
-```
+## 14. Event And Listener Design
 
-Derived fields:
+Events sau commit: Medicine/Award/Supplier changed; import completed; export requested/ready/expired; PriceList generated/approved/downloaded. Payload chỉ chứa IDs/metrics, không workbook rows hoặc sensitive values.
 
-- `invoice_difference_amount`.
-- `invoice_difference_fee`.
-- `cost_price`.
-- `gross_profit_percent`.
+## 15. Queue Design
 
-Các field này chỉ export để tham khảo và không nhận giá trị persist từ Excel.
-
-Export mặc định dựa trên `$fillable`, loại:
+Queue import/export/generate khi vượt threshold; job mang actor/tenant/capability snapshot có thời hạn và re-authorize khi download; idempotency key theo request/source hash/options; progress, retry, final failure, cleanup. Hiện module chưa có jobs—đây là target theo performance findings.
 
-```text
-contract_url, status, note
-```
-
-Việc loại ba field này cần được nghiệp vụ xác nhận lần cuối.
-
-## 5. Đặc tả import
-
-### Input
-
-- Định dạng: `xlsx`, `xls` hoặc `csv` theo khả năng chính thức của shared foundation.
-- Giới hạn dung lượng phải cấu hình rõ trên shared panel.
-- Phải hỗ trợ dry-run.
-- Mapping dùng header alias hoặc A/B/C, không kết hợp ngầm định.
-
-### Pipeline
-
-```text
-Đọc file
-→ xác định sheet/header
-→ map về DB field
-→ normalize
-→ resolve relationship
-→ validate row
-→ tính derived fields
-→ áp dụng duplicate policy
-→ persist trong transaction đã chọn
-→ trả report
-```
-
-### Normalize
-
-- String: trim; chuỗi rỗng thành null khi field cho phép.
-- Money/number: hỗ trợ `1,000,000`, `1.000.000`, `1000000`, `1 000 000` theo quy tắc không mơ hồ.
-- Date: hỗ trợ `dd/mm/yyyy`, `yyyy-mm-dd` và Excel serial.
-- Boolean: hỗ trợ `1/0`, `true/false`, `yes/no`, `có/không`.
-- URL: validate URL, không chỉ validate string.
-
-### Validation
-
-- Validate sau mapping và normalization.
-- Required/type/range/enum/foreign key/unique phải trả lỗi theo dòng.
-- Không để exception thô xuất hiện trên UI.
-
-### Duplicate mode
-
-Chỉ cho phép mode đã duyệt:
-
-```text
-create_only | update_or_create | skip_duplicate
-```
-
-Không dùng `replace` nếu không có xác nhận riêng.
-
-### Report
-
-```php
-[
-    'success' => true,
-    'total_rows' => 0,
-    'success_rows' => 0,
-    'error_rows' => 0,
-    'skipped_rows' => 0,
-    'errors' => [
-        [
-            'sheet' => 'Sheet1',
-            'row' => 2,
-            'column' => 'supplier_name',
-            'value' => null,
-            'reason' => 'Nhà cung cấp không được để trống.',
-        ],
-    ],
-    'debug' => [],
-]
-```
-
-## 6. Đặc tả export
-
-- Query nhận filter đang hoạt động từ UI.
-- Export mặc định theo `$fillable`, trừ `$exceptExport`.
-- Cột relation và derived field phải được khai báo rõ trong mapper.
-- Date xuất theo format đã chốt; money là numeric cell, không lưu chuỗi tiền tệ.
-- Dữ liệu lớn dùng lazy/chunk; không `get()` toàn bảng.
-- File lưu qua shared export storage và trả URL tải hợp lệ.
-- Export selected phải kiểm tra quyền trên từng ID.
-
-## 7. Template
-
-Template phải có:
-
-- Header chính thức.
-- Một hoặc vài dòng mẫu an toàn.
-- Ghi chú required/optional.
-- Danh sách giá trị status/boolean hợp lệ.
-- Định dạng ngày và tiền.
-- Đánh dấu field hệ thống tự tính.
-- Không đưa `id` DB làm business key mặc định.
-
-Template A–V đang có cho SupplierTracking chỉ là đề xuất cho đến khi đối chiếu file thật.
-
-## 8. UI và Livewire
-
-Mount panel theo mẫu:
-
-```blade
-@livewire('shared.import-export.panel', [
-    'serviceClass' => \Modules\Pharma\Services\ImportExport::class,
-    'title' => 'Import / Export theo dõi nhà cung cấp',
-    'description' => 'Nhập dữ liệu từ Excel hoặc xuất dữ liệu hiện tại.',
-])
-```
-
-Shared panel chỉ quản lý upload, mode, dry-run, loading và hiển thị report. Panel không query model, map field, validate từng row hoặc persist dữ liệu.
-
-## 9. Authorization
-
-Mọi page/action phải kiểm tra quyền phía server:
-
-- View.
-- Create/update.
-- Delete/bulk delete.
-- Import.
-- Export/export selected.
-
-Ẩn hoặc disable button không được xem là authorization.
-
-## 10. Transaction và idempotency
-
-- CRUD nhiều bước và bulk action dùng transaction.
-- `update_or_create` chỉ dùng business key đã duyệt.
-- Retry không tạo bản ghi trùng.
-- Chiến lược import toàn file hay partial theo dòng phải được xác nhận và có test.
-- Dry-run không được tạo/sửa/xóa dữ liệu hoặc để lại file tạm ngoài chủ đích.
-
-## 11. Tiêu chí nghiệm thu
-
-- Không còn route trỏ tới method thiếu.
-- Không có Pharma API public ngoài chủ đích.
-- Shared panel là UI import/export duy nhất cho feature đã chuyển đổi.
-- Mapping khớp file mẫu đã duyệt.
-- Derived field không bị import ghi đè.
-- Duplicate, null-overwrite và rollback đúng tài liệu.
-- Export áp dụng filter và không nạp toàn bộ dataset.
-- Report lỗi xác định đúng sheet/dòng/cột.
-- Test authorization, import, export, dry-run và dữ liệu lớn đều pass.
-
-## 12. Điểm đang chờ xác nhận
-
-Các quyết định đã chốt:
-
-1. SupplierTracking dùng mapping A–V với header tiếng Việt.
-2. Unique key: `medicine_id + supplier_name + working_date`.
-3. Status: `active`, `completed`, `paused`, `cancelled`.
-4. Lookup thuốc ưu tiên số đăng ký, fallback theo tên.
-5. Import mode `update_or_create`; ô rỗng giữ dữ liệu cũ.
-6. Lỗi theo dòng không rollback các dòng hợp lệ.
+## 16. Cache Design
+
+Cache workbook analysis projection/server snapshot theo file hash + sheet + access scope; invalidate khi mtime/hash đổi. Không cache authorization lâu hơn role changes. Cache failure không được bỏ qua validation nguồn.
+
+## 17. Logging Strategy
+
+Structured log: correlation, actor, feature, source hash/version, row/column counts, duration, artifact ID, result. Không log full rows, contract URLs, recipient data hoặc raw exceptions cho UI. Redact paths khi không cần.
+
+## 18. Monitoring Strategy
+
+Metrics/alerts: import/export/generate duration/failure, workbook load count/memory, queue age, public/private artifact count, cleanup backlog, denied/tampered actions, duplicate Supplier attempts.
+
+## 19. Rollback Strategy
+
+Additive migrations; backup/dedupe Supplier trước unique. Version quote builder/source. Pause queue during incompatible deploy. Private artifact migration có grace-period. Quarantine cleanup. Không rollback P0 auth/private storage containment.
+
+## 20. Test Strategy
+
+Unit service/calculator/parser/builder; feature route/permission/Livewire; security tampering/data projection/formula/path; import/export fixtures/dry-run/partial/atomic; storage download/expiry; DB migration/concurrency; performance load/memory; production-like MySQL smoke.
+
+## 21. Deployment Checklist
+
+- Chốt open questions và data classification.
+- Seed/assign permissions trước middleware.
+- Khai báo direct PhpSpreadsheet dependency.
+- Backup DB/workbook/public exports; hash/version workbook.
+- Migrate private artifacts và Supplier invariant.
+- Run full tests/Pint, MySQL migration, frontend build.
+- Configure private disk, queue, cleanup, logs/alerts.
+- Generate/review sample quote and denied-access tests.
+
+## 22. Implementation Checklist
+
+- [ ] Route/action/download authorization
+- [ ] PriceList client projection only
+- [ ] Shared service registry/interface
+- [ ] Private exports + retention
+- [ ] Broken routes resolved
+- [ ] Safe strings/errors/output path
+- [ ] Supplier key/nullability constraint
+- [ ] Bounded/cached/queued processing
+- [ ] Quote audit/versioning decision implemented
+- [ ] Tests/monitoring/docs complete
+
+## 23. Needs Confirmation Before Coding
+
+1. Permission matrix và tenant/ownership.
+2. Quote temporary hay persisted/approved/versioned.
+3. Allowed/sensitive source columns.
+4. Workbook owner, update and approval process.
+5. CLI arbitrary output path policy.
+6. Supplier key + required working date.
+7. Fixed import mode và partial/atomic policy mỗi aggregate.
+8. API requirement.
+9. File retention/download expiry.
+10. Large-file queue thresholds và production DB/queue.

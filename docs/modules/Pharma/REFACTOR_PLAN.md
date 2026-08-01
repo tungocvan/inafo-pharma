@@ -1,212 +1,82 @@
 # Kế hoạch refactor module Pharma
 
-Ngày cập nhật: 2026-07-14  
-Phạm vi: `Modules/Pharma`  
-Nguồn: mã nguồn hiện tại và `ANALYSIS.md`
+## Executive Summary
 
-## 1. Mục tiêu
+Thực hiện Major Refactor theo `ANALYSIS.md`: containment quyền và dữ liệu báo giá trước, sau đó sửa shared import/export/file storage, route/DB correctness, rồi tối ưu workbook và test. Giữ nguyên domain boundary Pharma và các lớp phân tích/build workbook đang có.
 
-- Loại bỏ route hỏng và bề mặt truy cập không được bảo vệ.
-- Mỗi nhóm dữ liệu chỉ có một luồng import/export chính thức.
-- Dùng `shared.import-export.panel` và `BaseImportExportService`.
-- Controller/Blade/Livewire không chứa query hoặc business logic.
-- Import có mapping, validation, dry-run, duplicate policy và report thống nhất.
-- Export áp dụng filter, giới hạn bộ nhớ và tuân thủ `$fillable`/`$exceptExport`.
+## P0 Critical Fixes
 
-## 2. Điều kiện khởi động
+1. **Authorization (`PH-P0-01`)**: permission middleware cho page; authorize trong mọi Livewire mutation/import/export/generate; policy/record checks cho ID; denied tests.
+2. **Không serialize workbook đầy đủ (`PH-P0-02`)**: public state chỉ giữ projection 5 field; full values/snapshot ở server; authorize trước analyze.
+3. **Khóa shared service resolution (`PH-P0-03`)**: registry server-owned/locked key, interface + allowlist + capability; không resolve class tùy ý từ client state.
+4. **Private exports (`PH-P0-04`)**: chuyển Pharma/shared exports sang private disk, authorized download/token ngắn hạn, retention và cleanup.
 
-Không bắt đầu hạng mục thay thế import cho đến khi có:
+## P1 Important Refactors
 
-- Excel mẫu hoặc dữ liệu thật.
-- Migration và model (đã có).
-- Xác nhận mapping header hoặc A/B/C.
-- Unique key, import mode, null-overwrite và rollback policy.
+- Sửa/gỡ API và supplier import-export route hỏng (`PH-P1-COR-01`).
+- Định nghĩa permission `view/create/update/delete/import/export/generate_price_list`; cập nhật manifest/role/menu.
+- Chặn formula injection, không trả raw exception; structured logs + correlation (`PH-P1-SEC-05`).
+- Cache server-side workbook analysis theo hash/mtime, tránh load lặp; giới hạn file/row/column; queue khi vượt threshold (`PH-P1-PERF-01`).
+- Giới hạn output path; tách trusted CLI override khỏi web contract (`PH-P1-COR-03`).
+- Chốt Supplier unique/nullability, thêm forward migration và concurrency test (`PH-P1-COR-02`).
+- Bỏ `All`, cap pagination; chunk/lazy/queue import-export; preload medicine lookup (`PH-P1-PERF-02`).
+- Cố định import mode theo aggregate trừ khi người dùng có capability/policy đặc biệt.
+- Chuẩn hóa partial-vs-atomic transaction/report, header verification, ambiguous medicine lookup và cleanup temp.
+- Khai báo `phpoffice/phpspreadsheet` là direct dependency nếu module tiếp tục import namespace trực tiếp.
+- Cân nhắc persist quotation/audit/version nếu báo giá là chứng từ phát hành.
 
-## 3. Lộ trình triển khai
+## P2 Nice To Have Improvements
 
-### Giai đoạn 0 — ổn định route và authorization
+- Xóa `Models/Pharma.php`, placeholder và route/show artifacts sau test.
+- Thêm menu tạo báo giá theo permission.
+- Inverse relations, enums/status, typed Livewire/Form objects.
+- Metrics: workbook parse/build duration, size, rows, export/import failures, cleanup backlog.
+- Cập nhật module README và runbook nguồn workbook.
 
-#### P0-01: xử lý API route
+## Recommended Implementation Order
 
-- Nếu không cần API: bỏ đăng ký `GET /pharma` và dọn controller scaffold sau khi test.
-- Nếu cần API: thêm guard được dự án chấp thuận, permission, action mỏng và service.
+1. Viết characterization + denied/tampering tests.
+2. Đóng quyền route/action và giảm public Livewire state.
+3. Khóa Shared Panel registry; chuyển export private + cleanup.
+4. Sửa route hỏng/API.
+5. Chặn formula/raw errors/output path.
+6. Chốt quotation lifecycle/audit và Supplier key.
+7. Tối ưu/cached workbook, bounded import/export/list.
+8. Thêm migration/invariants, full tests, observability, cleanup.
 
-Hoàn thành khi route không còn public/hỏng và có regression test.
+## Files Change Matrix
 
-#### P0-02: sửa route import/export nhà cung cấp
+| Nhóm | File dự kiến | Mục tiêu |
+|---|---|---|
+| Quyền | `routes/web.php`, manifest, mọi Pharma Livewire, policies/tests, Admin menu | capability + record authorization |
+| Báo giá | `PriceList/Create.php`, `PriceListService.php`, analyzer/builder, DTO/tests | projection, cache, safe text/path, lifecycle |
+| Shared I/E | Shared Panel/Base/storage concerns + Pharma I/E/tests | registry, private files, chunking, mode |
+| Route/API | `routes/api.php`, controllers, route tests | bỏ/sửa contract hỏng |
+| DB | forward migrations, models/services/tests | Supplier unique/audit/quotation records nếu duyệt |
+| Ops | commands, logs, cleanup job/scheduler, docs | retention, metrics, recovery |
 
-- Chọn một trong hai: giữ panel ở trang index hoặc tạo page riêng.
-- Nếu giữ page riêng, thêm method controller và page Blade hợp lệ.
-- Ràng buộc `{id}` là số để hợp đồng route rõ ràng và từ chối ID không hợp lệ sớm.
+## Risk Control
 
-Hoàn thành khi mọi route trỏ tới action tồn tại.
+- Không xóa legacy trước khi route/service callers và tests được xác nhận.
+- Permission rollout phải seed/assign role trước khi bật middleware.
+- Không đưa workbook full values vào cache/client không mã hóa; key cache theo hash và quyền.
+- Chuyển public export sang private nhưng giữ grace-period migration cho link đang dùng.
+- Cleanup chạy report-only/quarantine trước khi xóa.
+- Nếu persist quotation, dùng additive migration và version source workbook.
 
-#### P0-03: thêm authorization
+## Test Strategy
 
-Permission tối thiểu đề xuất:
+- Route/auth: unauthenticated, admin thiếu quyền, đúng quyền, Super Admin.
+- Livewire: mọi action, tampered ID/rows/columns/service key/state.
+- PriceList: missing/corrupt/duplicate header, formula-like text, projection leak, output confinement, cleanup, large workbook, concurrent generate.
+- Import: header mapping, mode, duplicate, null, row error, dry-run, relationship ambiguity, transaction contract.
+- Export: filters, private authorized download, expiry, chunk/memory.
+- DB: fresh/rollback MySQL + SQLite, unique/concurrency/cascade.
+- Performance: query count, workbook load count, memory/time thresholds.
 
-```text
-view_pharma
-create_pharma
-edit_pharma
-delete_pharma
-import_pharma
-export_pharma
-```
+## Rollback Notes
 
-Áp dụng tại route/controller cho page access và trong Livewire/shared panel cho action. Kiểm tra lại từng ID ở server cho edit/delete/bulk delete/export selected.
-
-### Giai đoạn 1 — thống nhất nghiệp vụ
-
-#### P1-01: chốt contract import/export
-
-Cho từng aggregate, ghi rõ:
-
-- File mẫu, sheet và dòng header.
-- Mapping field.
-- Required/nullable/type/range.
-- Unique key và import mode.
-- Quy tắc update giá trị rỗng.
-- Partial import hay atomic import.
-- Danh sách cột export và format.
-
-#### P1-02: chuẩn hóa model metadata
-
-- Đổi `Medicine` sang `$fillable` rõ ràng nếu export mặc định theo master prompt.
-- Chỉ khai báo `$exceptExport` cho field thực sự không được xuất.
-- Chốt cast và relation của cả ba model.
-- Không sửa migration lịch sử đã chạy; tạo migration mới cho constraint/index cần bổ sung.
-
-#### P1-03: chốt invariant nhà cung cấp
-
-- Xác nhận unique key đề xuất `medicine_id + supplier_name + working_date`.
-- Xác nhận status hợp lệ.
-- Giữ bốn field công thức là server-owned.
-- Xác nhận lookup thuốc theo số đăng ký và hành vi fallback.
-
-### Giai đoạn 2 — xây luồng dùng chung
-
-#### P1-04: nhà cung cấp
-
-- Giữ `Services/ImportExport.php` làm entry point mỏng.
-- Khi service lớn, tách thành `Import/SupplierTrackingImport.php` và `Export/SupplierTrackingExport.php` cùng mapper/normalizer cần thiết.
-- Bỏ luồng import/export cũ khỏi Livewire và `SupplierTrackingService` sau khi test tương đương.
-- Áp dụng filter thật cho export và thay `get()` toàn bộ bằng lazy/chunk.
-- Cache/preload lookup thuốc trong phạm vi import để tránh query từng dòng.
-
-#### P1-05: thuốc
-
-- Chỉ triển khai sau khi có Excel mẫu.
-- Hợp nhất `MedicineImportService`, import trong `MedicineService` và console command.
-- Console command, nếu giữ, chỉ là adapter gọi canonical service.
-- Unique key mặc định đề xuất: `registration_number + packaging_specification`.
-
-#### P1-06: trúng thầu
-
-- Chỉ triển khai sau khi có Excel mẫu.
-- Thay CSV service riêng bằng shared foundation hoặc adapter thống nhất.
-- Unique key mặc định đề xuất: `bidding_notice_code + medicine_name + winning_company_name`.
-- Chốt cách liên kết `medicine_id` và null-overwrite.
-
-### Giai đoạn 3 — service và tính toàn vẹn
-
-#### P1-07: đưa business logic về service
-
-- Controller chỉ trả page.
-- Livewire chỉ quản lý state, validate UI, authorize và gọi service.
-- Service sở hữu query, transaction, bulk action và công thức.
-- Dùng dependency injection nhất quán, không gọi `app()` lặp lại.
-
-#### P1-08: transaction và error handling
-
-- CRUD và bulk mutation chạy trong transaction khi có nhiều bước.
-- Import tuân theo rollback policy đã xác nhận.
-- Không flash exception thô cho người dùng.
-- Report import trả tổng dòng, thành công, bỏ qua, lỗi và chi tiết sheet/row/column/value/reason.
-
-#### P1-09: validation
-
-- Thuốc: composite unique `registration_number + packaging_specification`, bỏ qua record hiện tại khi edit.
-- Trúng thầu: composite unique theo key của DB, bỏ qua record hiện tại.
-- Nhà cung cấp: validate medicine, supplier, money, percent, date range, URL và status.
-- Upload: extension/MIME/kích thước rõ ràng trong shared panel.
-
-### Giai đoạn 4 — hiệu năng và UI
-
-#### P1-10: query và dữ liệu lớn
-
-- Eager load `medicine` khi list/export cần relation.
-- Server-side pagination; chỉ cho `10`, `25`, `50`, `100`.
-- Nếu giữ `All`, phải có hard cap và cảnh báo.
-- Export dùng lazy/chunk; queue chỉ khi đã có authorization context và progress/failure strategy.
-- Chỉ thêm index sau khi xác nhận filter/sort thực tế.
-
-#### P1-11: UI
-
-- Dùng duy nhất `shared.import-export.panel`.
-- Dùng `x-select-search` cho danh sách thuốc dài.
-- Page Blade chỉ mount component và dùng `Admin::layouts.master`.
-- Dùng Tailwind hiện hành; không thêm Bootstrap/jQuery mới.
-- Link ngoài có `rel="noopener noreferrer"`; ngày hiển thị từ cast.
-
-### Giai đoạn 5 — dọn dẹp và tài liệu
-
-- Xóa luồng/scaffold không dùng sau khi test pass.
-- Cập nhật `Modules/Pharma/readme.md`.
-- Chốt hoặc bỏ supplier tracking show flow.
-- Ghi lại định dạng template, alias, unique key, status và rollback policy.
-
-## 4. Kế hoạch kiểm thử
-
-### Route/authorization
-
-- Route boot không tham chiếu method thiếu.
-- API bị gỡ hoặc yêu cầu guard.
-- Admin thiếu quyền bị từ chối ở page và action.
-- ID bị sửa trên client không thể edit/delete/export trái phép.
-
-### Service
-
-- Filter/search/pagination đúng.
-- Công thức nhà cung cấp đúng ở create, update và import.
-- Transaction rollback khi lỗi.
-- Bulk delete xử lý ID không hợp lệ theo fail-closed.
-
-### Import
-
-- Header/A-B-C mapping đúng với fixture đã duyệt.
-- Normalize tiền, ngày, boolean/status và chuỗi rỗng.
-- Duplicate policy và null-overwrite đúng.
-- Dry-run không ghi DB.
-- Report lỗi đúng dòng/cột.
-- Derived field không bị Excel ghi đè.
-
-### Export
-
-- Filter được áp dụng.
-- `$fillable` và `$exceptExport` được tôn trọng.
-- Relation được eager load.
-- Dữ liệu lớn không nạp toàn bộ vào bộ nhớ.
-- Template đánh dấu field bắt buộc, tùy chọn và tự tính.
-
-## 5. Thứ tự pull request đề xuất
-
-1. Route/API/authorization và regression tests.
-2. Model metadata, validation và transaction.
-3. Supplier tracking shared import/export.
-4. Medicine import/export sau khi duyệt Excel.
-5. Drug bid award import/export sau khi duyệt Excel.
-6. Hiệu năng, UI cleanup và xóa legacy.
-
-Không gộp xóa legacy vào cùng thay đổi đầu tiên; chỉ xóa sau khi luồng mới có test tương đương.
-
-## 6. Definition of Done
-
-- Không còn route hỏng hoặc public ngoài chủ đích.
-- Mọi action có authorization server-side.
-- Mỗi aggregate có tối đa một canonical import/export service.
-- Shared panel không nhận model trực tiếp, chỉ nhận `serviceClass`.
-- Import có dry-run, report chuẩn và policy trùng đã duyệt.
-- Export đúng filter và an toàn với dữ liệu lớn.
-- Test route, authorization, service, import và export đều pass.
-- Tài liệu phản ánh đúng mapping/template production.
+- Có thể rollback UI/cache tối ưu độc lập, nhưng không rollback authorization hoặc private download về trạng thái public.
+- Giữ worker/scheduler cleanup tắt cho đến khi retention được xác nhận.
+- Forward migration Supplier cần backup/deduplicate report và rollback index rõ.
+- Khi thay đổi quotation format, giữ version builder cũ để tái tạo file đã phát hành nếu nghiệp vụ yêu cầu.
