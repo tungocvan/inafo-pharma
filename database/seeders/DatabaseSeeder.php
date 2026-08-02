@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
              RolesAndPermissionsSeeder::class,
             // 1. Tạo người dùng trước
             UserAdminSeeder::class,
-            UserSeeder::class,
+            // UserSeeder::class,
              // 5. Tạo menu sidebar
             CategoryTypeSeeder::class,
             MenuCategorySeeder::class,
