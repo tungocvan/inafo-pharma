@@ -26,7 +26,7 @@ if (!window.socket) {
 
     window.socket = io(SOCKET_HOST, {
         path: "/socket.io",
-        transports: ["websocket"], // 🔥 tránh duplicate connect
+        transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
