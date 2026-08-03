@@ -59,8 +59,11 @@
         const scroll = () => { if(chatContent) chatContent.scrollTop = chatContent.scrollHeight; };
         window.addEventListener('scroll-bottom', () => setTimeout(scroll, 50));
         scroll();
-
-        window.Echo.connector.socket.onAny((eventName, data) => {
+        if (!window.socket) {
+            console.error('Socket chưa được khởi tạo');
+            return;
+        }
+        window.socket.onAny((eventName, data) => {
             if (eventName === 'MessageSent') {
                 console.log("📡 Widget nhận tín hiệu, đang làm mới UI...");
 

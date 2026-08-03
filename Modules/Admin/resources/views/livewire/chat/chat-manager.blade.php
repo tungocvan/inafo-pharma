@@ -132,7 +132,11 @@
             // Khởi tạo lần đầu
             scrollToBottom();
             // 1. Lắng nghe từ Echo (Cưỡng bức)
-            window.Echo.connector.socket.onAny((eventName, data) => {
+            if (!window.socket) {
+                console.error('Socket chưa được khởi tạo');
+                return;
+            }
+            window.socket.onAny((eventName, data) => {
                 if (eventName === 'MessageSent') {
                     console.log("📡 Admin nhận tín hiệu, đang làm mới UI...");
 
