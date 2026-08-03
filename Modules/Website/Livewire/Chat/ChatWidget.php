@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Website\Livewire\Chat;
 
 use Livewire\Component;
@@ -13,6 +14,7 @@ class ChatWidget extends Component
     public $step = 'auth'; // auth, chat
     public $message = '';
     public $sessionToken;
+    public $chatSessionId = null;
 
     public function getListeners()
     {
@@ -26,19 +28,29 @@ class ChatWidget extends Component
 
     public function mount()
     {
-        // Ưu tiên User đã đăng nhập
         if (Auth::check()) {
             $this->step = 'chat';
             $this->sessionToken = 'user_' . Auth::id();
         } else {
-            // Cấp token định danh cho Guest
             $this->sessionToken = session()->get('chat_token', Str::random(32));
             session(['chat_token' => $this->sessionToken]);
 
-            // Kiểm tra nếu Guest này đã có phiên chat cũ chưa kết thúc
-            $exists = ChatSession::where('session_token', $this->sessionToken)->exists();
-            if ($exists) { $this->step = 'chat'; }
+            $exists = ChatSession::where(
+                'session_token',
+                $this->sessionToken
+            )->exists();
+
+            if ($exists) {
+                $this->step = 'chat';
+            }
         }
+
+        $session = ChatSession::where(
+            'session_token',
+            $this->sessionToken
+        )->first();
+
+        $this->chatSessionId = $session?->id;
     }
 
     public function handleIncoming($data)
@@ -53,9 +65,16 @@ class ChatWidget extends Component
 
     public function startChat(ChatService $chatService)
     {
-        // Khởi tạo session thông qua Service
-        $chatService->getOrCreateSession($this->sessionToken);
+        $session = $chatService->getOrCreateSession($this->sessionToken);
+
+        $this->chatSessionId = $session->id;
         $this->step = 'chat';
+
+        $this->dispatch(
+            'chat-session-ready',
+            sessionId: $session->id
+        );
+
         $this->dispatch('scroll-bottom');
     }
 
