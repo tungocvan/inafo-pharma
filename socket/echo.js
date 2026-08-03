@@ -7,9 +7,12 @@ import { io } from "socket.io-client";
  */
 console.log("🔥 ECHO LOADED");
 console.trace("ECHO TRACE");
+// const SOCKET_HOST =
+//     window.CHAT_CONFIG_HOST ||
+//     `${window.location.hostname}:${window.CHAT_CONFIG_PORT}`;
+
 const SOCKET_HOST =
-    window.CHAT_CONFIG_HOST ||
-    `${window.location.hostname}:${window.CHAT_CONFIG_PORT}`;
+    window.CHAT_CONFIG_HOST || window.location.origin;
 
 console.log("🌐 SOCKET HOST:", SOCKET_HOST);
 
@@ -22,6 +25,7 @@ if (!window.socket) {
     console.log("🆕 INIT NEW SOCKET...");
 
     window.socket = io(SOCKET_HOST, {
+        path: "/socket.io",
         transports: ["websocket"], // 🔥 tránh duplicate connect
         reconnection: true,
         reconnectionAttempts: 10,

@@ -39,9 +39,9 @@
     @yield('css')
 
     <script>
-        window.CHAT_CONFIG_HOST = @json(env('NODEJS_SERVER_URL'));
-        window.CHAT_CONFIG_PORT = @json(env('NODEJS_SERVER_PORT') ?? 6001);
-
+        // window.CHAT_CONFIG_HOST = @json(env('NODEJS_SERVER_URL'));
+        // window.CHAT_CONFIG_PORT = @json(env('NODEJS_SERVER_PORT') ?? 6001);
+        window.CHAT_CONFIG_HOST = window.location.origin;
         window.adminLayout = function (config) {
             return {
                 sidebarOpen: true,

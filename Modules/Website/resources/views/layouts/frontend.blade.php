@@ -17,8 +17,9 @@
     <title>@yield('title', 'HOMEPAGE')</title>
     {!! Setting::getValue('header_script') !!}
     <script>
-        window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
-        window.CHAT_CONFIG_PORT = "{{ env('NODEJS_SERVER_PORT') ?? 6001 }}";
+        // window.CHAT_CONFIG_HOST = "{{ env('NODEJS_SERVER_URL') }}";
+        // window.CHAT_CONFIG_PORT = "{{ env('NODEJS_SERVER_PORT') ?? 6001 }}";
+        window.CHAT_CONFIG_HOST = window.location.origin;
     </script>
     {{-- <script src="https://unpkg.com/@tailwindcss/browser@4"></script> --}}
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
