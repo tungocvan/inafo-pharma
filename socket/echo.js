@@ -25,8 +25,7 @@ if (!window.socket) {
     console.log("🆕 INIT NEW SOCKET...");
 
     window.socket = io(SOCKET_HOST, {
-        path: "/socket.io",
-        transports: ["websocket", "polling"],
+        path: "/socket.io",        
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
