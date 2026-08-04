@@ -32,6 +32,7 @@ RUN chown -R node:node /var/www/socket
 FROM php:8.3-fpm-bookworm AS app
 WORKDIR /var/www/html
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        default-mysql-client \
         libreoffice-core libreoffice-writer libreoffice-calc \
         libfreetype6 libicu72 libjpeg62-turbo libpng16-16 libzip4 \
     && rm -rf /var/lib/apt/lists/*

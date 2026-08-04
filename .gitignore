@@ -25,5 +25,7 @@ Homestead.yaml
 Thumbs.db
 .env.bak
 *.sql
+deploy-backups/
+.deploy.lock
 storage/app/private/backups/
 storage/app/backups/
