@@ -102,9 +102,6 @@ if docker compose exec -T app php artisan list --raw | grep -q '^module:permissi
     docker compose exec -T app php artisan module:permissions-sync
 fi
 
-log 'Restart queue, scheduler và Socket.IO'
-docker compose restart queue scheduler socket
-
 log 'Tắt maintenance mode'
 docker compose exec -T app php artisan up
 
