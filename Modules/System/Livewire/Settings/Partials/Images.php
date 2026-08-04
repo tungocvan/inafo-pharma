@@ -4,7 +4,7 @@ namespace Modules\System\Livewire\Settings\Partials;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Modules\Website\Models\Setting;
+use Modules\System\Models\Setting;
 use Illuminate\Support\Facades\Storage;
 
 class Images extends Component

@@ -4,18 +4,42 @@ namespace App\Modules\Migration\Services;
 
 class ModuleDependencyResolver
 {
-    public function resolve($module)
+    public function resolve(string $module): array
     {
-        $path = base_path("Modules/{$module}/config/module.php");
+        $resolved = [];
+        $visiting = [];
 
-        if (!file_exists($path)) {
-            return [$module];
-        }
+        $visit = function (string $name) use (&$visit, &$resolved, &$visiting): void {
+            if (in_array($name, $resolved, true)) {
+                return;
+            }
 
-        $config = include $path;
+            if (isset($visiting[$name])) {
+                throw new \LogicException("Circular module dependency detected at [{$name}].");
+            }
 
-        $deps = $config['depends'] ?? [];
+            $path = collect([
+                base_path("Modules/{$name}/config/module.php"),
+                base_path("Modules/{$name}/Config/module.php"),
+            ])->first(fn (string $candidate): bool => is_file($candidate));
 
-        return array_merge($deps, [$module]);
+            if ($path === null) {
+                throw new \LogicException("Module manifest not found for [{$name}].");
+            }
+
+            $visiting[$name] = true;
+            $config = require $path;
+
+            foreach ($config['depends'] ?? [] as $dependency) {
+                $visit((string) $dependency);
+            }
+
+            unset($visiting[$name]);
+            $resolved[] = $name;
+        };
+
+        $visit($module);
+
+        return $resolved;
     }
 }

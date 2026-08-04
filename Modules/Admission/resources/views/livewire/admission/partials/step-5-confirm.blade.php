@@ -10,39 +10,23 @@
         <select wire:model="form.LoaiLopDangKy"
             class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-indigo-500">
             <option value="">Chọn lớp</option>
-            <option value="Lớp thường">Lớp thường</option>
-            <option value="Tăng cường Tiếng Anh">Tăng cường Tiếng Anh</option>
-            <option value="Tích hợp">Tích hợp</option>
-            <option value="Tăng cường TA + Toán và Khoa học">Tăng cường TA + Toán & Khoa học</option>
+            @foreach ($registrationClasses as $registrationClass)
+                <option value="{{ $registrationClass }}">{{ $registrationClass }}</option>
+            @endforeach
         </select>
+        @error('form.LoaiLopDangKy')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
     </div>
 
-    {{-- Cam kết --}}
-    {{-- <div class="grid md:grid-cols-2 gap-4">
 
-        @foreach ([
-        'CK_GocHocTap' => 'Có góc học tập',
-        'CK_SachVo' => 'Đầy đủ sách vở',
-        'CK_HopPH' => 'Tham gia họp phụ huynh',
-        'CK_GanGui' => 'Quan tâm con',
-    ] as $key => $label)
-
-            <label class="flex items-center gap-3 p-4 border rounded-xl">
-                <input type="checkbox" wire:model="form.{{ $key }}">
-                <span>{{ $label }}</span>
-            </label>
-
-        @endforeach
-
-    </div> --}}
-
-    {{-- Người làm đơn --}}
     <div>
         <label class="text-sm font-medium">Người làm đơn *</label>
         <input wire:model="form.NguoiLamDon" class="w-full rounded-xl border border-gray-300 px-4 py-3">
     </div>
     {{-- Sắp xếp lớp --}}
-    @if ($form['Status'] === 'approved')   
+    @can('delete_admission')
+    @if ( isset($form['Status']) && $form['Status'] === 'approved')
     <h2 class="text-xl font-semibold text-gray-800">
         Sắp xếp vào lớp
     </h2>
@@ -61,5 +45,5 @@
         </div>
     </div>
     @endif
-
+    @endcan
 </div>

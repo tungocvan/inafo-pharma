@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@source "../views/**/*.blade.php";
+@source "../js/**/*.js";
+@source "../../Modules/**/*.blade.php";
+
 /* 👇 THÊM DÒNG NÀY ĐỂ KÍCH HOẠT TYPOGRAPHY */
 @plugin "@tailwindcss/typography";
 
@@ -13,4 +17,4 @@
   --typography-prose-links: var(--color-primary);
 }
 
- @import './custom.css';
+@import './custom.css';

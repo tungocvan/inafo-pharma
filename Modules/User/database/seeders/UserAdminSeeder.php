@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Illuminate\Support\Facades\Schema;
 
 class UserAdminSeeder extends Seeder
 {
@@ -13,14 +14,23 @@ class UserAdminSeeder extends Seeder
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $userAdmin = User::query()->updateOrCreate(
+        $attributes = [
+            'name' => 'Từ Ngọc Vân',
+            'password' => bcrypt('123456'),
+        ];
+
+        // Các cột này thuộc module Account/Identity, không thuộc schema lõi User.
+        if (Schema::hasColumn('users', 'account_type')) {
+            $attributes['account_type'] = 'system';
+        }
+
+        if (Schema::hasColumn('users', 'is_active')) {
+            $attributes['is_active'] = true;
+        }
+
+        $userAdmin = User::query()->firstOrCreate(
             ['email' => 'tungocvan@gmail.com'],
-            [
-                'name' => 'Từ Ngọc Vân',
-                'password' => bcrypt('123456'),
-                'account_type' => 'system',
-                'is_active' => true,
-            ]
+            $attributes
         );
 
         $role = Role::findByName('Super Admin', 'admin');

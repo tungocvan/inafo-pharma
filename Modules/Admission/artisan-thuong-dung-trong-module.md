@@ -9,9 +9,3 @@ php artisan optimize:clear
 php artisan create:livewire <module> <ten-component>
 
 php artisan create:livewire Admission <ten-component>
-
-sudo chown -R www-data:www-data storage bootstrap/cache
-sudo chmod -R ug+rwX storage bootstrap/cache
-
-php artisan optimize:clear
-php artisan view:cache

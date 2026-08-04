@@ -13,12 +13,12 @@ return [
     'aspect_ratios' => ['1:1', '4:5', '3:4', '2:3', '9:16', '16:9'],
     'text_modes' => ['rendered', 'editable-layout'], 'modes' => ['prompt_only', 'generate_image'],
     'image_generation' => [
-        'enabled' => env('PROMPT_ENGINE_IMAGE_GENERATION', false), 'default_provider' => env('PROMPT_ENGINE_IMAGE_PROVIDER', 'gemini'),
-        'disk' => env('PROMPT_ENGINE_IMAGE_DISK', 'public'), 'directory' => 'prompt-engine/generated',
-        'timeout' => (int) env('PROMPT_ENGINE_IMAGE_TIMEOUT', 90), 'retries' => (int) env('PROMPT_ENGINE_IMAGE_RETRIES', 2),
+        'enabled' => true, 'default_provider' => 'chatgpt-image',
+        'disk' => 'public', 'directory' => 'prompt-engine/generated',
+        'timeout' => 120, 'retries' => 2,
         'max_bytes' => 15 * 1024 * 1024,
         'gemini' => ['api_key' => env('GEMINI_API_KEY'), 'model' => env('GEMINI_IMAGE_MODEL', 'gemini-2.0-flash-preview-image-generation')],
-        'chatgpt-image' => ['api_key' => env('OPENAI_API_KEY'), 'model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-1')],
+        'chatgpt-image' => ['api_key' => env('OPENAI_API_KEY'), 'model' => 'gpt-image-2'],
     ],
     'character_data' => [
         '福' => ['pinyin'=>'fú','vietnamese_reading'=>'Phúc','traditional_form'=>'福','simplified_form'=>'福','meaning_vi'=>'Phước lành, hạnh phúc, may mắn và thịnh vượng.','meaning_en'=>'Blessing, happiness, good fortune and prosperity.','radical'=>'礻','radical_meaning'=>'thị: nghi lễ, thần linh','stroke_count'=>13,'structure'=>'left-right','character_type'=>'phono-semantic compound','components'=>['礻','畐'],'semantic_component'=>'礻','phonetic_component'=>'畐'],

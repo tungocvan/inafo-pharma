@@ -4,13 +4,23 @@ declare(strict_types=1);
 
 namespace Modules\System\Livewire\Database;
 
-use Livewire\Component;
-use Livewire\Attributes\On;
-use Modules\System\Services\DatabaseService;
 use Exception;
+use Livewire\Attributes\On;
+use Livewire\Component;
+use Modules\System\Jobs\SendDatabaseBackupEmail;
+use Modules\System\Livewire\Concerns\AuthorizesSystemActions;
+use Modules\System\Services\DatabaseService;
 
 class BackupManager extends Component
 {
+    use AuthorizesSystemActions;
+
+    public bool $showEmailModal = false;
+
+    public string $emailBackupFile = '';
+
+    public string $backupEmail = '';
+
     /**
      * Lắng nghe sự kiện để cập nhật danh sách khi có file mới được tạo
      */
@@ -26,7 +36,11 @@ class BackupManager extends Component
     public function render(DatabaseService $service)
     {
         return view('System::livewire.database.backup-manager', [
-            'backups' => $service->getBackupFiles() // Gọi qua Service, không query trực tiếp
+            'backups' => $service->getAllBackupFiles(),
+            'backupDirectories' => [
+                'storage/app/private/backups',
+                'storage/app/backups (thư mục cũ)',
+            ],
         ]);
     }
 
@@ -35,25 +49,88 @@ class BackupManager extends Component
      */
     public function restoreBackup(string $fileName, DatabaseService $service): void
     {
+        $this->authorizePermission('database.restore');
+
         try {
-            // Logic restore nằm trọn trong Service
-            $success = $service->restore($fileName);
+            $success = $service->restoreFromFile($fileName);
 
             if ($success) {
-                $this->dispatch('notify', ['type' => 'success', 'message' => 'Khôi phục dữ liệu thành công!']);
+                $this->dispatch('notify', type: 'success', message: 'Khôi phục dữ liệu thành công!');
             }
         } catch (Exception $e) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
     }
-    public function restore(string $fileName, DatabaseService $service): void
+
+    public function deleteBackup(string $fileName, DatabaseService $service): void
     {
+        $this->authorizePermission('database.destroy');
+
         try {
-            $service->restore($fileName);
-            $this->dispatch('notify', ['type' => 'success', 'message' => 'Hệ thống đã được khôi phục thành công!']);
-            // Tùy chọn: Redirect hoặc Refresh trang để cập nhật cấu trúc mới
-        } catch (\Exception $e) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
+            $service->deleteBackup($fileName);
+            session()->flash('success', "Đã xóa backup {$fileName}.");
+        } catch (Exception $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
+    }
+
+    public function openEmailModal(string $fileName, DatabaseService $service): void
+    {
+        $this->authorizePermission('database.download');
+
+        $path = $service->getDownloadPath($fileName);
+
+        if ($path === null) {
+            $this->dispatch('notify', type: 'error', message: 'File backup không tồn tại.');
+
+            return;
+        }
+
+        if (filesize($path) > SendDatabaseBackupEmail::MAX_ATTACHMENT_BYTES) {
+            $this->dispatch('notify', type: 'error', message: 'Chỉ gửi được file backup có dung lượng tối đa 10MB.');
+
+            return;
+        }
+
+        $this->emailBackupFile = $fileName;
+        $this->backupEmail = (string) (auth('admin')->user()?->email ?? '');
+        $this->resetErrorBag('backupEmail');
+        $this->showEmailModal = true;
+    }
+
+    public function sendBackupEmail(DatabaseService $service): void
+    {
+        $this->authorizePermission('database.download');
+
+        $validated = $this->validate([
+            'emailBackupFile' => ['required', 'string', 'max:255'],
+            'backupEmail' => ['required', 'email:rfc', 'max:255'],
+        ], [
+            'backupEmail.required' => 'Vui lòng nhập email nhận backup.',
+            'backupEmail.email' => 'Địa chỉ email không hợp lệ.',
+        ]);
+
+        $path = $service->getDownloadPath($validated['emailBackupFile']);
+
+        if ($path === null) {
+            $this->addError('emailBackupFile', 'File backup không còn tồn tại.');
+
+            return;
+        }
+
+        if (filesize($path) > SendDatabaseBackupEmail::MAX_ATTACHMENT_BYTES) {
+            $this->addError('emailBackupFile', 'File backup vượt quá giới hạn 10MB.');
+
+            return;
+        }
+
+        SendDatabaseBackupEmail::dispatch(
+            $validated['emailBackupFile'],
+            $validated['backupEmail'],
+        );
+
+        $this->showEmailModal = false;
+        $this->emailBackupFile = '';
+        session()->flash('success', 'Đã đưa yêu cầu gửi backup vào hàng đợi email.');
     }
 }

@@ -6,6 +6,7 @@
 
     <title>@yield('title', 'Home') - {{ config('app.name') }}</title>
 
+    <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
 </head>
 

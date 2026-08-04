@@ -7,24 +7,45 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+
+// use Illuminate\Support\Facades\Storage;
 
 class AdmissionService
 {
     /**
      * TẠO MỚI HỒ SƠ
      */
-    public function createRegistration(array $formData)
+    // public function createRegistration(array $formData)
+    // {
+    //     // Tạo mã hồ sơ tự động
+    //     $mhs = 'NTD' . date('Y') . str_pad(AdmissionApplication::count() + 1, 4, '0', STR_PAD_LEFT);
+
+    //     // Chuẩn hóa dữ liệu trước khi lưu
+    //     $data = $this->prepareData($formData);
+    //     $data['mhs'] = $mhs;
+    //     $data['status'] = $formData['Status'] ?? '';
+
+    //     return AdmissionApplication::create($data);
+    // }
+
+    public function createRegistration(array $formData): AdmissionApplication
     {
-        // Tạo mã hồ sơ tự động
-        $mhs = 'MHS' . date('Y') . str_pad(AdmissionApplication::count() + 1, 4, '0', STR_PAD_LEFT);
+        return DB::transaction(function () use ($formData) {
 
-        // Chuẩn hóa dữ liệu trước khi lưu
-        $data = $this->prepareData($formData);
-        $data['mhs'] = $mhs;
-        $data['status'] = $formData['Status'] ?? '';
+            $data = $this->prepareData($formData);
+            $data['status'] = $formData['Status'] ?? '';
 
-        return AdmissionApplication::create($data);
+            $nextId = (AdmissionApplication::lockForUpdate()->max('id') ?? 0) + 1;
+
+            $data['mhs'] = sprintf(
+                'NVH%s%04d',
+                now()->year,
+                $nextId
+            );
+
+            return AdmissionApplication::create($data);
+        });
     }
 
     /**
@@ -53,12 +74,12 @@ class AdmissionService
     {
         //$formData['KhaNangHocSinoh'] = (array) ($f
 
-
+        $date = str_replace('/', '-', trim($formData['NgaySinh']));
         $data = [
             // 1. Thông tin học sinh
             'ho_va_ten_hoc_sinh' => $formData['HoVaTenHocSinh'] ?? null,
             'gioi_tinh'          => $formData['GioiTinh'] ?? null,
-            'ngay_sinh'          => !empty($formData['NgaySinh']) ?  Carbon::parse($formData['NgaySinh'])->format('d-m-Y')  : null,
+            'ngay_sinh' => !empty($date) ? $this->normalizeDate($date) : null,
             'dan_toc'            => $formData['DanToc'] ?? null,
             'ma_dinh_danh'       => $formData['MaDinhDanh'] ?? null,
             'quoc_tich'          => $formData['QuocTich'] ?? null,
@@ -75,17 +96,17 @@ class AdmissionService
             'que_quan'           => $formData['QueQuanPx'] . ", " . $formData['QueQuanTt'] ?? '',
 
             // 2. Địa chỉ
-            'ttsn'               => $formData['TTSN'] ?? null,
-            'ttd'                => $formData['TTD'] ?? null,
-            'ttkp'               => $formData['TTKP'] ?? null,
-            'ttpx'               => $formData['TTPX'] ?? null,
-            'ttttp'              => $formData['TTTTP'] ?? null,
-            'htsn'               => $formData['HTSN'] ?? null,
-            'htd'                => $formData['HTD'] ?? null,
-            'htkp'               => $formData['HTKP'] ?? null,
-            'htpx'               => $formData['HTPX'] ?? null,
-            'htttp'              => $formData['HTTTP'] ?? null,
-            'noi_o_hien_tai'     => $formData['NoiOHienTai'] ?? null,
+            'ttsn'               => $formData['TTSN'] ?? '',
+            'ttd'                => $formData['TTD'] ?? '',
+            'ttkp'               => $formData['TTKP'] ?? '',
+            'ttpx'               => $formData['TTPX'] ?? '',
+            'ttttp'              => $formData['TTTTP'] ?? '',
+            'htsn'               => $formData['HTSN'] ?? '',
+            'htd'                => $formData['HTD'] ?? '',
+            'htkp'               => $formData['HTKP'] ?? '',
+            'htpx'               => $formData['HTPX'] ?? '',
+            'htttp'              => $formData['HTTTP'] ?? '',
+            'noi_o_hien_tai'     => $formData['NoiOHienTai'] ?? '',
 
             // 3. Thông tin bổ sung (Ép kiểu Integer để tránh lỗi 1366)
             'o_chung_voi'        => $formData['OChungVoi'] ?? null,
@@ -227,6 +248,12 @@ class AdmissionService
         $data['TH'] = $app->loai_lop_dang_ky === 'Tích hợp' ? '☑' : '☐';
         $data['TATOAN'] = $app->loai_lop_dang_ky === 'Tăng cường TA + Toán và Khoa học' ? '☑' : '☐';
         $data['kn1'] = $app->loai_lop_dang_ky === 'Tăng cường TA + Toán và Khoa học' ? '☑' : '☐';
+        $school = app(SchoolSettingService::class)->all();
+        $data['SchoolName'] = $school['school_name'];
+        $data['SchoolNameUCase'] = mb_convert_case(mb_strtolower($school['school_name'], 'UTF-8'), MB_CASE_TITLE, "UTF-8");
+        $data['SchoolYear'] = $school['school_year'];
+        $data['Principal'] = $school['principal'];
+        $data['SchoolManagingAgency'] = $school['school_managing_agency'];
         // dd($data);
 
         $options = [
@@ -339,6 +366,11 @@ class AdmissionService
                 : ''
         );
         $template->setValue('MaHoSo', $app->mhs);
+        $school = app(SchoolSettingService::class)->all();
+        $template->setValue('SchoolName', $school['school_name']);
+        $template->setValue('SchoolNameUCase', mb_convert_case(mb_strtolower($school['school_name'], 'UTF-8'), MB_CASE_TITLE, "UTF-8"));
+        $template->setValue('SchoolYear', $school['school_year']);
+        $template->setValue('SchoolManagingAgency', $school['school_managing_agency']);
 
         // ======================
         // INSERT QR IMAGE
@@ -359,5 +391,23 @@ class AdmissionService
         // RETURN DOWNLOAD
         // ======================
         return response()->download($tempFile)->deleteFileAfterSend(true);
+    }
+    private function normalizeDate($date)
+    {
+        if (empty($date)) {
+            return null;
+        }
+
+        $date = trim($date);
+        $date = str_replace('/', '-', $date);
+
+        foreach (['d-m-Y', 'Y-m-d', 'd-m-Y H:i:s', 'Y-m-d H:i:s'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $date)->format('Y-m-d');
+            } catch (\Exception $e) {
+            }
+        }
+
+        return Carbon::parse($date)->format('Y-m-d');
     }
 }

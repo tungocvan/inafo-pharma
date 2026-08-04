@@ -4,61 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2f034079cd2f4f09ba44933e5a87705c",
+    "content-hash": "fa0bf1ca4e0b2016c246baa5fc959ace",
     "packages": [
-        {
-            "name": "almasaeed2010/adminlte",
-            "version": "v4.0.0-rc3",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/ColorlibHQ/AdminLTE.git",
-                "reference": "215107782c9f9c86ee06c8b2ac19e3879e07807d"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ColorlibHQ/AdminLTE/zipball/215107782c9f9c86ee06c8b2ac19e3879e07807d",
-                "reference": "215107782c9f9c86ee06c8b2ac19e3879e07807d",
-                "shasum": ""
-            },
-            "type": "library",
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Colorlib"
-                }
-            ],
-            "description": "AdminLTE - admin control panel and dashboard that's based on Bootstrap 4",
-            "homepage": "https://adminlte.io/",
-            "keywords": [
-                "JS",
-                "admin",
-                "back-end",
-                "css",
-                "less",
-                "responsive",
-                "template",
-                "theme",
-                "web"
-            ],
-            "support": {
-                "issues": "https://github.com/ColorlibHQ/AdminLTE/issues",
-                "source": "https://github.com/ColorlibHQ/AdminLTE/tree/v4.0.0-rc3"
-            },
-            "funding": [
-                {
-                    "url": "https://www.paypal.me/daniel007in",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://github.com/danny007in",
-                    "type": "github"
-                }
-            ],
-            "time": "2025-06-24T05:16:49+00:00"
-        },
         {
             "name": "bacon/bacon-qr-code",
             "version": "2.0.8",
@@ -11080,9 +11027,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "almasaeed2010/adminlte": 5
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

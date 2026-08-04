@@ -93,7 +93,7 @@
                         <option value="update_or_create">Cập nhật hoặc tạo mới</option>
                         <option value="create_only">Chỉ tạo mới</option>
                         <option value="skip_duplicate">Bỏ qua dữ liệu trùng</option>
-                        <option value="replace">Thay thế</option>
+                        <option value="replace">Xóa sạch và nhập lại</option>
                     </select>
 
                     @error('mode')
@@ -101,6 +101,12 @@
                     @enderror
                 </div>
             </div>
+
+            @if ($mode === 'replace')
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <strong>Cảnh báo:</strong> toàn bộ dữ liệu hiện tại sẽ bị xóa khi file hợp lệ. Nếu có bất kỳ dòng lỗi nào, transaction sẽ rollback và dữ liệu cũ được giữ nguyên.
+                </div>
+            @endif
 
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <label class="inline-flex items-center gap-3">

@@ -36,15 +36,8 @@ return [
     ],
     'nodejs' => [
         'url' => env('NODEJS_SERVER_URL', 'https://flexbiz.nodejs.tk'),
-    ],
-    'google' => [
-        'client_id' => env('GOOGLE_CLIENT_ID'),
-        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT'),
-    ],
-    'facebook' => [
-        'graph_version' => env('FACEBOOK_GRAPH_VERSION', 'v25.0'),
-        'app_id' => env('FACEBOOK_APP_ID'),
-        'app_secret' => env('FACEBOOK_APP_SECRET'),
+        'public_url' => env('VITE_SOCKET_PUBLIC_URL'),
+        'port' => (int) env('NODEJS_SERVER_PORT', 6001),
+        'bridge_secret' => env('BRIDGE_SECRET_KEY'),
     ],
 ];

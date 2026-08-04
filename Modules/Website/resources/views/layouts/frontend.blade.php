@@ -22,6 +22,7 @@
         window.CHAT_CONFIG_HOST = window.location.origin;
     </script>
     {{-- <script src="https://unpkg.com/@tailwindcss/browser@4"></script> --}}
+    <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @yield('css')
     @stack('styles')

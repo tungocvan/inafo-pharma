@@ -4,6 +4,10 @@ const express = require("express");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 
+if (!process.env.BRIDGE_SECRET_KEY) {
+    throw new Error("BRIDGE_SECRET_KEY is required");
+}
+
 /**
  * =========================================
  * APP INIT
@@ -21,7 +25,7 @@ const httpServer = createServer(app);
  */
 const io = new Server(httpServer, {
     cors: {
-        origin: process.env.APP_URL || "*",
+        origin: process.env.APP_URL,
         methods: ["GET", "POST"],
     },
     transports: ["websocket"], // 🔥 tránh polling duplicate

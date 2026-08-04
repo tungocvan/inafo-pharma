@@ -3,8 +3,8 @@
 namespace Modules\Role\database\Seeders;
 
 
+use App\Modules\ModulePermissionManager;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\File;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -17,7 +17,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $guardName = 'admin';
 
-        $permissions = $this->loadModulePermissions();
+        $permissions = collect(app(ModulePermissionManager::class)->activeGroups())
+            ->flatten()
+            ->unique()
+            ->values()
+            ->all();
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate([
@@ -36,38 +40,5 @@ class RolesAndPermissionsSeeder extends Seeder
         );
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
-    }
-
-    private function loadModulePermissions(): array
-    {
-        $permissions = [];
-
-        foreach (File::directories(base_path('Modules')) as $modulePath) {
-            $moduleConfigFile = $modulePath . '/config/module.php';
-
-            if (! File::exists($moduleConfigFile)) {
-                continue;
-            }
-
-            $moduleConfig = require $moduleConfigFile;
-
-            if (! ($moduleConfig['enabled'] ?? true)) {
-                continue;
-            }
-
-            $modulePermissions = $moduleConfig['permissions'] ?? [];
-
-            if (! is_array($modulePermissions)) {
-                continue;
-            }
-
-            $permissions = array_merge($permissions, $modulePermissions);
-        }
-
-        return collect($permissions)
-            ->filter()
-            ->unique()
-            ->values()
-            ->toArray();
     }
 }

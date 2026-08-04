@@ -38,12 +38,16 @@ class ModuleServiceProvider extends ServiceProvider
     {
         $modules = $this->discoverModules();
 
+        $this->validateModuleGraph($modules);
+
         config([
             'modules.registry' => $modules->mapWithKeys(fn(array $module) => [
                 $module['name'] => [
                     'name' => $module['name'],
                     'type' => $module['type'],
                     'enabled' => $module['enabled'],
+                    'required' => $module['required'],
+                    'depends' => $module['depends'],
                     'path' => $module['path'],
                     'source' => $module['source'],
                 ],
@@ -52,7 +56,7 @@ class ModuleServiceProvider extends ServiceProvider
 
         $enabledModules = $modules->filter(fn(array $module) => $module['enabled']);
 
-        if (env('LOG_MODULE', false)) {
+        if (config('modules.log_discovery', false)) {
             Log::info('Enabled modules', ['modules' => $enabledModules->pluck('name')->values()->all()]);
         }
 
@@ -114,8 +118,65 @@ class ModuleServiceProvider extends ServiceProvider
             'lower_name' => Str::lower($module),
             'type' => $type,
             'enabled' => (bool) ($manifest['enabled'] ?? true),
+            'required' => $type === 'shell',
+            'depends' => array_values(array_unique(array_map(
+                static fn(mixed $dependency): string => Str::studly((string) $dependency),
+                is_array($manifest['depends'] ?? null) ? $manifest['depends'] : []
+            ))),
             'source' => $source,
         ];
+    }
+
+    private function validateModuleGraph(Collection $modules): void
+    {
+        $registry = $modules->keyBy('name');
+
+        foreach ($modules as $module) {
+            if ($module['required'] && ! $module['enabled']) {
+                throw new \LogicException("Shell module [{$module['name']}] is required and cannot be disabled.");
+            }
+
+            if (! $module['enabled']) {
+                continue;
+            }
+
+            foreach ($module['depends'] as $dependency) {
+                if (! $registry->has($dependency)) {
+                    throw new \LogicException("Module [{$module['name']}] requires missing module [{$dependency}].");
+                }
+
+                if (! $registry->get($dependency)['enabled']) {
+                    throw new \LogicException("Module [{$module['name']}] requires disabled module [{$dependency}].");
+                }
+
+                if ($dependency === $module['name']) {
+                    throw new \LogicException("Module [{$module['name']}] cannot depend on itself.");
+                }
+            }
+        }
+
+        $visiting = [];
+        $visited = [];
+        $visit = function (string $name) use (&$visit, &$visiting, &$visited, $registry): void {
+            if (isset($visited[$name])) {
+                return;
+            }
+
+            if (isset($visiting[$name])) {
+                throw new \LogicException("Circular module dependency detected at [{$name}].");
+            }
+
+            $visiting[$name] = true;
+            foreach ($registry->get($name)['depends'] as $dependency) {
+                $visit($dependency);
+            }
+            unset($visiting[$name]);
+            $visited[$name] = true;
+        };
+
+        foreach ($modules->where('enabled', true)->pluck('name') as $name) {
+            $visit($name);
+        }
     }
 
     private function inferModuleType(string $module): string
@@ -188,6 +249,10 @@ class ModuleServiceProvider extends ServiceProvider
         }
 
         foreach (File::files($configPath) as $file) {
+            if (Str::lower($file->getExtension()) !== 'php') {
+                continue;
+            }
+
             $configName = pathinfo($file->getFilename(), PATHINFO_FILENAME);
 
             $this->mergeConfigFrom(

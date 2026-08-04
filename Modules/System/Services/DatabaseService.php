@@ -23,7 +23,7 @@ class DatabaseService
     public function getAllTables(string $search = ''): array
     {
         $search = mb_substr($search, 0, 100);
-        $tables = DB::select('SHOW TABLE STATUS WHERE Name LIKE ?', ['%' . $search . '%']);
+        $tables = DB::select('SHOW TABLE STATUS WHERE Name LIKE ?', ['%'.$search.'%']);
 
         return array_map(function ($table) {
             $tableName = $table->Name;
@@ -70,7 +70,7 @@ class DatabaseService
     {
         $this->assertAllowedTable($tableName, allowProtected: true);
 
-        $path = Storage::disk('local')->path('private/backups/' . $this->backupFileName($tableName));
+        $path = Storage::disk('local')->path('private/backups/'.$this->backupFileName($tableName));
 
         if (! file_exists($path)) {
             return false;
@@ -88,7 +88,7 @@ class DatabaseService
         try {
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             DB::table($tableName)->truncate();
-            DB::statement('ANALYZE TABLE ' . $this->quoteIdentifier($tableName));
+            DB::statement('ANALYZE TABLE '.$this->quoteIdentifier($tableName));
         } finally {
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         }
@@ -100,7 +100,7 @@ class DatabaseService
 
         try {
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            DB::statement('DROP TABLE IF EXISTS ' . $this->quoteIdentifier($tableName));
+            DB::statement('DROP TABLE IF EXISTS '.$this->quoteIdentifier($tableName));
         } finally {
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         }
@@ -117,17 +117,19 @@ class DatabaseService
 
         foreach (['private/backups', 'backups'] as $directory) {
             foreach (Storage::disk('local')->files($directory) as $path) {
-                if (! str_ends_with($path, '.sql')) {
+                $fileName = basename($path);
+
+                if (! preg_match('/\A[A-Za-z0-9_.-]+\.sql\z/', $fileName)) {
                     continue;
                 }
 
-                $fileName = basename($path);
                 $files[] = [
                     'id' => $fileName,
                     'name' => $fileName,
                     'path' => $fileName,
                     'size' => Storage::disk('local')->size($path),
                     'time' => Storage::disk('local')->lastModified($path),
+                    'is_full' => $this->looksLikeFullBackup(Storage::disk('local')->path($path)),
                 ];
             }
         }
@@ -139,11 +141,96 @@ class DatabaseService
 
     public function restoreFromFile(string $backupId): bool
     {
-        if ($this->resolveBackupIdentifier($backupId) === null) {
+        $path = $this->resolveBackupIdentifier($backupId);
+
+        if ($path === null) {
             throw new Exception('Backup file not found.');
         }
 
-        throw new Exception('Full database restore is disabled until the safe restore workflow is implemented.');
+        if (! $this->looksLikeFullBackup($path)) {
+            throw new Exception('File đã chọn không phải full database backup hợp lệ.');
+        }
+
+        $lockPath = storage_path('framework/database-restore.lock');
+        $lock = fopen($lockPath, 'c');
+
+        if ($lock === false || ! flock($lock, LOCK_EX | LOCK_NB)) {
+            if (is_resource($lock)) {
+                fclose($lock);
+            }
+
+            throw new Exception('Một tiến trình restore database khác đang chạy.');
+        }
+
+        $safetyPath = Storage::disk('local')->path(
+            'private/backups/db_backup_before_restore_'.now()->format('Y-m-d_H-i-s').'.sql'
+        );
+
+        try {
+            $this->ensureDirectory(dirname($safetyPath));
+            $this->runDump([], $safetyPath, 300);
+
+            try {
+                $this->runMysqlImport($path, 600);
+            } catch (\Throwable $restoreException) {
+                try {
+                    $this->runMysqlImport($safetyPath, 600);
+                } catch (\Throwable $recoveryException) {
+                    Log::critical('Database restore and automatic recovery both failed.', [
+                        'backup' => $backupId,
+                        'safety_backup' => $safetyPath,
+                        'restore_error' => $restoreException->getMessage(),
+                        'recovery_error' => $recoveryException->getMessage(),
+                    ]);
+
+                    throw new Exception(
+                        'Restore thất bại và không thể tự phục hồi. Bản an toàn nằm tại: '.basename($safetyPath),
+                        previous: $restoreException,
+                    );
+                }
+
+                throw new Exception(
+                    'Restore thất bại. Hệ thống đã tự phục hồi database về trạng thái trước khi restore.',
+                    previous: $restoreException,
+                );
+            }
+
+            DB::purge();
+            DB::reconnect();
+
+            Log::notice('Full database restored.', [
+                'backup' => $backupId,
+                'safety_backup' => basename($safetyPath),
+            ]);
+
+            return true;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    public function deleteBackup(string $backupId): int
+    {
+        if ($backupId !== basename($backupId) || ! preg_match('/\A[A-Za-z0-9_.-]+\.sql\z/', $backupId)) {
+            throw new Exception('Invalid backup file.');
+        }
+
+        $deleted = 0;
+
+        foreach (['private/backups', 'backups'] as $directory) {
+            $path = "{$directory}/{$backupId}";
+
+            if (Storage::disk('local')->exists($path) && Storage::disk('local')->delete($path)) {
+                $deleted++;
+            }
+        }
+
+        if ($deleted === 0) {
+            throw new Exception('Backup file not found.');
+        }
+
+        return $deleted;
     }
 
     public function assertAllowedTable(string $tableName, bool $allowProtected = false): void
@@ -166,9 +253,9 @@ class DatabaseService
         $config = config('database.connections.mysql');
         $command = [
             'mysqldump',
-            '--user=' . ($config['username'] ?? ''),
-            '--host=' . ($config['host'] ?? '127.0.0.1'),
-            '--port=' . ($config['port'] ?? '3306'),
+            '--user='.($config['username'] ?? ''),
+            '--host='.($config['host'] ?? '127.0.0.1'),
+            '--port='.($config['port'] ?? '3306'),
             $config['database'] ?? '',
             ...$tables,
         ];
@@ -194,9 +281,9 @@ class DatabaseService
         $config = config('database.connections.mysql');
         $command = [
             'mysql',
-            '--user=' . ($config['username'] ?? ''),
-            '--host=' . ($config['host'] ?? '127.0.0.1'),
-            '--port=' . ($config['port'] ?? '3306'),
+            '--user='.($config['username'] ?? ''),
+            '--host='.($config['host'] ?? '127.0.0.1'),
+            '--port='.($config['port'] ?? '3306'),
             $config['database'] ?? '',
         ];
 
@@ -239,6 +326,30 @@ class DatabaseService
         return null;
     }
 
+    private function looksLikeFullBackup(string $path): bool
+    {
+        if (! is_readable($path) || filesize($path) < 100) {
+            return false;
+        }
+
+        $handle = fopen($path, 'rb');
+
+        if ($handle === false) {
+            return false;
+        }
+
+        try {
+            $sample = fread($handle, 1024 * 1024);
+        } finally {
+            fclose($handle);
+        }
+
+        return is_string($sample)
+            && (str_contains($sample, 'MySQL dump') || str_contains($sample, 'MariaDB dump'))
+            && str_contains($sample, 'DROP TABLE IF EXISTS')
+            && substr_count($sample, 'CREATE TABLE') >= 2;
+    }
+
     private function backupFileName(string $tableName): string
     {
         return "backup_{$tableName}.sql";
@@ -262,6 +373,6 @@ class DatabaseService
 
     private function quoteIdentifier(string $identifier): string
     {
-        return '`' . str_replace('`', '``', $identifier) . '`';
+        return '`'.str_replace('`', '``', $identifier).'`';
     }
 }

@@ -1,33 +1,28 @@
 <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 my-2">
 
-    @php
-        $siteName = \Modules\Website\Models\Setting::getValue('site_name', 'TRƯỜNG TIỂU HỌC NGUYỄN THỊ ĐỊNH');
-        $siteLogo = \Modules\Website\Models\Setting::getValue('site_logo');
-    @endphp
-
     {{-- HEADER --}}
     <div class="text-center mb-6">
 
         {{-- LOGO --}}
         <div class="flex justify-center mb-4">
-            <img src="{{ $siteLogo ? asset('storage/' . $siteLogo) : asset('storage/admission/img/logo-ntd.png') }}"
+            <img src="{{ $logo }}"
                  class="w-32 h-32 object-contain"
-                 alt="Logo {{ $siteName }}">
+                 alt="Logo {{ $login_name_line_2 }}">
         </div>
 
         {{-- SCHOOL NAME --}}
         <h1 class="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-            {{ config('app.school_managing_agency') }}
+            {{ $login_name_line_1 }}
         </h1>
 
         <h2 class="text-base font-bold text-gray-900 mt-1 leading-snug">
-            {{ $siteName }}
+            {{ $login_name_line_2 }}
         </h2>
 
         <div class="mt-3 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
 
         <p class="text-gray-500 text-sm mt-3">
-            {{ config('app.school_login_description') }}
+            {{ $login_description }}
         </p>
     </div>
 

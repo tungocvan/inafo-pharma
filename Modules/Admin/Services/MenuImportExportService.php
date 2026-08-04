@@ -7,9 +7,8 @@ use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Modules\Admin\Models\Category;
+use Modules\Admin\Models\AdminMenu;
 use Rap2hpoutre\FastExcel\FastExcel;
 
 class MenuImportExportService
@@ -115,10 +114,8 @@ class MenuImportExportService
             }
 
             DB::transaction(function () use ($rows, $mode, &$report): void {
-                $this->ensureMenuTypeExists();
-
                 if ($mode === 'replace') {
-                    Category::menu()->delete();
+                    AdminMenu::menu()->delete();
                 }
 
                 $menusByKey = [];
@@ -135,8 +132,7 @@ class MenuImportExportService
 
                     $seenKeys[] = $key;
 
-                    $existing = Category::query()
-                        ->where('type', 'menu')
+                    $existing = AdminMenu::query()
                         ->where('slug', $key)
                         ->first();
 
@@ -146,8 +142,8 @@ class MenuImportExportService
                         continue;
                     }
 
-                    $menu = Category::query()->updateOrCreate(
-                        ['type' => 'menu', 'slug' => $key],
+                    $menu = AdminMenu::query()->updateOrCreate(
+                        ['slug' => $key],
                         [
                             'name' => $row['name'],
                             'url' => $row['url'],
@@ -177,7 +173,7 @@ class MenuImportExportService
 
                     $parentKey = $row['parent_key'];
                     $parent = $parentKey
-                        ? ($menusByKey[$parentKey] ?? Category::query()->where('type', 'menu')->where('slug', $parentKey)->first())
+                        ? ($menusByKey[$parentKey] ?? AdminMenu::query()->where('slug', $parentKey)->first())
                         : null;
 
                     $menu->update([
@@ -187,7 +183,7 @@ class MenuImportExportService
                 }
             });
 
-            Category::clearMenuCache();
+            AdminMenu::clearMenuCache();
             $report['success'] = $report['error_rows'] === 0;
 
             return $report;
@@ -230,10 +226,8 @@ class MenuImportExportService
             }
 
             DB::transaction(function () use ($items, $mode, &$report): void {
-                $this->ensureMenuTypeExists();
-
                 if ($mode === 'replace') {
-                    Category::menu()->delete();
+                    AdminMenu::menu()->delete();
                 }
 
                 foreach ($items as $index => $item) {
@@ -241,7 +235,7 @@ class MenuImportExportService
                 }
             });
 
-            Category::clearMenuCache();
+            AdminMenu::clearMenuCache();
             $report['success'] = $report['error_rows'] === 0;
 
             return $report;
@@ -362,8 +356,7 @@ class MenuImportExportService
                 continue;
             }
 
-            $parentExists = Category::query()
-                ->where('type', 'menu')
+            $parentExists = AdminMenu::query()
                 ->where('slug', $row['parent_key'])
                 ->exists();
 
@@ -392,7 +385,7 @@ class MenuImportExportService
 
     private function query(array $filters = [])
     {
-        $query = Category::menu();
+        $query = AdminMenu::menu();
 
         $search = trim((string) ($filters['search'] ?? ''));
 
@@ -469,7 +462,7 @@ class MenuImportExportService
         }
     }
 
-    private function persistJsonNode(array $item, ?int $parentId, int $sort, string $mode, array &$report): Category
+    private function persistJsonNode(array $item, ?int $parentId, int $sort, string $mode, array &$report): AdminMenu
     {
         $name = trim((string) $item['name']);
         $slug = $this->normalizeKey($item['key'] ?? $item['slug'] ?? $name);
@@ -479,14 +472,12 @@ class MenuImportExportService
             'url' => $this->nullableString($item['url'] ?? null),
             'icon' => $this->nullableString($item['icon'] ?? null),
             'can' => $this->nullableString($item['can'] ?? null),
-            'type' => 'menu',
             'parent_id' => $parentId,
             'is_active' => $this->normalizeBoolean($item['is_active'] ?? true),
             'sort_order' => $sort,
         ];
 
-        $menu = Category::query()
-            ->where('type', 'menu')
+        $menu = AdminMenu::query()
             ->where('slug', $slug)
             ->first();
 
@@ -496,7 +487,7 @@ class MenuImportExportService
             $menu->update($data);
             $report['success_rows']++;
         } else {
-            $menu = Category::query()->create($data);
+            $menu = AdminMenu::query()->create($data);
             $report['success_rows']++;
         }
 
@@ -507,25 +498,7 @@ class MenuImportExportService
         return $menu;
     }
 
-    private function ensureMenuTypeExists(): void
-    {
-        if (! Schema::hasTable('category_types')) {
-            return;
-        }
-
-        DB::table('category_types')->updateOrInsert(
-            ['type' => 'menu'],
-            [
-                'title' => 'Menu',
-                'icon' => 'menu',
-                'is_active' => true,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ]
-        );
-    }
-
-    private function menuKey(Category $menu): string
+    private function menuKey(AdminMenu $menu): string
     {
         return $this->normalizeKey($menu->slug ?: $menu->name) ?: 'menu-' . $menu->getKey();
     }

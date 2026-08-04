@@ -2,6 +2,7 @@
 
 namespace Modules\Chat\Services;
 
+use App\Services\RealtimeManager;
 use Modules\Chat\Models\InternalMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -64,72 +65,52 @@ class InternalChatService
 
     protected function broadcast(array $payload): void
     {
+        if (! app(RealtimeManager::class)->enabled()) {
+            return;
+        }
+
         try {
 
-            $url =
-                config('services.nodejs.url', env('NODEJS_SERVER_URL'))
-                . '/broadcast';
-
-            logger('========== INTERNAL CHAT ==========');
-
-            logger('NODE URL', [
-                'url' => $url,
-            ]);
-
-            logger('NODE PAYLOAD', $payload);
+            $url = rtrim((string) config('services.nodejs.url'), '/') . '/broadcast';
 
             $response = Http::withHeaders([
-                'X-Bridge-Secret' => env('BRIDGE_SECRET_KEY'),
+                'X-Bridge-Secret' => config('services.nodejs.bridge_secret'),
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(5)
                 ->post($url, $payload);
 
-            logger('NODE RESPONSE', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
+            if ($response->failed()) {
+                Log::warning('Internal chat bridge request failed', ['status' => $response->status()]);
+            }
         } catch (\Throwable $e) {
 
-            logger('NODE ERROR', [
-                'message' => $e->getMessage(),
-            ]);
+            Log::error('Internal chat bridge failed', ['message' => $e->getMessage()]);
         }
     }
     protected function broadcastToNodeJS(array $payload): void
     {
+        if (! app(RealtimeManager::class)->enabled()) {
+            return;
+        }
+
         try {
 
-            $url =
-                env(
-                    'NODEJS_SERVER_URL',
-                    'http://127.0.0.1:6001'
-                ) . '/broadcast';
-
-            logger('========== NODE DEBUG ==========');
-
-            logger('NODE URL', [
-                'url' => $url
-            ]);
-
-            logger('NODE PAYLOAD', $payload);
+            $url = rtrim((string) config('services.nodejs.url'), '/') . '/broadcast';
 
             $response = Http::withHeaders([
-                'X-Bridge-Secret' => env('BRIDGE_SECRET_KEY'),
+                'X-Bridge-Secret' => config('services.nodejs.bridge_secret'),
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(5)
                 ->post($url, $payload);
 
-            logger('NODE RESPONSE', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
+            if ($response->failed()) {
+                Log::warning('Node bridge request failed', ['status' => $response->status()]);
+            }
         } catch (\Throwable $e) {
 
-            logger('NODE ERROR', [
-                'message' => $e->getMessage(),
-            ]);
+            Log::error('Node bridge failed', ['message' => $e->getMessage()]);
         }
     }
 }

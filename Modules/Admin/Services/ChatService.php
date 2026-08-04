@@ -1,6 +1,7 @@
 <?php
 namespace Modules\Admin\Services;
 
+use App\Services\RealtimeManager;
 use Modules\Admin\Models\ChatSession;
 use Modules\Admin\Models\ChatMessage;
 use Illuminate\Support\Facades\Http;
@@ -65,11 +66,15 @@ class ChatService
      */
     protected function broadcastToNodeJS(array $payload): void
     {
+        if (! app(RealtimeManager::class)->enabled()) {
+            return;
+        }
+
         try {
-            $url = config('services.nodejs.url', env('NODEJS_SERVER_URL', 'http://localhost:6002')) . '/broadcast';
+            $url = rtrim((string) config('services.nodejs.url'), '/') . '/broadcast';
 
             Http::withHeaders([
-                'X-Bridge-Secret' => env('BRIDGE_SECRET_KEY', 'default_secret'), // Bảo mật kênh truyền
+                'X-Bridge-Secret' => config('services.nodejs.bridge_secret'),
             ])
             ->timeout(2)
             ->post($url, $payload);

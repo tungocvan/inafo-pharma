@@ -5,10 +5,9 @@ import tailwindcss from '@tailwindcss/vite'; // <--- Import Plugin v4
 export default defineConfig({
     plugins: [
         laravel({
-            // Khai báo đúng 2 file bạn muốn dùng
             input: ['resources/css/tailwind.css', 'resources/js/tailwind.js'],
             refresh: true,
         }),
-        tailwindcss(), // <--- Kích hoạt Plugin v4
+        tailwindcss(),
     ],
 });

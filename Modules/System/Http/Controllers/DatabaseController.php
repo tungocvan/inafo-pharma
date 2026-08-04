@@ -5,7 +5,6 @@ namespace Modules\System\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Modules\System\Services\DatabaseService;
 
-
 class DatabaseController extends Controller
 {
     protected $dbService;
@@ -31,11 +30,18 @@ class DatabaseController extends Controller
 
         $path = $this->dbService->getDownloadPath($filename);
 
-        if (!$path) {
+        if (! $path) {
             abort(404, 'File backup không tồn tại.');
         }
 
         return response()->download($path);
+    }
+
+    public function backupRestore()
+    {
+        $this->authorizePermission('database.view');
+
+        return view('System::pages.database-backup-restore');
     }
 
     private function authorizePermission(string $permission): void

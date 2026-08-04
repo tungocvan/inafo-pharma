@@ -1,17 +1,10 @@
 @extends('layouts.master')
 
-@section('classes_body', 'login-page bg-body-tertiary')
+@section('classes_body', 'flex items-center justify-center px-4 py-12')
 
 @section('body')
-<div class="login-box">
-    <div class="card card-outline card-primary shadow-lg">
-        <div class="card-header text-center">
-            <h3 class="fw-bold">FlexBiz Admin</h3>
-        </div>
-
-        <div class="card-body">
-            @yield('content')
-        </div>
-    </div>
-</div>
+<main class="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200">
+    <h1 class="mb-8 text-center text-2xl font-bold text-slate-900">{{ config('app.name') }}</h1>
+    @yield('content')
+</main>
 @endsection

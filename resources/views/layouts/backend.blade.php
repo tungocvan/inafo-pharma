@@ -6,11 +6,11 @@
 
     <title>@yield('title', 'Admin') - {{ config('app.name') }}</title>
 
+    <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
 
     @livewireStyles
 
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
 <body class="bg-gray-100 min-h-screen flex flex-col"

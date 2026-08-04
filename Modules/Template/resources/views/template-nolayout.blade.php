@@ -1,1 +1,0 @@
-@include('Template::template.'.$component)

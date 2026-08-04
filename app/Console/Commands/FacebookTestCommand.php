@@ -28,9 +28,9 @@ class FacebookTestCommand extends Command
      */
     public function handle(): int
     {
-        $graphVersion = trim((string) config('services.facebook.graph_version', 'v25.0'));
-        $appId = trim((string) config('services.facebook.app_id'));
-        $appSecret = trim((string) config('services.facebook.app_secret'));
+        $graphVersion = trim((string) config('facebook.config.graph_version', 'v25.0'));
+        $appId = trim((string) config('facebook.config.app_id'));
+        $appSecret = trim((string) config('facebook.config.app_secret'));
 
         $this->newLine();
         $this->info('Facebook Graph API Connection Test');

@@ -8,7 +8,7 @@ use Modules\Admission\Services\AdmissionService;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
 use Maatwebsite\Excel\Facades\Excel;
-use Modules\Admission\Exports\ApplicationsExport;
+//se Modules\Admission\Exports\ApplicationsExport;
 //use Modules\Admission\Imports\ApplicationsImport;
 use Illuminate\Support\Facades\Storage;
 use App\Services\Data\Import\GenericImport;
@@ -175,9 +175,6 @@ class AdmissionController extends Controller
 
     public function import(Request $request)
     {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
-        ]);
 
         Excel::import(
             new GenericImport(
@@ -188,19 +185,6 @@ class AdmissionController extends Controller
         );
         return back()->with('success', 'Import thành công');
     }
-
-    public function export(Request $request)
-    {
-        return Excel::download(
-            new ApplicationsExport(
-                $request->query('search'),
-                $request->query('status'),
-                $request->query('class')
-            ),
-            'admission-applications-' . date('Y-m-d') . '.xlsx'
-        );
-    }
-
     public function download($id, $type)
     {
         $item = AdmissionApplication::findOrFail($id);

@@ -2,6 +2,7 @@
 
 namespace Modules\Role\Livewire;
 
+use App\Modules\ModulePermissionManager;
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -17,23 +18,28 @@ class RoleForm extends Component
     
     // Dữ liệu hiển thị (Không wire:model)
     public $permissionGroups = [];
+    public array $preservedPermissions = [];
  
-    public function mount($id = null)
+    public function mount(ModulePermissionManager $modulePermissions, $id = null)
     {
-        // 1. Lấy tất cả quyền, nhưng lọc TRÙNG tên
-        // Chỉ giữ lại 1 bản ghi duy nhất cho mỗi tên quyền (view_product, edit_order...)
-        $allPermissions = Permission::all()->unique('name'); 
+        $groups = $modulePermissions->activeGroups();
+        $activeNames = collect($groups)->flatten()->unique()->values();
+        $permissionsByName = Permission::query()
+            ->where('guard_name', 'admin')
+            ->whereIn('name', $activeNames)
+            ->get()
+            ->keyBy('name');
 
-        // 2. Nhóm quyền theo Module
-        foreach ($allPermissions as $perm) {
-            // Tách chuỗi: view_product -> ['view', 'product']
-            $parts = explode('_', $perm->name);
-            
-            // Lấy phần cuối làm tên nhóm (product, order, system...)
-            // Nếu tên quyền không có dấu _ (ví dụ: 'dashboard'), đưa vào nhóm 'other'
-            $module = count($parts) > 1 ? end($parts) : 'other';
-            
-            $this->permissionGroups[$module][] = $perm;
+        foreach ($groups as $module => $permissionNames) {
+            $permissions = collect($permissionNames)
+                ->map(fn (string $name) => $permissionsByName->get($name))
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($permissions !== []) {
+                $this->permissionGroups[$module] = $permissions;
+            }
         }
         
         // Sắp xếp nhóm theo alphabet (a-z) cho dễ nhìn
@@ -46,7 +52,9 @@ class RoleForm extends Component
             $role = Role::findOrFail($id);
             $this->name = $role->name;
             // Chỉ lấy mảng tên quyền để mapping vào checkbox
-            $this->selectedPermissions = $role->permissions->pluck('name')->toArray();
+            $assigned = $role->permissions->pluck('name');
+            $this->selectedPermissions = $assigned->intersect($activeNames)->values()->all();
+            $this->preservedPermissions = $assigned->diff($activeNames)->values()->all();
         }
     }
 
@@ -68,9 +76,10 @@ class RoleForm extends Component
 
         // Khi Role có guard là 'admin', Spatie sẽ tự động tìm các permission 
         // có guard 'admin' tương ứng để gán.
-        if (!empty($this->selectedPermissions)) {
-            $role->syncPermissions($this->selectedPermissions);
-        }
+        $role->syncPermissions(array_values(array_unique(array_merge(
+            $this->selectedPermissions,
+            $this->preservedPermissions,
+        ))));
 
         session()->flash('success', 'Lưu vai trò thành công (Guard: Admin).');
         return redirect()->route('admin.role.index');

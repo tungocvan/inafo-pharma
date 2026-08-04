@@ -15,6 +15,8 @@
         </div>
     </div>
 
+    <x-realtime-control :enabled="$realtimeEnabled" :status="$realtimeStatus" />
+
     <!-- Flash Messages -->
     @if (session()->has('message'))
         <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -62,13 +64,38 @@
                                     <p class="text-xs text-gray-500 mt-1">
                                         {{ ucfirst($module['type']) }} • {{ $module['source'] === 'manifest' ? 'Config' : 'Default' }}
                                     </p>
+                                    @if ($module['required'])
+                                        <p class="mt-1 text-xs font-semibold text-red-600">Bắt buộc bật — không thể tắt</p>
+                                    @elseif ($module['depends'])
+                                        <p class="mt-1 text-xs text-gray-500">Phụ thuộc: {{ implode(', ', $module['depends']) }}</p>
+                                    @endif
+                                    @if ($module['used_by'])
+                                        <p class="mt-1 text-xs font-medium text-amber-700">Đang được sử dụng bởi: {{ implode(', ', $module['used_by']) }}</p>
+                                    @endif
+                                    @if (!empty($module['database']['error']))
+                                        <p class="mt-1 text-xs font-medium text-red-600">Không kiểm tra được database: {{ $module['database']['error'] }}</p>
+                                    @elseif (!empty($module['database']['missing_tables']))
+                                        <p class="mt-1 text-xs font-medium text-amber-700">Thiếu bảng: {{ implode(', ', $module['database']['missing_tables']) }} — sẽ migrate khi bật</p>
+                                    @elseif (!empty($module['database']['tables']))
+                                        <p class="mt-1 text-xs font-medium text-emerald-700">Database đã sẵn sàng</p>
+                                    @endif
                                 </div>
-                                <div class="ml-4">
+                                <div class="ml-4 flex items-center gap-3">
+                                    @if (! $module['required'])
+                                        <button
+                                            type="button"
+                                            wire:click="deleteModule('{{ $module['name'] }}')"
+                                            wire:confirm="Gỡ module {{ $module['name'] }}? Mã nguồn sẽ được lưu trong module-trash và database được giữ nguyên."
+                                            {{ $module['enabled'] ? 'disabled' : '' }}
+                                            class="rounded-md px-2.5 py-1.5 text-xs font-semibold {{ $module['enabled'] ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'bg-red-50 text-red-700 hover:bg-red-100' }}"
+                                        >Gỡ</button>
+                                    @endif
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input
                                             type="checkbox"
                                             wire:click="toggleModule('{{ $module['name'] }}')"
                                             {{ $module['enabled'] ? 'checked' : '' }}
+                                            {{ $module['required'] ? 'disabled' : '' }}
                                             class="sr-only peer"
                                         >
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -82,6 +109,13 @@
         </div>
     @endforeach
 
+    <x-module-routes-table
+        :routes="$this->filteredModuleRoutes"
+        :total="count($moduleRoutes)"
+        :modules="collect($moduleRoutes)->pluck('module')->unique()->sort()->values()->all()"
+        :editing-route-key="$editingRouteKey"
+    />
+
     <!-- Info Section -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div class="flex">
@@ -93,7 +127,7 @@
             <div class="ml-3">
                 <h3 class="text-sm font-medium text-blue-800">Lưu ý</h3>
                 <div class="mt-2 text-sm text-blue-700">
-                    <p>Thay đổi trạng thái module sẽ có hiệu lực ngay lập tức. Một số module cốt lõi có thể không thể tắt được.</p>
+                    <p>Shell Modules không thể tắt hoặc gỡ. Khi bật, hệ thống kiểm tra bảng và tự chạy migration còn thiếu. Chỉ module đã tắt và không có module khác phụ thuộc mới được gỡ; database luôn được giữ lại.</p>
                 </div>
             </div>
         </div>

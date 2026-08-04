@@ -6,7 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\On;
 use Modules\Admin\Services\SidebarService;
 use Modules\Admin\Support\ThemeManager;
-use Modules\Website\Models\Setting;
+use Modules\Admin\Models\Setting;
 
 class Sidebar extends Component
 {

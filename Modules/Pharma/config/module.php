@@ -3,14 +3,19 @@
 return array (
   'name' => 'Pharma',
   'type' => 'domain',
-  'enabled' => true,
-  'permissions' => [
-        'view_pharma',
-        'create_pharma',
-        'edit_pharma',
-        'delete_pharma',
-    ],
-  'tables' =>
+  'enabled' => false,
+  'depends' => 
+  array (
+    0 => 'Shared',
+  ),
+  'permissions' => 
+  array (
+    0 => 'view_pharma',
+    1 => 'create_pharma',
+    2 => 'edit_pharma',
+    3 => 'delete_pharma',
+  ),
+  'tables' => 
   array (
     0 => 'pharma_medicines',
     1 => 'pharma_drug_bid_awards',

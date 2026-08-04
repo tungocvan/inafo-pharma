@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Cache;
 // use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Component;
-use Modules\Admin\Models\Category;
+use Modules\Admin\Models\AdminMenu;
 use Spatie\Permission\Models\Permission;
 
 class MenuForm extends Component
@@ -22,7 +22,7 @@ class MenuForm extends Component
 
     public function getParentsProperty()
     {
-        $query = Category::menu();
+        $query = AdminMenu::menu();
 
         if ($this->menuId) {
             $query->where('id', '!=', $this->menuId);
@@ -69,7 +69,7 @@ class MenuForm extends Component
         if ($id) {
             $this->isEdit = true;
             $this->menuId = $id;
-            $menu = Category::findOrFail($id);
+            $menu = AdminMenu::findOrFail($id);
 
             $this->name = $menu->name;
             $this->url = $menu->url;
@@ -109,7 +109,7 @@ class MenuForm extends Component
         
         try {
             // Kiểm tra parent_id hợp lệ
-            if ($this->parent_id && !Category::where('id', $this->parent_id)->exists()) {
+            if ($this->parent_id && ! AdminMenu::where('id', $this->parent_id)->exists()) {
                 $this->parent_id = null;
             }
 
@@ -119,22 +119,21 @@ class MenuForm extends Component
                 'icon' => $this->icon ?: null,
                 'can' => $this->can ?: null,
                 'parent_id' => $this->parent_id ?: null,
-                'type' => 'menu',
                 'is_active' => (bool) $this->is_active,
             ];
            
             // Tạo hoặc cập nhật slug nếu cần
-            if (!$this->isEdit || ($this->isEdit && $this->name !== Category::find($this->menuId)->name)) {
+            if (! $this->isEdit || ($this->isEdit && $this->name !== AdminMenu::find($this->menuId)->name)) {
                 $data['slug'] = $this->generateUniqueSlug($this->name, $this->menuId);
             }
 
             if (!$this->isEdit) {
-                $data['sort_order'] = ((int) Category::menu()->max('sort_order')) + 1;
+                $data['sort_order'] = ((int) AdminMenu::menu()->max('sort_order')) + 1;
             }
 
             // Log::info('MenuForm save data prepared', ['data' => $data]);
 
-            $menu = Category::updateOrCreate(
+            $menu = AdminMenu::updateOrCreate(
                 ['id' => $this->menuId],
                 $data
             );
@@ -178,7 +177,7 @@ class MenuForm extends Component
         $slug = $baseSlug;
         $counter = 1;
 
-        $query = Category::where('slug', $slug);
+        $query = AdminMenu::where('slug', $slug);
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
@@ -186,7 +185,7 @@ class MenuForm extends Component
         while ($query->exists()) {
             $slug = $baseSlug . '-' . $counter;
             $counter++;
-            $query = Category::where('slug', $slug);
+            $query = AdminMenu::where('slug', $slug);
             if ($excludeId) {
                 $query->where('id', '!=', $excludeId);
             }

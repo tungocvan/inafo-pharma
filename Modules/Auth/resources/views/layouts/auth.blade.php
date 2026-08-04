@@ -10,6 +10,7 @@
         // window.CHAT_CONFIG_PORT = "{{ env('NODEJS_SERVER_PORT') ?? 6001 }}";
         window.CHAT_CONFIG_HOST = window.location.origin;
     </script>
+    <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @stack('styles')
     @livewireStyles

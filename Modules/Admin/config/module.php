@@ -4,6 +4,7 @@ return [
     'name' => 'Admin',
     'type' => 'shell',
     'enabled' => true,
+    'depends' => ['Auth', 'User', 'Role'],
     'permissions' => [
         'view_admin',
         'create_admin',

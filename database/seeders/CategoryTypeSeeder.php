@@ -9,8 +9,7 @@ class CategoryTypeSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('category_types')->insert([
-    
+        foreach ([
             [
                 'type' => 'product',
                 'title' => 'Danh mục Sản phẩm',
@@ -20,12 +19,12 @@ class CategoryTypeSeeder extends Seeder
                 'type' => 'post',
                 'title' => 'Danh mục Bài viết',
                 'icon' => '📝'
-            ],
-            [
-                    'type' => 'menu',
-                    'title' => 'Danh mục Menu',
-                    'icon' => '📂',
             ]
-        ]);
+        ] as $type) {
+            DB::table('category_types')->updateOrInsert(
+                ['type' => $type['type']],
+                $type + ['sort_order' => 0, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]
+            );
+        }
     }
 }

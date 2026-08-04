@@ -2,7 +2,7 @@
 
 namespace Modules\Admin\Services;
 
-use Modules\Admin\Models\Category;
+use Modules\Admin\Models\AdminMenu;
 use Illuminate\Support\Facades\Cache;
 use Modules\Admin\Support\AdminLayoutManager;
 
@@ -19,7 +19,7 @@ class SidebarService
 
         return Cache::remember($this->cacheKey, (int) $ttl, function () {
 
-            $menus = Category::query()
+            $menus = AdminMenu::query()
                 ->select([
                     'id',
                     'name',
@@ -30,7 +30,6 @@ class SidebarService
                     'can',
                     'is_active'
                 ])
-                ->where('type', 'menu')
                 ->where('is_active', true)
                 ->whereNull('parent_id')
                 ->with(['children' => function ($q) {

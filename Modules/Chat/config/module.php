@@ -1,13 +1,19 @@
 <?php
 
-return [
-    'name' => 'Chat',
-    'type' => 'support',
-    'enabled' => true,
-    'permissions' => [
-        'view_chat',
-        'create_chat',
-        'edit_chat',
-        'delete_chat',
-    ],
-];
+return array (
+  'name' => 'Chat',
+  'type' => 'support',
+  'enabled' => false,
+  'depends' => 
+  array (
+    0 => 'Admin',
+    1 => 'User',
+  ),
+  'permissions' => 
+  array (
+    0 => 'view_chat',
+    1 => 'create_chat',
+    2 => 'edit_chat',
+    3 => 'delete_chat',
+  ),
+);

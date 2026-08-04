@@ -4,6 +4,7 @@ return [
     'name' => 'System',
     'type' => 'shell',
     'enabled' => true,
+    'depends' => ['Admin', 'Role'],
     'permissions' => [
         'system.manage',
         'system.settings.view',

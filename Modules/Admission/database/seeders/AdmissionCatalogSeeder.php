@@ -19,7 +19,10 @@ class AdmissionCatalogSeeder extends Seeder
 
     private function seedFromCsv($path, $type, $valueIndex)
     {
-        if (!file_exists($path)) return;
+        if (! file_exists($path)) {
+            $this->command?->warn("Bỏ qua Admission catalog [{$type}] vì thiếu file: {$path}");
+            return;
+        }
 
         $file = fopen($path, 'r');
         fgetcsv($file); // Bỏ qua dòng header
@@ -33,12 +36,10 @@ class AdmissionCatalogSeeder extends Seeder
             // 2. Xử lý sort_order: Ép kiểu về int, nếu trống hoặc lỗi thì để 0
             $sortOrder = isset($row[0]) && is_numeric($row[0]) ? (int)$row[0] : 0;
 
-            AdmissionCatalog::create([
-                'type'       => $type,
-                'value'      => trim($row[$valueIndex]),
-                'sort_order' => $sortOrder,
-                'is_active'  => true
-            ]);
+            AdmissionCatalog::query()->updateOrCreate(
+                ['type' => $type, 'value' => trim($row[$valueIndex])],
+                ['sort_order' => $sortOrder, 'is_active' => true]
+            );
         }
         fclose($file);
     }

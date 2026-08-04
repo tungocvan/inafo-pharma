@@ -6,6 +6,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Modules\Shared\Services\ImportExport\BaseImportExportService;
 
 class Panel extends Component
 {
@@ -27,29 +28,40 @@ class Panel extends Component
 
     public array $filters = [];
 
+    public ?string $permission = null;
+
     public function mount(
         string $serviceClass,
         string $title = 'Import / Export dữ liệu',
         string $description = 'Tải file mẫu, import dữ liệu hoặc export dữ liệu hiện tại.',
-        array $filters = []
+        array $filters = [],
+        ?string $permission = null
     ): void {
+        abort_unless(
+            is_subclass_of($serviceClass, BaseImportExportService::class),
+            422,
+            'Dịch vụ Import / Export không hợp lệ.'
+        );
+
         $this->serviceClass = $serviceClass;
         $this->title = $title;
         $this->description = $description;
         $this->filters = $filters;
+        $this->permission = $permission;
     }
 
     protected function rules(): array
     {
         return [
             'file' => ['required', 'file', 'mimes:xlsx,csv', 'max:10240'],
-            'mode' => ['required', 'in:create_only,update_or_create,skip_duplicate'],
+            'mode' => ['required', 'in:create_only,update_or_create,skip_duplicate,replace'],
             'dryRun' => ['boolean'],
         ];
     }
 
     public function import(): void
     {
+        $this->authorizeAction();
         $this->validate();
 
         $service = app($this->serviceClass);
@@ -63,6 +75,7 @@ class Panel extends Component
 
         if (($this->report['success'] ?? false) === true) {
             session()->flash('success', 'Import hoàn tất.');
+            $this->dispatch('import-export-completed', serviceClass: $this->serviceClass);
         } else {
             session()->flash('error', 'Import có lỗi, vui lòng kiểm tra bảng lỗi.');
         }
@@ -70,6 +83,7 @@ class Panel extends Component
 
     public function export()
     {
+        $this->authorizeAction();
         $service = app($this->serviceClass);
 
         $path = $service->export($this->filters);
@@ -79,6 +93,7 @@ class Panel extends Component
 
     public function exportTemplate()
     {
+        $this->authorizeAction();
         $service = app($this->serviceClass);
 
         $path = $service->exportTemplate();
@@ -89,5 +104,17 @@ class Panel extends Component
     public function render(): View
     {
         return view('Shared::livewire.import-export.panel');
+    }
+
+    private function authorizeAction(): void
+    {
+        if ($this->permission === null) {
+            return;
+        }
+
+        abort_unless(
+            auth('admin')->check() && auth('admin')->user()->can($this->permission),
+            403
+        );
     }
 }

@@ -1,11 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\System\Http\Controllers\SettingController;
-use Modules\System\Http\Controllers\EnvConfigController;
 use Modules\System\Http\Controllers\DatabaseController;
+use Modules\System\Http\Controllers\EnvConfigController;
+use Modules\System\Http\Controllers\SettingController;
 use Modules\System\Http\Controllers\SystemController;
-
 
 Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::prefix('/system')->name('system.')->group(function () {
@@ -26,6 +25,9 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin')->name('admin.')->group
             Route::get('/', [DatabaseController::class, 'index'])
                 ->middleware('permission:database.view,admin')
                 ->name('index');
+            Route::get('/backup-restore', [DatabaseController::class, 'backupRestore'])
+                ->middleware('permission:database.view,admin')
+                ->name('backup-restore');
             Route::get('/download/{filename}', [DatabaseController::class, 'download'])
                 ->middleware('permission:database.download,admin')
                 ->name('download')

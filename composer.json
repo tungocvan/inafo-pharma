@@ -7,7 +7,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "almasaeed2010/adminlte": "4.0.0-rc.3",
         "barryvdh/laravel-dompdf": "^3.1",
         "endroid/qr-code": "5.0.7",
         "intervention/image-laravel": "^1.5",

@@ -3,7 +3,12 @@
 return array (
   'name' => 'Product',
   'type' => 'domain',
-  'enabled' => true,
+  'enabled' => false,
+  'depends' => 
+  array (
+    0 => 'User',
+    1 => 'Category',
+  ),
   'permissions' => 
   array (
     0 => 'view_product',

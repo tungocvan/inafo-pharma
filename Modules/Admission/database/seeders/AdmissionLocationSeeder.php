@@ -2,7 +2,6 @@
 namespace Modules\Admission\database\seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Modules\Admission\Models\AdmissionLocation;
 
 class AdmissionLocationSeeder extends Seeder
@@ -10,11 +9,11 @@ class AdmissionLocationSeeder extends Seeder
 // Chạy lệnh: php artisan db:seed --class="Modules\Admission\database\seeders\AdmissionLocationSeeder"    
 public function run()
     {
-        // Xóa dữ liệu cũ để tránh trùng lặp khi chạy lại lệnh
-        DB::table('admission_locations')->truncate();
-
         $filePath = base_path('storage/app/import/admission/dvhc.csv'); // Đường dẫn tới file CSV của bạn
-        if (!file_exists($filePath)) return;
+        if (! file_exists($filePath)) {
+            $this->command?->warn("Bỏ qua Admission locations vì thiếu file: {$filePath}");
+            return;
+        }
 
         $file = fopen($filePath, 'r');
         $header = fgetcsv($file); // Bỏ qua dòng đầu (header)
@@ -23,6 +22,10 @@ public function run()
         $batchSize = 500; // Nạp mỗi lần 500 dòng để tối ưu bộ nhớ
 
         while (($row = fgetcsv($file)) !== false) {
+            if (! isset($row[1], $row[2], $row[5], $row[6]) || trim((string) $row[5]) === '') {
+                continue;
+            }
+
             // Mapping theo cấu trúc file: 
             // Cột 2 (index 1): Mã tỉnh, Cột 3 (index 2): Tên tỉnh, 
             // Cột 6 (index 5): Mã phường, Cột 7 (index 6): Tên phường
@@ -36,15 +39,24 @@ public function run()
             ];
 
             if (count($data) >= $batchSize) {
-                AdmissionLocation::insert($data);
+                $this->upsert($data);
                 $data = [];
             }
         }
 
         if (count($data) > 0) {
-            AdmissionLocation::insert($data);
+            $this->upsert($data);
         }
 
         fclose($file);
+    }
+
+    private function upsert(array $data): void
+    {
+        AdmissionLocation::query()->upsert(
+            $data,
+            ['ward_code'],
+            ['province_code', 'province_name', 'ward_name', 'updated_at']
+        );
     }
 }

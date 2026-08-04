@@ -18,7 +18,6 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY resources ./resources
 COPY Modules ./Modules
-COPY socket ./socket
 COPY public ./public
 COPY vite.config.js ./
 RUN npm run build

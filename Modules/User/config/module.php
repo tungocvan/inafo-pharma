@@ -4,6 +4,7 @@ return [
     'name' => 'User',
     'type' => 'shell',
     'enabled' => true,
+    'depends' => ['Shared'],
     'permissions' => [
         'view_user',
         'create_user',

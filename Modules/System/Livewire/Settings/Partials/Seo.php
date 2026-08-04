@@ -3,7 +3,7 @@
 namespace Modules\System\Livewire\Settings\Partials;
 
 use Livewire\Component;
-use Modules\Website\Models\Setting;
+use Modules\System\Models\Setting;
 
 class Seo extends Component
 {

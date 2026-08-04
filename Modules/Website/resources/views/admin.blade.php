@@ -1,21 +1,9 @@
 @extends('layouts.page')
 
-@section('title', 'TEMPLATE HTML BOOSTRAP 5')
+@section('title', 'Quản trị Website')
 
 @section('content')
-    <h3>TEMPLATE HTML BOOSTRAP 5</h3>
+    <h1 class="text-2xl font-bold text-slate-900">Quản trị Website</h1>
 
 @endsection
-
-@push('css')
-        {{-- <link rel="stylesheet" href="/css/admin_custom.css"> --}}
-@endpush
-
-@push('js')
-     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("Lắng nghe sự kiện DOMContentLoaded được gọi trước jquery");
-        })
-     </script>
-@endpush
 

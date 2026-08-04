@@ -5,11 +5,11 @@ namespace Database\Seeders;
 //use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
 use Modules\Role\database\seeders\RolesAndPermissionsSeeder;
 use Modules\User\database\seeders\UserAdminSeeder;
 // use Modules\User\database\seeders\UserSeeder;
-use Modules\Admin\database\seeders\MenuCategorySeeder;
-use Database\Seeders\CategoryTypeSeeder;
+use Modules\Admin\database\seeders\AdminMenuSeeder;
 //use Modules\Website\database\Seeders\WebsiteDatabaseSeeder;
 
 class DatabaseSeeder extends Seeder
@@ -22,17 +22,34 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-
-             RolesAndPermissionsSeeder::class,
-            // 1. Tạo người dùng trước
+            RolesAndPermissionsSeeder::class,
             UserAdminSeeder::class,
-            // UserSeeder::class,
-             // 5. Tạo menu sidebar
-            CategoryTypeSeeder::class,
-            MenuCategorySeeder::class,
-            // WebsiteDatabaseSeeder::class
-          
+            AdminMenuSeeder::class,
         ]);
 
+        $this->seedEnabledModules();
+    }
+
+    private function seedEnabledModules(): void
+    {
+        foreach (config('modules.registry', []) as $name => $module) {
+            if (! ($module['enabled'] ?? false)) {
+                continue;
+            }
+
+            $manifestPath = collect([
+                $module['path'] . '/config/module.php',
+                $module['path'] . '/Config/module.php',
+            ])->first(fn (string $path): bool => File::exists($path));
+            $manifest = $manifestPath ? require $manifestPath : [];
+
+            foreach ($manifest['seeders'] ?? [] as $seeder) {
+                if (! is_string($seeder) || ! class_exists($seeder)) {
+                    throw new \RuntimeException("Seeder [{$seeder}] của module [{$name}] không tồn tại.");
+                }
+
+                $this->call($seeder);
+            }
+        }
     }
 }

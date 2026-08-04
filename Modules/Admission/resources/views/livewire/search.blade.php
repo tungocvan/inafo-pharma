@@ -1,5 +1,8 @@
 <div>
-
+    @php
+        $siteName = \Modules\Admin\Models\Setting::getValue('site_name', $schoolSettings['school_name']);
+        $siteLogo = \Modules\Admin\Models\Setting::getValue('site_logo');
+    @endphp
     <form wire:submit.prevent="login">
 
         {{-- Mã định danh --}}
@@ -66,15 +69,15 @@
             {{-- HEADER --}}
             <div class="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-4 md:mb-6 text-center md:text-left">
 
-                <img src="{{ asset('storage/admission/img/logo-ntd.png') }}"
+                <img src="{{ $siteLogo ? asset('storage/' . $siteLogo) : asset('storage/admission/img/logo.png') }}"
                      class="hidden md:block w-16 h-16 md:w-28 md:h-28 object-contain">
 
                 <div class="text-sm md:text-xl leading-tight">
                     <p class="font-semibold tracking-wide">
-                        ỦY BAN NHÂN DÂN PHƯỜNG TÂN THUẬN
+                        {{ $schoolSettings['school_managing_agency'] }}
                     </p>
                     <p class="font-semibold tracking-wide">
-                        TRƯỜNG TIỂU HỌC NGUYỄN THỊ ĐỊNH
+                        {{ $siteName ?: $schoolSettings['school_name'] }}
                     </p>
                 </div>
             </div>
@@ -86,7 +89,7 @@
                 </h2>
 
                 <h3 class="font-bold text-sm md:text-lg uppercase">
-                    TRƯỜNG TIỂU HỌC NGUYỄN THỊ ĐỊNH
+                    {{ $siteName  }}
                 </h3>
 
                 <h1 class="text-xl md:text-3xl font-extrabold mt-2 md:mt-3 tracking-wide">

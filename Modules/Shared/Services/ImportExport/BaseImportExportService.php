@@ -56,6 +56,10 @@ abstract class BaseImportExportService
         $mode = $options['mode'] ?? $this->mode;
         $dryRun = (bool) ($options['dry_run'] ?? false);
 
+        if (! in_array($mode, ['create_only', 'update_or_create', 'skip_duplicate', 'replace'], true)) {
+            throw new \InvalidArgumentException("Import mode không hợp lệ: {$mode}");
+        }
+
         $this->addDebug('mode', $mode);
         $this->addDebug('dry_run', $dryRun);
         $this->addDebug('file', $filePath);
@@ -76,8 +80,24 @@ abstract class BaseImportExportService
                 $this->defaultSheetName => $rows->count(),
             ]);
 
+            if ($mode === 'replace' && $rows->isEmpty()) {
+                $this->addError(
+                    $this->defaultSheetName,
+                    null,
+                    null,
+                    'Không thể xóa sạch dữ liệu bằng một file rỗng.'
+                );
+
+                return $this->report(false);
+            }
+
             if (! $dryRun) {
                 DB::beginTransaction();
+
+                if ($mode === 'replace') {
+                    $this->modelClass()::query()->delete();
+                    $this->addDebug('existing_data_cleared', true);
+                }
             }
 
             foreach ($rows as $index => $rawRow) {
@@ -87,7 +107,9 @@ abstract class BaseImportExportService
                 try {
                     $rawRowArray = (array) $rawRow;
 
-                    if (method_exists($this, 'columnMapping') && ! empty($this->columnMapping())) {
+                    if (method_exists($this, 'columnMapping')
+                        && ! empty($this->columnMapping())
+                        && $this->shouldUseColumnMapping($rawRowArray)) {
                         $row = $this->normalizeRowByColumnMapping($rawRowArray);
                     } else {
                         $row = $this->normalizeRowHeaders($rawRowArray);
@@ -159,7 +181,14 @@ abstract class BaseImportExportService
             }
 
             if (! $dryRun) {
-                DB::commit();
+                if ($mode === 'replace' && ! empty($this->errors)) {
+                    DB::rollBack();
+                    $this->addDebug('validated_rows', $this->successRows);
+                    $this->successRows = 0;
+                    $this->addDebug('rolled_back', true);
+                } else {
+                    DB::commit();
+                }
             }
 
             return $this->report(empty($this->errors));
@@ -200,6 +229,11 @@ abstract class BaseImportExportService
         }
 
         return $row;
+    }
+
+    protected function shouldUseColumnMapping(array $rawRow): bool
+    {
+        return true;
     }
 
     protected function columnLetterToIndex(string $letter): int
@@ -282,6 +316,8 @@ abstract class BaseImportExportService
             'skip_duplicate' => $this->persistSkipDuplicate($modelClass, $data),
 
             'update_or_create' => $this->persistUpdateOrCreate($modelClass, $data),
+
+            'replace' => $this->persistUpdateOrCreate($modelClass, $data),
 
             default => throw new \InvalidArgumentException("Import mode không hợp lệ: {$mode}"),
         };

@@ -13,10 +13,10 @@ class MomoService
 
     public function __construct()
     {
-        $this->partnerCode = env('MOMO_PARTNER_CODE');
-        $this->accessKey   = env('MOMO_ACCESS_KEY');
-        $this->secretKey   = env('MOMO_SECRET_KEY');
-        $this->endpoint    = env('MOMO_ENDPOINT');
+        $this->partnerCode = config('website.website.payment.momo.partner_code');
+        $this->accessKey   = config('website.website.payment.momo.access_key');
+        $this->secretKey   = config('website.website.payment.momo.secret_key');
+        $this->endpoint    = config('website.website.payment.momo.endpoint');
     }
 
     public function createPayment($order)

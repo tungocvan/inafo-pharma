@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Modules\Admin\Models\Category;
+use Modules\Admin\Models\AdminMenu;
 
 class MenuService
 {
@@ -64,7 +64,7 @@ class MenuService
 
     public function duplicate(int|string $id): bool
     {
-        $original = Category::menu()->with('children')->whereKey($id)->first();
+        $original = AdminMenu::menu()->with('children')->whereKey($id)->first();
 
         if (! $original) {
             return false;
@@ -85,7 +85,7 @@ class MenuService
             return 0;
         }
 
-        $menus = Category::menu()->whereKey($ids)->get();
+        $menus = AdminMenu::menu()->whereKey($ids)->get();
 
         $menus->each->delete();
 
@@ -100,9 +100,9 @@ class MenuService
             return 0;
         }
 
-        $menus = Category::menu()->whereKey($ids)->get();
+        $menus = AdminMenu::menu()->whereKey($ids)->get();
 
-        $menus->each(fn (Category $menu) => $menu->update(['is_active' => $status]));
+        $menus->each(fn (AdminMenu $menu) => $menu->update(['is_active' => $status]));
 
         return $menus->count();
     }
@@ -115,9 +115,9 @@ class MenuService
             return 0;
         }
 
-        $menus = Category::menu()->whereKey($ids)->get();
+        $menus = AdminMenu::menu()->whereKey($ids)->get();
 
-        $menus->each(fn (Category $menu) => $menu->update(['can' => $permission]));
+        $menus->each(fn (AdminMenu $menu) => $menu->update(['can' => $permission]));
 
         return $menus->count();
     }
@@ -130,12 +130,12 @@ class MenuService
             $this->updateOrderRecursive($items, null);
         });
 
-        Category::clearMenuCache();
+        AdminMenu::clearMenuCache();
     }
 
     public function query(array $filters = []): Builder
     {
-        $query = Category::menu();
+        $query = AdminMenu::menu();
 
         $search = trim((string) ($filters['search'] ?? ''));
 
@@ -157,12 +157,12 @@ class MenuService
         return $query->orderBy('sort_order');
     }
 
-    private function findMenu(int|string $id): ?Category
+    private function findMenu(int|string $id): ?AdminMenu
     {
-        return Category::menu()->whereKey($id)->first();
+        return AdminMenu::menu()->whereKey($id)->first();
     }
 
-    private function duplicateRecursive(Category $node, ?int $parentId): void
+    private function duplicateRecursive(AdminMenu $node, ?int $parentId): void
     {
         $new = $node->replicate();
 
@@ -177,7 +177,7 @@ class MenuService
         }
     }
 
-    private function generateUniqueSlug(Category $original): string
+    private function generateUniqueSlug(AdminMenu $original): string
     {
         $base = $original->slug
             ? $original->slug . '-copy'
@@ -186,7 +186,7 @@ class MenuService
         $slug = $base;
         $i = 1;
 
-        while (Category::query()->where('slug', $slug)->exists()) {
+        while (AdminMenu::query()->where('slug', $slug)->exists()) {
             $slug = "{$base}-{$i}";
             $i++;
         }
@@ -197,7 +197,7 @@ class MenuService
     private function updateOrderRecursive(array $items, ?int $parentId): void
     {
         foreach ($items as $index => $item) {
-            Category::menu()->whereKey((int) $item['id'])->update([
+            AdminMenu::menu()->whereKey((int) $item['id'])->update([
                 'parent_id' => $parentId,
                 'sort_order' => $index,
             ]);
@@ -220,7 +220,7 @@ class MenuService
             throw new \InvalidArgumentException('Payload sap xep menu co ID bi trung.');
         }
 
-        $validCount = Category::menu()->whereKey($ids)->count();
+        $validCount = AdminMenu::menu()->whereKey($ids)->count();
 
         if ($validCount !== count($ids)) {
             throw new \InvalidArgumentException('Payload sap xep menu co ID khong hop le.');

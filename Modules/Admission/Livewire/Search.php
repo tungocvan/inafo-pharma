@@ -4,6 +4,7 @@ namespace Modules\Admission\Livewire;
 
 use Livewire\Component;
 use Modules\Admission\Models\AdmissionApplication;
+use Modules\Admission\Services\SchoolSettingService;
 
 class Search extends Component
 {
@@ -54,7 +55,7 @@ class Search extends Component
         if (!$this->app) {
             $this->message = 'Không tìm thấy hồ sơ.';
             return;
-        }
+        } 
       // dd($this->app);
         $birthPassword = $this->app['ngay_sinh']
             ? \Carbon\Carbon::parse($this->app['ngay_sinh'])->format('dmY')
@@ -78,6 +79,8 @@ class Search extends Component
     }
     public function render()
     {
-        return view('Admission::livewire.search');
+        return view('Admission::livewire.search', [
+            'schoolSettings' => app(SchoolSettingService::class)->all(),
+        ]);
     }
 }

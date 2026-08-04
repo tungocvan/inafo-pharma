@@ -2,31 +2,45 @@
 
 namespace Modules\Admission\Livewire\Public;
 
-use Livewire\Component;
-use Modules\Admission\Models\AdmissionLocation;
-use Modules\Admission\Models\AdmissionCatalog;
-use Modules\Admission\Models\AdmissionApplication;
-use Modules\Admission\Services\AdmissionService;
 use Carbon\Carbon;
+use Livewire\Component;
+use Modules\Admission\Models\AdmissionApplication;
+use Modules\Admission\Models\AdmissionCatalog;
+use Modules\Admission\Models\AdmissionLocation;
+use Modules\Admission\Services\AdmissionService;
+use Modules\Admission\Services\SchoolSettingService;
 
 class RegistrationForm extends Component
 {
     public $currentStep = 1;
+
     public $totalSteps = 5;
 
     public $provinces = [];
-    public $tt_wards = [];
-    public $ht_wards = [];
-    public $noi_sinh_wards = [];
-    public $que_quan_wards = [];
-    public $noi_dang_ky_khai_sinh_wards = [];
-    public $ethnicities = [];
-    public $religions = [];
-    public $copyNoiSinhToQueQuan = false;
-    public $sameAddress = false;
-    public $applicationId = null;
-    public $isEdit = false;
 
+    public $tt_wards = [];
+
+    public $ht_wards = [];
+
+    public $noi_sinh_wards = [];
+
+    public $que_quan_wards = [];
+
+    public $noi_dang_ky_khai_sinh_wards = [];
+
+    public $ethnicities = [];
+
+    public $religions = [];
+
+    public array $registrationClasses = [];
+
+    public $copyNoiSinhToQueQuan = false;
+
+    public $sameAddress = false;
+
+    public $applicationId = null;
+
+    public $isEdit = false;
 
     // ⚠️ QUAN TRỌNG: GIỮ NGUYÊN KEY PascalCase
     public $form = [
@@ -41,9 +55,9 @@ class RegistrationForm extends Component
         'TonGiao' => 'Không',
         'SDTEnetViet' => '',
         'NoiSinh' => '',
-        'NoiSinhPx'  => '',
-        'NoiSinhTt'  => '',
-        'NoiSinhChiTiet'   => '',
+        'NoiSinhPx' => '',
+        'NoiSinhTt' => '',
+        'NoiSinhChiTiet' => '',
         'NoiDangKyKhaiSinhPx' => '',
         'NoiDangKyKhaiSinhTt' => '',
         'QueQuan' => '',
@@ -182,9 +196,9 @@ class RegistrationForm extends Component
     //         'CK_HopPH' => true,
     //         'CK_ThamGiaHD' => true,
     //         'CK_GanGui' => true,
-                // 'Lop' => '',
-                // 'Gvcn' => '',
-                // 'BaoMau' => '',
+    // 'Lop' => '',
+    // 'Gvcn' => '',
+    // 'BaoMau' => '',
     //         'NgayLamDon' => '',
     //         'NguoiLamDon' => 'Trần Thị Mai',
     //     ];
@@ -192,6 +206,7 @@ class RegistrationForm extends Component
     protected $rules = [
         'form.HoVaTenHocSinh' => 'required|min:5',
         'form.MaDinhDanh' => 'required|digits:12',
+        'form.LoaiLopDangKy' => 'required|string|max:255',
     ];
 
     // public function mount()
@@ -209,6 +224,8 @@ class RegistrationForm extends Component
         $this->provinces = AdmissionLocation::select('province_name')->distinct()->get()->toArray();
         $this->ethnicities = AdmissionCatalog::where('type', 'ethnicity')->get()->toArray();
         $this->religions = AdmissionCatalog::where('type', 'religion')->get()->toArray();
+        $this->registrationClasses = app(SchoolSettingService::class)->registrationClasses();
+        $this->form['LoaiLopDangKy'] = $this->registrationClasses[0] ?? '';
 
         $this->form['NgayLamDon'] = date('Y-m-d');
         // ================= EDIT MODE =================
@@ -218,8 +235,12 @@ class RegistrationForm extends Component
             $this->applicationId = $id;
 
             $app = AdmissionApplication::findOrFail($id);
-            //dump($app->kha_nang_hoc_sinh, gettype($app->kha_nang_hoc_sinh));
-            //dd($this->form['KhaNangHocSinh']);
+
+            if ($app->loai_lop_dang_ky && ! in_array($app->loai_lop_dang_ky, $this->registrationClasses, true)) {
+                $this->registrationClasses[] = $app->loai_lop_dang_ky;
+            }
+            // dump($app->kha_nang_hoc_sinh, gettype($app->kha_nang_hoc_sinh));
+            // dd($this->form['KhaNangHocSinh']);
             // dd($app->gioi_tinh);
             // ⚠️ MAP DB → FORM (phải đúng key Service)
             $this->form = [
@@ -271,34 +292,34 @@ class RegistrationForm extends Component
                     : [],
 
                 // STEP 4
-                'HoTenCha'          => $app->ho_ten_cha ?? '',
-                'NamSinhCha'        => $app->nam_sinh_cha ?? '',
-                'TdvhCha'           => $app->tdvh_cha ?? '',
-                'TdcmCha'           => $app->tdcm_cha ?? '',
-                'NgheNghiepCha'     => $app->nghe_nghiep_cha ?? 'LĐTD',
-                'ChuvuCha'          => $app->chuc_vu_cha ?? '',
-                'DienThoaiCha'      => $app->dien_thoai_cha ?? '',
-                'CCCDCha'           => $app->cccd_cha ?? '',
-                'HoTenMe'           => $app->ho_ten_me ?? '',
-                'NamSinhMe'         => $app->nam_sinh_me ?? '',
-                'TdvhMe'            => $app->tdvh_me ?? '',
-                'TdcmMe'            => $app->tdcm_me ?? '',
-                'NgheNghiepMe'      => $app->nghe_nghiep_me ?? 'LĐTD',
-                'ChuvuMe'           => $app->chuc_vu_me ?? '',
-                'DienThoaiMe'       => $app->dien_thoai_me ?? '',
-                'CCCDMe'            => $app->cccd_me ?? '',
-                'HoTenNguoiGiamHo'  => $app->ho_ten_nguoi_giam_ho ?? $app->ho_ten_me ?? '',
-                'DienThoaiGiamHo'   => $app->dien_thoai_giam_ho ?? $app->dien_thoai_me ?? '',
-                'CCCDGiamHo'        => $app->cccd_giam_ho ?? $app->cccd_me  ?? '',
+                'HoTenCha' => $app->ho_ten_cha ?? '',
+                'NamSinhCha' => $app->nam_sinh_cha ?? '',
+                'TdvhCha' => $app->tdvh_cha ?? '',
+                'TdcmCha' => $app->tdcm_cha ?? '',
+                'NgheNghiepCha' => $app->nghe_nghiep_cha ?? 'LĐTD',
+                'ChuvuCha' => $app->chuc_vu_cha ?? '',
+                'DienThoaiCha' => $app->dien_thoai_cha ?? '',
+                'CCCDCha' => $app->cccd_cha ?? '',
+                'HoTenMe' => $app->ho_ten_me ?? '',
+                'NamSinhMe' => $app->nam_sinh_me ?? '',
+                'TdvhMe' => $app->tdvh_me ?? '',
+                'TdcmMe' => $app->tdcm_me ?? '',
+                'NgheNghiepMe' => $app->nghe_nghiep_me ?? 'LĐTD',
+                'ChuvuMe' => $app->chuc_vu_me ?? '',
+                'DienThoaiMe' => $app->dien_thoai_me ?? '',
+                'CCCDMe' => $app->cccd_me ?? '',
+                'HoTenNguoiGiamHo' => $app->ho_ten_nguoi_giam_ho ?? $app->ho_ten_me ?? '',
+                'DienThoaiGiamHo' => $app->dien_thoai_giam_ho ?? $app->dien_thoai_me ?? '',
+                'CCCDGiamHo' => $app->cccd_giam_ho ?? $app->cccd_me ?? '',
 
                 // STEP 5
                 'LoaiLopDangKy' => $app->loai_lop_dang_ky ?? 'Lớp thường',
 
-                'CK_GocHocTap' => $app->ck_goc_hoc_tap ? (bool)$app->ck_goc_hoc_tap : true,
-                'CK_SachVo' => $app->ck_sach_vo ? (bool)$app->ck_sach_vo : true,
-                'CK_HopPH' => $app->ck_hop_ph ? (bool)$app->ck_hop_ph : true,
-                'CK_ThamGiaHD' => $app->ck_tham_gia_hd ? (bool)$app->ck_tham_gia_hd : true,
-                'CK_GanGui' => $app->ck_gan_gui ? (bool)$app->ck_gan_gui : true,
+                'CK_GocHocTap' => $app->ck_goc_hoc_tap ? (bool) $app->ck_goc_hoc_tap : true,
+                'CK_SachVo' => $app->ck_sach_vo ? (bool) $app->ck_sach_vo : true,
+                'CK_HopPH' => $app->ck_hop_ph ? (bool) $app->ck_hop_ph : true,
+                'CK_ThamGiaHD' => $app->ck_tham_gia_hd ? (bool) $app->ck_tham_gia_hd : true,
+                'CK_GanGui' => $app->ck_gan_gui ? (bool) $app->ck_gan_gui : true,
 
                 'Lop' => $app->lop ?? '',
                 'Gvcn' => $app->gvcn ?? '',
@@ -335,7 +356,6 @@ class RegistrationForm extends Component
             $this->noi_sinh_wards = AdmissionLocation::where('province_name', $this->form['NoiSinhTt'])->get()->toArray();
         }
 
-
         if ($field === 'form.NoiDangKyKhaiSinhTt') {
             $this->noi_dang_ky_khai_sinh_wards = AdmissionLocation::where('province_name', $this->form['NoiDangKyKhaiSinhTt'])->get()->toArray();
         }
@@ -367,7 +387,6 @@ class RegistrationForm extends Component
             $this->ht_wards = $this->tt_wards;
         }
     }
-
 
     public function updatedForm($value, $key)
     {
@@ -480,27 +499,27 @@ class RegistrationForm extends Component
 
             // ================= EDIT / CREATE =================
             if ($this->isEdit) {
-               
-                if($data['Lop'] !=='' && $data['Gvcn'] !=='') {
+
+                if ($data['Lop'] !== '' && $data['Gvcn'] !== '') {
                     $data['Status'] = 'approved';
-                }else{
+                } else {
                     $data['Status'] = 'pending';
                 }
 
                 $application = $service->updateRegistration($this->applicationId, $data);
                 $this->dispatch('show-success-modal', [
                     'name' => $application->ho_va_ten_hoc_sinh,
-                    'redirectUrl' => route('admin.admission.index')
+                    'redirectUrl' => route('admin.admission.index'),
                 ]);
             } else {
                 $application = $service->createRegistration($data);
                 $this->dispatch('show-success-modal', [
                     'name' => $application->ho_va_ten_hoc_sinh,
-                    'redirectUrl' => route('admission.register')
+                    'redirectUrl' => route('admission.register'),
                 ]);
             }
         } catch (\Exception $e) {
-            \Log::error("Lỗi lưu đơn: " . $e->getMessage());
+            \Log::error('Lỗi lưu đơn: '.$e->getMessage());
         }
     }
 

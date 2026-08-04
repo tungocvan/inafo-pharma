@@ -26,41 +26,4 @@ return [
             ],
         ],
     ],
-    [
-        'label' => 'Template HTML',
-        'icon' => 'fas fa-home',
-        'permission' => 'template-list',
-        'children' => [
-            [
-                'label' => 'Dashboard',
-                'icon' => 'fas fa-list',
-                'route' => 'template.index',
-                'permission' => 'template-list',
-            ],
-            [
-                'label' => 'Form Add',
-                'icon' => 'fas fa-plus',
-                'route' => 'template.form-add',
-                'permission' => 'template-list',
-            ],
-            [
-                'label' => 'Form Basic',
-                'icon' => 'fas fa-plus',
-                'route' => 'template.form-basic',
-                'permission' => 'template-list',
-            ],
-            [
-                'label' => 'Form Select',
-                'icon' => 'fas fa-plus',
-                'route' => 'template.form-select',
-                'permission' => 'template-list',
-            ],
-            [
-                'label' => 'Components',
-                'icon' => 'fas fa-plus',
-                'route' => 'template.components',
-                'permission' => 'template-list',
-            ],
-        ],
-    ],
 ];

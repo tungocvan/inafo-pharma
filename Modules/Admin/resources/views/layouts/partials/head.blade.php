@@ -1,5 +1,5 @@
 @php
-    use Modules\Website\Models\Setting;
+    use Modules\Admin\Models\Setting;
 
     $favicon = Setting::getValue('site_favicon');
     $headerScript = Setting::getValue('header_script');
@@ -190,6 +190,7 @@
         }
     </style>
 
+    <x-realtime-config />
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @stack('styles')
     @livewireStyles

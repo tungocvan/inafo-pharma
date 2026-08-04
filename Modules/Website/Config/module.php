@@ -2,8 +2,9 @@
 
 return array (
   'name' => 'Website',
-  'type' => 'shell',
-  'enabled' => true,
+  'type' => 'domain',
+  'enabled' => false,
+  'depends' => ['User', 'Product', 'Category', 'Post', 'Order'],
   'permissions' => 
   array (
     0 => 'view_website',

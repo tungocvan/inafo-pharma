@@ -64,7 +64,8 @@ class Index extends Component
             })
             ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterClass, fn($q) => $q->where('loai_lop_dang_ky', $this->filterClass))
-            ->latest();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at');
 
         if ($this->perPage === 'all') {
             return $query->get();
@@ -76,7 +77,6 @@ class Index extends Component
     // ACTIONS
     public function approve($id)
     {
-        $this->authorizeAdmin('approve_admission');
 
         $item = AdmissionApplication::findOrFail($id);
         if ($item->status !== 'pending') return;
@@ -90,8 +90,6 @@ class Index extends Component
 
     public function reject($id)
     {
-        $this->authorizeAdmin('reject_admission');
-
         $item = AdmissionApplication::findOrFail($id);
         if ($item->status !== 'pending') return;
 
@@ -104,8 +102,6 @@ class Index extends Component
 
     public function deleteSelected()
     {
-        $this->authorizeAdmin('delete_admission');
-
         AdmissionApplication::whereIn('id', $this->selected)
             ->get()
             ->each
@@ -122,8 +118,6 @@ class Index extends Component
 
     public function export()
     {
-        $this->authorizeAdmin('export_admission');
-
         return Excel::download(
             new ApplicationsExport(
                 $this->search,
@@ -139,10 +133,5 @@ class Index extends Component
         return view('Admission::livewire.admin.applications.index', [
             'applications' => $this->applications
         ]);
-    }
-
-    private function authorizeAdmin(string $permission): void
-    {
-        abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 }

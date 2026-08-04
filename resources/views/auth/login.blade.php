@@ -1,72 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập hệ thống</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng nhập - {{ config('app.name') }}</title>
+    <x-realtime-config />
+    @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
 </head>
+<body class="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-12">
+    <main class="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200">
+        <h1 class="text-center text-2xl font-bold text-slate-900">{{ config('app.name') }}</h1>
+        <p class="mt-2 text-center text-sm text-slate-500">Đăng nhập để tiếp tục</p>
 
-<body class="login-page bg-body-secondary">
-
-{{-- <div class="login-box">
-    <div class="login-logo mb-3">
-        <b>FlexBiz</b> Admin
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-body login-card-body">
-
-            <form method="POST" action="{{ route('login.perform') }}">
-                @csrf
-
-                <div class="mb-3">
-                    <input type="email"
-                           name="email"
-                           class="form-control @error('email') is-invalid @enderror"
-                           placeholder="Email"
-                           value="{{ old('email') }}"
-                           required autofocus>
-                </div>
-
-                <div class="mb-3">
-                    <input type="password"
-                           name="password"
-                           class="form-control @error('password') is-invalid @enderror"
-                           placeholder="Mật khẩu"
-                           required>
-                </div>
-
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary">
-                        Đăng nhập
-                    </button>
-                </div>
-            </form>
-
-        </div>
-    </div>
-</div> --}}
-<div class="wrapper">
-    <div class="icon">
-        <img src="https://www.freepnglogos.com/uploads/512x512-logo-png/512x512-logo-github-icon-35.png" alt="">
-    </div>
-    <div class="text-center mt-4 name"> FlexBiz </div>
-
-    <form class="p-3 mt-3" method="POST" action="{{ route('login.perform') }}">
-        @csrf
-        <div class="input-field d-flex align-items-center">
-            <span class="far fa-user"></span> <input type="email" name="email" id="userName" placeholder="Email" value="{{ old('email') }}">
-        </div>
-        <div class="input-field d-flex align-items-center"> <span class="fas fa-key"></span>
-            <input type="password" name="password" id="pwd" placeholder="Password">
-         </div>
-          <button class="btn mt-3">Login</button>
-    </form>
-    <div class="text-center fs-6">
-        <a href="forgot-password.html">Forgot password?</a> or <a href="register.html">Sign up</a>
-    </div>
-</div>
+        <form class="mt-8 space-y-5" method="POST" action="{{ route('login.perform') }}">
+            @csrf
+            <div>
+                <label for="email" class="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
+                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                @error('email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label for="password" class="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</label>
+                <input id="password" type="password" name="password" required
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                Đăng nhập
+            </button>
+        </form>
+    </main>
 </body>
 </html>

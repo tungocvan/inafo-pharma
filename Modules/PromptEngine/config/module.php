@@ -1,3 +1,8 @@
 <?php
 
-return ['name' => 'PromptEngine', 'type' => 'support', 'enabled' => true];
+return [
+    'name' => 'PromptEngine',
+    'type' => 'support',
+    'enabled' => false,
+    'depends' => [],
+];

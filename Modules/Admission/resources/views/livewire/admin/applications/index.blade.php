@@ -49,7 +49,7 @@ focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
             <option value="Lớp thường">Lớp thường</option>
             <option value="Tăng cường Tiếng Anh">Tăng cường Tiếng Anh</option>
             <option value="Tích hợp">Tích hợp</option>
-            <option value="Tăng cường TA + Toán và Khoa học">Tăng cường TA + Toán & Khoa học</option> 
+            <option value="Tăng cường TA + Toán và Khoa học">Tăng cường TA + Toán & Khoa học</option>
         </select>
 
         <select wire:model.live="filterStatus"
@@ -195,8 +195,8 @@ focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
                                 </span>
                             </td>
 
-                            <td class="px-6 py-4 text-gray-500">                                
-                                {{ $item->ngay_sinh->format('d/m/Y') }}
+                            <td class="px-6 py-4 text-gray-500">
+                                {{ $item->ngay_sinh ? \Carbon\Carbon::parse($item->ngay_sinh)->format('d/m/Y') : '' }}
                             </td>
 
                             <td class="px-6 py-4">
@@ -255,7 +255,7 @@ focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
                                         PDF
                                     </a>
                                 @endif
-
+                                @can('delete_admission')
                                 {{-- DOWNLOAD WORD --}}
                                 @if ($item->word_path && Storage::disk('local')->exists($item->word_path) && $item->status === 'approved')
                                     <a href="{{ route('admission.download', ['id' => $item->id, 'type' => 'word']) }}"
@@ -266,7 +266,7 @@ focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
 
 
                                 {{-- DELETE --}}
-                                @can('create_admission')
+
                                     <button wire:click="delete({{ $item->id }})"
                                         class="text-rose-500 hover:text-rose-700 text-sm">
                                         Xóa
